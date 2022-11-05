@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------------------------------
-// File: FirstOrderDynamics.hpp
+// File: PointMassFirstOrder.hpp
 // Desc: a first-order dynamics model
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
 // Project-specific
-#include "DynamicsBase.hpp"
+#include "ModelBase.hpp"
 
 namespace gtfo{
 
@@ -22,12 +22,13 @@ struct FirstOrderParameters : ParametersBase<Scalar>{
 };
 
 template<unsigned int Dimensions, typename Scalar = double>
-class FirstOrderDynamics : public DynamicsBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>{
+class PointMassFirstOrder : public ModelBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>{
 public:
-    using Base = DynamicsBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
+    using Base = ModelBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
+    using PossibleScalar = std::conditional_t<Dimensions == 1, Scalar, VectorN>;
 
-    FirstOrderDynamics(){}
+    PointMassFirstOrder(){}
 
     void SetParameters(const FirstOrderParameters<Scalar>& parameters) override{
         const Scalar& dt = parameters.dt;
@@ -44,8 +45,8 @@ public:
         this->B_discrete_ << (1.0 - exponent) * dc_gain, 0.0;
     }
 
-    void Step(const VectorN& input) override{
-        this->velocity_ = this->A_continuous_(0,0) * this->position_ + this->B_continuous_(0) * input;
+    void Step(const PossibleScalar& input) override{
+        this->velocity_ = this->A_continuous_(0,0) * this->position_ + input * this->B_continuous_.row(0);
         Base::Step(input);
     }
 };

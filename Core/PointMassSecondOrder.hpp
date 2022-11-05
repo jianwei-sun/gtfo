@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------------------------------
-// File: SecondOrderDynamics.hpp
+// File: PointMassSecondOrder.hpp
 // Desc: a second-order dynamics model
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
 // Project-specific
-#include "DynamicsBase.hpp"
+#include "ModelBase.hpp"
 
 namespace gtfo{
 
@@ -22,13 +22,12 @@ struct SecondOrderParameters : ParametersBase<Scalar>{
 };
 
 template<unsigned int Dimensions, typename Scalar = double>
-class SecondOrderDynamics : public DynamicsBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>{
+class PointMassSecondOrder : public ModelBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>{
 public:
-    using Base = DynamicsBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>;
+    using Base = ModelBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    SecondOrderDynamics() 
-        :   acceleration_(VectorN::Zero()){}
+    PointMassSecondOrder(){}
 
     void SetParameters(const SecondOrderParameters<Scalar>& parameters) override{
         const Scalar& dt = parameters.dt;
@@ -46,14 +45,6 @@ public:
         this->B_discrete_ << dt / damping - (1.0 - exponent) * mass / damping,
               (1.0 - exponent) / damping;
     }
-
-    void Step(const VectorN& input) override{
-        acceleration_ = this->A_continuous_.row(1) * (Eigen::Matrix<Scalar, 2, Dimensions>() << this->position_.transpose(), this->velocity_.transpose()).finished() + this->B_continuous_.row(1) * input;
-        Base::Step(input);
-    }
-
-private:
-    VectorN acceleration_;
 };
 
 }   // namespace gtfo
