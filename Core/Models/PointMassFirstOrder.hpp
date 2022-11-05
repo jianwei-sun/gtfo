@@ -5,7 +5,7 @@
 #pragma once
 
 // Project-specific
-#include "ModelBase.hpp"
+#include "PointMassBase.hpp"
 
 namespace gtfo{
 
@@ -22,9 +22,9 @@ struct FirstOrderParameters : ParametersBase<Scalar>{
 };
 
 template<unsigned int Dimensions, typename Scalar = double>
-class PointMassFirstOrder : public ModelBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>{
+class PointMassFirstOrder : public PointMassBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>{
 public:
-    using Base = ModelBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
+    using Base = PointMassBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
     using PossibleScalar = std::conditional_t<Dimensions == 1, Scalar, VectorN>;
 

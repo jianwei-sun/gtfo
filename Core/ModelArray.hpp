@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------
-// File: VirtualSystem.hpp
+// File: ModelArray.hpp
 // Desc: a virtual system consisting of a model with dynamics
 //----------------------------------------------------------------------------------------------------
 #pragma once
@@ -8,14 +8,14 @@
 #include <tuple>
 
 // Project-specific
-#include "ModelBase.hpp"
+#include "Models/PointMassBase.hpp"
 
 namespace gtfo{
 
 template<typename ...Models>
-class VirtualSystem : private std::tuple<Models...>{
+class ModelArray : private std::tuple<Models...>{
 public:
-    VirtualSystem(){}
+    ModelArray(){}
 
     template<size_t Index, typename State> 
     void GetState(State& state) const {
@@ -65,9 +65,6 @@ public:
             UpdateAllParameters<I + 1>(parameters...);
         }
     }
-    
-private:
-
 };
 
 }   // namespace gtfo

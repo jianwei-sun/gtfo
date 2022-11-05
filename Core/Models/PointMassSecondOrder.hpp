@@ -5,7 +5,7 @@
 #pragma once
 
 // Project-specific
-#include "ModelBase.hpp"
+#include "PointMassBase.hpp"
 
 namespace gtfo{
 
@@ -22,9 +22,9 @@ struct SecondOrderParameters : ParametersBase<Scalar>{
 };
 
 template<unsigned int Dimensions, typename Scalar = double>
-class PointMassSecondOrder : public ModelBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>{
+class PointMassSecondOrder : public PointMassBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>{
 public:
-    using Base = ModelBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>;
+    using Base = PointMassBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
     PointMassSecondOrder(){}

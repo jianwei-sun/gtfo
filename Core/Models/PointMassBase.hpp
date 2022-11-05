@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------
-// File: ModelBase.hpp
+// File: PointMassBase.hpp
 // Desc: base class for dynamics models
 //----------------------------------------------------------------------------------------------------
 #pragma once
@@ -23,7 +23,7 @@ struct ParametersBase{
 };
 
 template<unsigned int Dimensions, typename Parameters, typename Scalar = double>
-class ModelBase{
+class PointMassBase{
 public:
     static_assert(Dimensions > 0, "Dimensions must be at least 1.");
     static_assert(std::is_floating_point_v<Scalar>, "Template argument Scalar must be a floating-point type.");
@@ -33,7 +33,7 @@ public:
     using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
     using PossibleScalar = std::conditional_t<Dimensions == 1, Scalar, VectorN>;
 
-    ModelBase()
+    PointMassBase()
         :   A_continuous_(Matrix2::Zero()),
             B_continuous_(Vector2::Zero()),
             A_discrete_(Matrix2::Zero()),

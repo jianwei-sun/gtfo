@@ -4,6 +4,6 @@
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "Core/VirtualSystem.hpp"
-#include "Core/PointMassFirstOrder.hpp"
-#include "Core/PointMassSecondOrder.hpp"
+#include "Core/ModelArray.hpp"
+#include "Core/Models/PointMassFirstOrder.hpp"
+#include "Core/Models/PointMassSecondOrder.hpp"
