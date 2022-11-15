@@ -7,3 +7,5 @@
 #include "Core/ModelArray.hpp"
 #include "Core/Models/PointMassFirstOrder.hpp"
 #include "Core/Models/PointMassSecondOrder.hpp"
+
+#include "Core/Bounds/NormBound.hpp"
