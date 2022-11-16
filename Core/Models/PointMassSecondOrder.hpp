@@ -30,13 +30,11 @@ public:
     PointMassSecondOrder(){}
 
     void SetParameters(const SecondOrderParameters<Scalar>& parameters) override{
+        this->parameters_ = parameters;
+
         const Scalar& dt = parameters.dt;
         const Scalar& mass = parameters.mass;
         const Scalar& damping = parameters.damping;
-
-        // Update the continuous-time state transition matrices
-        this->A_continuous_ << 0.0, 1.0, 0.0, -damping / mass;
-        this->B_continuous_ << 0.0, 1.0 / mass;
 
         // Update the discrete-time state transition matrices, which are computed using exact discretization
         const Scalar exponent = std::exp(-damping / mass * dt);

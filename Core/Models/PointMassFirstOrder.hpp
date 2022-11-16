@@ -26,18 +26,15 @@ class PointMassFirstOrder : public PointMassBase<Dimensions, FirstOrderParameter
 public:
     using Base = PointMassBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-    using PossibleScalar = std::conditional_t<Dimensions == 1, Scalar, VectorN>;
 
     PointMassFirstOrder(){}
 
     void SetParameters(const FirstOrderParameters<Scalar>& parameters) override{
+        this->parameters_ = parameters;
+
         const Scalar& dt = parameters.dt;
         const Scalar& dc_gain = parameters.dc_gain;
         const Scalar& time_constant = parameters.time_constant;
-
-        // Update the continuous-time state transition matrices
-        this->A_continuous_ << -1.0 / time_constant, 0.0, 0.0, 0.0;
-        this->B_continuous_ << dc_gain / time_constant, 0.0;
 
         // Update the discrete-time state transition matrices, which are computed using exact discretization
         const Scalar exponent = std::exp(-dt / time_constant);
@@ -45,8 +42,9 @@ public:
         this->B_discrete_ << (1.0 - exponent) * dc_gain, 0.0;
     }
 
-    void Step(const PossibleScalar& input) override{
-        this->velocity_ = this->A_continuous_(0,0) * this->position_ + input * this->B_continuous_.row(0);
+    void Step(const VectorN &input) override
+    {
+        this->velocity_ = -1.0 / this->parameters_.time_constant * this->position_ + input * this->parameters_.dc_gain / this->parameters_.time_constant;
         Base::Step(input);
     }
 };
