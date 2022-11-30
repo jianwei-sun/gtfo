@@ -6,6 +6,7 @@
 
 // Standard libraries includes
 #include <algorithm>
+#include <iterator>
 #include <type_traits>
 #include <memory>
 
@@ -58,23 +59,66 @@ public:
 
     virtual bool Contains(const VectorN& point) const {
         assert(!tree_.empty());
+        return ContainerContains(tree_, point);
+    }
+
+    virtual VectorN operator()(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const {
+        assert(!tree_.empty());
+        // It is assumed that prev_point is contained within the bound
+
+        // Find the set of expressions that contain the previous point, but not the current one
+        std::unordered_set<BoundPtr> violated_bounds;
+        std::copy_if(tree_.begin(), tree_.end(), std::inserter(violated_bounds, violated_bounds.begin()), [&point](const BoundPtr& ptr)->bool{
+            return !ptr->Contains(point);
+        });
+
+        // If that set is empty, then the point is already contained within the bound
+        if(violated_bounds.empty()){
+            return point;
+        }
+
+        // Otherwise, bisection search until:
+        //   Union: at least one expression in the set contains the point
+        //   Intersection: all expressions in the set contain the point
+        const VectorN difference_vector = point - prev_point;
+        const Scalar scale_opt = BisectionSearch([&](const Scalar& scale)->bool{
+            const VectorN test_point = prev_point + scale * difference_vector;
+            return ContainerContains(violated_bounds, test_point);
+        }, tol);
+
+        return prev_point + scale_opt * difference_vector;
+    }
+
+protected:
+
+    Scalar BisectionSearch(std::function<bool(const Scalar&)> evaluator, const Scalar& tol) const {
+        std::pair<Scalar, Scalar> search_interval = std::make_pair(0.0, 1.0);
+        while((search_interval.second - search_interval.first) > tol){
+            const Scalar scale = (search_interval.first + search_interval.second) / 2.0;
+            if(evaluator(scale)){
+                search_interval.first = scale;
+            } else{
+                search_interval.second = scale;
+            }
+        }
+        return search_interval.first;
+    }
+
+private:
+
+    template <typename Container>
+    bool ContainerContains(const Container& container, const VectorN& point) const {
         if(relation_ == Relation::Union){
-            return std::any_of(tree_.begin(), tree_.end(), [&point](const BoundPtr& ptr){
+            return std::any_of(container.begin(), container.end(), [&point](const BoundPtr& ptr)->bool{
                 return ptr->Contains(point);
             });
         } else{ // Relation::Intersection
-            return std::all_of(tree_.begin(), tree_.end(), [&point](const BoundPtr& ptr){
+            return std::all_of(container.begin(), container.end(), [&point](const BoundPtr& ptr)->bool{
                 return ptr->Contains(point);
             });
         }
     }
 
-    virtual VectorN operator()(const VectorN& point) const {
-        // TODO
-        return point;
-    }
-
-private:
     Relation relation_;
     std::vector<BoundPtr> tree_;
 };
@@ -83,7 +127,6 @@ template <unsigned int Dimensions, typename Scalar = double>
 class BoundBase : public BoundExpression<Dimensions, Scalar>{
 public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-    using BoundExpression = BoundExpression<Dimensions, Scalar>;
 
     BoundBase() {}
 
@@ -91,8 +134,22 @@ public:
         return true;
     }
 
-    virtual VectorN operator()(const VectorN& point) const override {
-        return point;
+    virtual VectorN operator()(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const override {
+        // Assume that the previous point is within the bounds
+        assert(Contains(prev_point));
+
+        // Return if there is no bound violation
+        if(Contains(point)){
+            return point;
+        }
+
+        // Otherwise bisection search
+        const VectorN difference_vector = point - prev_point;
+        const Scalar scale_opt = BoundExpression<Dimensions, Scalar>::BisectionSearch([&](const Scalar& scale){
+            const VectorN test_point = prev_point + scale * difference_vector;
+            return Contains(test_point);
+        }, tol);
+        return prev_point + scale_opt * difference_vector;
     }
 };
 
