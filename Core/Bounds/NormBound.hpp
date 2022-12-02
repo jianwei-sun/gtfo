@@ -30,7 +30,7 @@ public:
         return (point - center_).template lpNorm<Norm>() <= threshold_;
     }
 
-    [[nodiscard]] bool IsAtBoundary(const VectorN& point, const Scalar& tol = 0.001) const override {
+    [[nodiscard]] bool IsAtBoundary(const VectorN& point, const Scalar& tol = 0.01) const override {
         return std::abs((point - center_).template lpNorm<Norm>() - threshold_) <= tol;
     }
 
