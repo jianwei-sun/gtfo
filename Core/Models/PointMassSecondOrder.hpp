@@ -14,6 +14,9 @@ struct SecondOrderParameters : ParametersBase<Scalar>{
     Scalar mass;
     Scalar damping;
 
+    SecondOrderParameters()
+        : ParametersBase<Scalar>(), mass(1.0), damping(1.0) {}
+
     SecondOrderParameters(const Scalar& dt, const Scalar& mass, const Scalar& damping)
         :   ParametersBase<Scalar>(dt), mass(mass), damping(damping)
     {
@@ -40,7 +43,7 @@ public:
         const Scalar exponent = std::exp(-damping / mass * dt);
         this->A_discrete_ << 1.0, (1.0 - exponent) * mass / damping, 
               0.0, exponent;
-        this->B_discrete_ << dt / damping - (1.0 - exponent) * mass / damping,
+        this->B_discrete_ << (damping * dt - (1.0 - exponent) * mass) / (damping * damping),
               (1.0 - exponent) / damping;
     }
 };

@@ -9,6 +9,7 @@
 #include <iterator>
 #include <type_traits>
 #include <memory>
+#include <unordered_set>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -26,25 +27,34 @@ class BoundExpression{
 
 private:
     enum class Relation{
-        Union,
-        Intersection
+        Intersection,
+        Union
     };
 
 public:
     BoundExpression()
-        :   relation_(Relation::Union) {}
+        :   relation_(Relation::Intersection) {}
 
     BoundExpression(const Relation& relation)
         :   relation_(relation){}
-
-    BoundExpression(const BoundExpression& bound_expression) = default;
 
     template <typename DerivedA, typename DerivedB>
     friend BoundExpression operator&(const DerivedA& lhs, const DerivedB& rhs){
         static_assert(std::is_base_of_v<BoundExpression, DerivedA> && std::is_base_of_v<BoundExpression, DerivedB>, "BoundExpression::operator& template arguments need to be a BoundExpression or a derived class of Bound");
         BoundExpression expression(Relation::Intersection);
-        expression.tree_.push_back(std::make_shared<DerivedA>(lhs));
-        expression.tree_.push_back(std::make_shared<DerivedB>(rhs));
+
+        if(std::is_same_v<DerivedA, BoundExpression> && lhs.relation_ == Relation::Intersection){
+            std::copy(lhs.tree_.begin(), lhs.tree_.end(), std::back_inserter(expression.tree_));
+        } else{
+            expression.tree_.push_back(std::make_shared<const DerivedA>(lhs));
+        } 
+
+        if(std::is_same_v<DerivedB, BoundExpression> && rhs.relation_ == Relation::Intersection){
+            std::copy(rhs.tree_.begin(), rhs.tree_.end(), std::back_inserter(expression.tree_));
+        } else{
+            expression.tree_.push_back(std::make_shared<const DerivedB>(rhs));
+        }    
+
         return expression;
     }
 
@@ -52,18 +62,73 @@ public:
     friend BoundExpression operator|(const DerivedA& lhs, const DerivedB& rhs){
         static_assert(std::is_base_of_v<BoundExpression, DerivedA> && std::is_base_of_v<BoundExpression, DerivedB>, "BoundExpression::operator| template arguments need to be a BoundExpression or a derived class of Bound");
         BoundExpression expression(Relation::Union);
-        expression.tree_.push_back(std::make_shared<DerivedA>(lhs));
-        expression.tree_.push_back(std::make_shared<DerivedB>(rhs));
+
+        if(std::is_same_v<DerivedA, BoundExpression> && lhs.relation_ == Relation::Union){
+            std::copy(lhs.tree_.begin(), lhs.tree_.end(), std::back_inserter(expression.tree_));
+        } else{
+            expression.tree_.push_back(std::make_shared<const DerivedA>(lhs));
+        }
+
+        if(std::is_same_v<DerivedB, BoundExpression> && rhs.relation_ == Relation::Union){
+            std::copy(rhs.tree_.begin(), rhs.tree_.end(), std::back_inserter(expression.tree_));
+        } else{
+            expression.tree_.push_back(std::make_shared<const DerivedB>(rhs));
+        }
+
         return expression;
     }
 
-    virtual bool Contains(const VectorN& point) const {
-        assert(!tree_.empty());
+    [[nodiscard]] virtual bool Contains(const VectorN& point) const {
+        if(tree_.empty()){
+            return true;
+        }
+        if(tree_.size() == 1){
+            return tree_[0]->Contains(point);
+        }
         return ContainerContains(tree_, point);
     }
 
-    virtual VectorN operator()(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const {
-        assert(!tree_.empty());
+    [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point, const Scalar& tol = 0.001) const {
+        if(tree_.empty()){
+            return false;
+        }
+        if(tree_.size() == 1){
+            return tree_[0]->IsAtBoundary(point, tol);
+        }
+
+        // Classify each bound expression as whether the point is at its boundary
+        std::unordered_set<BoundPtr> on_boundary;
+        std::unordered_set<BoundPtr> not_on_boundary;
+        for(const BoundPtr& ptr : tree_){
+            if(ptr->IsAtBoundary(point, tol)){
+                on_boundary.insert(ptr);
+            } else{
+                not_on_boundary.insert(ptr);
+            }
+        }
+
+        // If the point is not on any boundary, then it cannot be on the boundary of any finite boolean expression of bounds
+        if(on_boundary.empty()){
+            return false;
+        }
+
+        // For the bounds for which the point is not on its boundary:
+        //   Union: those bounds should not contain the point
+        //   Intersection: those bounds should all contain the point
+        if(relation_ == Relation::Union){
+            return !ContainerContains(not_on_boundary, point);
+        } else {
+            return ContainerContains(not_on_boundary, point);
+        }
+    }
+
+    [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const {
+        if(tree_.empty()){
+            return point;
+        }
+        if(tree_.size() == 1){
+            return tree_[0]->GetNearestPointWithinBound(point, prev_point, tol);
+        }
         // It is assumed that prev_point is contained within the bound
 
         // Find the set of expressions that contain the previous point, but not the current one
@@ -89,6 +154,33 @@ public:
         return prev_point + scale_opt * difference_vector;
     }
 
+    [[nodiscard]] virtual VectorN GetNegativeSurfaceNormal(const VectorN& point) const {
+        if(tree_.empty()){
+            return VectorN::Zero();
+        }
+        if(tree_.size() == 1){
+            return tree_[0]->GetNegativeSurfaceNormal(point);
+        }
+
+        // Find the bounds for which the point is at the boundary
+        std::unordered_set<BoundPtr> on_boundary;
+        std::copy_if(tree_.begin(), tree_.end(), std::inserter(on_boundary, on_boundary.begin()), [&point](const BoundPtr& ptr)->bool{
+            return ptr->IsAtBoundary(point);
+        });
+
+        // If there are no bounds, then the point is not at a boundary
+        if(on_boundary.empty()){
+            return VectorN::Zero();
+        }
+
+        // Otherwise, return the average of the negative surface normal vectors
+        VectorN sum = VectorN::Zero();
+        for(const BoundPtr& ptr : on_boundary){
+            sum += ptr->GetNegativeSurfaceNormal(point);
+        }
+        return sum / on_boundary.size();
+    } 
+
 protected:
 
     Scalar BisectionSearch(std::function<bool(const Scalar&)> evaluator, const Scalar& tol) const {
@@ -107,7 +199,9 @@ protected:
 private:
 
     template <typename Container>
-    bool ContainerContains(const Container& container, const VectorN& point) const {
+    [[nodiscard]] bool ContainerContains(const Container& container, const VectorN& point) const {
+        // any_of returns false if the container is empty
+        // all_of returns true if the container is empty
         if(relation_ == Relation::Union){
             return std::any_of(container.begin(), container.end(), [&point](const BoundPtr& ptr)->bool{
                 return ptr->Contains(point);
@@ -128,13 +222,18 @@ class BoundBase : public BoundExpression<Dimensions, Scalar>{
 public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    BoundBase() {}
+    BoundBase() = default;
+    BoundBase(const BoundBase& other) = default;
 
-    virtual bool Contains(const VectorN& point) const override {
+    [[nodiscard]] virtual bool Contains(const VectorN& point) const override {
         return true;
     }
 
-    virtual VectorN operator()(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const override {
+    [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point, const Scalar& tol = 0.001) const override {
+        return false;
+    }
+
+    [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const override {
         // Assume that the previous point is within the bounds
         assert(Contains(prev_point));
 
@@ -150,6 +249,10 @@ public:
             return Contains(test_point);
         }, tol);
         return prev_point + scale_opt * difference_vector;
+    }
+
+    [[nodiscard]] virtual VectorN GetNegativeSurfaceNormal(const VectorN& point) const override {
+        return VectorN::Zero();
     }
 };
 

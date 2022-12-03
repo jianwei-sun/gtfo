@@ -11,6 +11,9 @@
 // Third-party dependencies
 #include <Eigen/Dense>
 
+// Project-specific
+#include "../Bounds/BoundBase.hpp"
+
 namespace gtfo
 {
 
@@ -18,6 +21,8 @@ namespace gtfo
     struct ParametersBase
     {
         Scalar dt;
+
+        ParametersBase() : dt(0.001) {}
 
         ParametersBase(const Scalar &dt) : dt(dt)
         {
@@ -43,35 +48,37 @@ namespace gtfo
               velocity_(VectorN::Zero()),
               acceleration_(VectorN::Zero())
         {
+            
         }
 
         virtual void SetParameters(const Parameters &parameters) = 0;
 
-        void SetPositionBound(const Bound<Scalar, Dimensions> &position_bound)
-        {
-            position_bound_ = position_bound;
-        }
-
-        void SetVelocityBound(const Bound<Scalar, Dimensions> &velocity_bound)
-        {
-            velocity_bound_ = velocity_bound;
-        }
-
-        void SetUserInputBound(const Bound<Scalar, Dimensions> &user_input_bound)
-        {
-            user_input_bound_ = user_input_bound;
+        template <typename BoundType>
+        void SetHardBound(const BoundType& bound){
+            static_assert(std::is_base_of_v<BoundExpression<Dimensions, Scalar>, BoundType>, "Hard bound must be a BoundExpression or a derived class");
+            hard_bound_ = hard_bound_ & bound;
+            assert(hard_bound_.Contains(position_));
         }
 
         // Propagate the dynamics forward by one time-step
         virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero())
         {
-            const VectorN total_input = user_input_bound_(user_input) + environment_input;
+            const VectorN total_input = user_input + environment_input;
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << position_.transpose(), velocity_.transpose()).finished();
             const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + (total_input * B_discrete_.transpose()).transpose();
 
-            position_ = position_bound_(new_state.row(0));
-            velocity_ = velocity_bound_(new_state.row(1));
-            acceleration_ = (velocity_ - state.row(1)) / parameters_.dt;
+            position_ = hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
+            velocity_ = new_state.row(1);
+
+            if(hard_bound_.IsAtBoundary(position_)){
+                const VectorN negative_surface_normal = hard_bound_.GetNegativeSurfaceNormal(position_);
+                const Scalar inner_product = velocity_.dot(negative_surface_normal);
+                if(inner_product < 0.0){
+                    velocity_ += inner_product * negative_surface_normal;
+                }
+            }
+
+            acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }
 
         [[nodiscard]] inline const VectorN &GetPosition() const
@@ -100,9 +107,7 @@ namespace gtfo
         VectorN acceleration_;
 
     private:
-        Bound<Scalar, Dimensions> position_bound_;
-        Bound<Scalar, Dimensions> velocity_bound_;
-        Bound<Scalar, Dimensions> user_input_bound_;
+        BoundExpression<Dimensions, Scalar> hard_bound_;
     };
 
 } // namespace gtfo

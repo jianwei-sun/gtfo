@@ -14,6 +14,9 @@ struct FirstOrderParameters : ParametersBase<Scalar>{
     Scalar time_constant;
     Scalar dc_gain;
 
+    FirstOrderParameters()
+        :   ParametersBase<Scalar>(), time_constant(1.0), dc_gain(1.0) {}
+
     FirstOrderParameters(const Scalar& dt, const Scalar& time_constant, const Scalar& dc_gain)
         :   ParametersBase<Scalar>(dt), time_constant(time_constant), dc_gain(dc_gain)
     {
