@@ -23,8 +23,6 @@ public:
         assert(threshold > 0.0);
     }
 
-    using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-
     // The constant Eigen::Infinity, defined as -1, can be used for the infinite norm
     [[nodiscard]] bool Contains(const VectorN& point) const override {
         return (point - center_).template lpNorm<Norm>() <= threshold_;
