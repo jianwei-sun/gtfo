@@ -4,13 +4,19 @@
 
 Written by the Bionics Lab at UCLA. This library is currently under development!
 
+## Initializing Submodules
+This project includes `Eigen` version `3.4` as a git submodule. To populate this dependency, run the following command the first time:
+```
+git submodule update --init --recursive
+```
+
 ## Building Tests
 Tests and be built with the following commands:
 ```
 mkdir build
 cd build
-cmake -G "Ninja" ..
-ninja -j4
+cmake ..
+cmake --build . -j4
 ```
 They can then be executed with the following command in the `build` directory:
 ```

@@ -5,8 +5,8 @@
 # Usage: Configure this file appropriately. Then in the top level directory:
 #           `mkdir build`
 #           `cd build`
-#           `cmake -G "Ninja" ..` 
-#           `ninja -j4`
+#           `cmake ..` 
+#           `cmake --build . -j4`
 #       Tests can be invoked by calling either:
 #           `ctest` to run all the tests
 #           `ctest -R YourTestName` to run a specific test
