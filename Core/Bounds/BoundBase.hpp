@@ -14,6 +14,14 @@
 // Third-party dependencies
 #include <Eigen/Dense>
 
+// Tolerance constants
+#ifndef EQUALITY_COMPARISON_TOLERANCE
+    #define EQUALITY_COMPARISON_TOLERANCE (0.001)
+#endif
+#ifndef ALGORITHMIC_CONVERGENCE_TOLERANCE
+    #define ALGORITHMIC_CONVERGENCE_TOLERANCE (0.01)
+#endif
+
 namespace gtfo {
 
 template <unsigned int Dimensions, typename Scalar>
@@ -32,11 +40,11 @@ private:
     };
 
 public:
-    BoundExpression()
-        :   relation_(Relation::Intersection) {}
+    BoundExpression(const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
+        :   relation_(Relation::Intersection), tol_(tol) {}
 
-    BoundExpression(const Relation& relation)
-        :   relation_(relation){}
+    BoundExpression(const Relation& relation, const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
+        :   relation_(relation), tol_(tol) {}
 
     template <typename DerivedA, typename DerivedB>
     friend BoundExpression operator&(const DerivedA& lhs, const DerivedB& rhs){
@@ -88,19 +96,19 @@ public:
         return ContainerContains(tree_, point);
     }
 
-    [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point, const Scalar& tol = 0.001) const {
+    [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point) const {
         if(tree_.empty()){
             return false;
         }
         if(tree_.size() == 1){
-            return tree_[0]->IsAtBoundary(point, tol);
+            return tree_[0]->IsAtBoundary(point);
         }
 
         // Classify each bound expression as whether the point is at its boundary
         std::unordered_set<BoundPtr> on_boundary;
         std::unordered_set<BoundPtr> not_on_boundary;
         for(const BoundPtr& ptr : tree_){
-            if(ptr->IsAtBoundary(point, tol)){
+            if(ptr->IsAtBoundary(point)){
                 on_boundary.insert(ptr);
             } else{
                 not_on_boundary.insert(ptr);
@@ -122,12 +130,12 @@ public:
         }
     }
 
-    [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const {
+    [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const {
         if(tree_.empty()){
             return point;
         }
         if(tree_.size() == 1){
-            return tree_[0]->GetNearestPointWithinBound(point, prev_point, tol);
+            return tree_[0]->GetNearestPointWithinBound(point, prev_point);
         }
         // It is assumed that prev_point is contained within the bound
 
@@ -149,7 +157,7 @@ public:
         const Scalar scale_opt = BisectionSearch([&](const Scalar& scale)->bool{
             const VectorN test_point = prev_point + scale * difference_vector;
             return ContainerContains(violated_bounds, test_point);
-        }, tol);
+        });
 
         return prev_point + scale_opt * difference_vector;
     }
@@ -183,7 +191,7 @@ public:
 
 protected:
 
-    Scalar BisectionSearch(std::function<bool(const Scalar&)> evaluator, const Scalar& tol) const {
+    Scalar BisectionSearch(std::function<bool(const Scalar&)> evaluator, const Scalar& tol = ALGORITHMIC_CONVERGENCE_TOLERANCE) const {
         std::pair<Scalar, Scalar> search_interval = std::make_pair(0.0, 1.0);
         while((search_interval.second - search_interval.first) > tol){
             const Scalar scale = (search_interval.first + search_interval.second) / 2.0;
@@ -195,6 +203,8 @@ protected:
         }
         return search_interval.first;
     }
+
+    const Scalar tol_;
 
 private:
 
@@ -222,18 +232,19 @@ class BoundBase : public BoundExpression<Dimensions, Scalar>{
 public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    BoundBase() = default;
+    BoundBase(const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
+        :   BoundExpression<Dimensions, Scalar>(tol) {}
     BoundBase(const BoundBase& other) = default;
 
     [[nodiscard]] virtual bool Contains(const VectorN& point) const override {
         return true;
     }
 
-    [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point, const Scalar& tol = 0.001) const override {
+    [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point) const override {
         return false;
     }
 
-    [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const override {
+    [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const override {
         // Assume that the previous point is within the bounds
         assert(Contains(prev_point));
 
@@ -247,7 +258,7 @@ public:
         const Scalar scale_opt = BoundExpression<Dimensions, Scalar>::BisectionSearch([&](const Scalar& scale){
             const VectorN test_point = prev_point + scale * difference_vector;
             return Contains(test_point);
-        }, tol);
+        });
         return prev_point + scale_opt * difference_vector;
     }
 

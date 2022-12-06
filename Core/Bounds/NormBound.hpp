@@ -16,8 +16,9 @@ public:
 
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    NormBound(const Scalar& threshold, const VectorN& center = VectorN::Zero())
-        :   threshold_(threshold),
+    NormBound(const Scalar& threshold, const VectorN& center = VectorN::Zero(), const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
+        :   BoundBase<Dimensions, Scalar>(tol),
+            threshold_(threshold),
             center_(center)
     {
         assert(threshold > 0.0);
@@ -28,11 +29,11 @@ public:
         return (point - center_).template lpNorm<Norm>() <= threshold_;
     }
 
-    [[nodiscard]] bool IsAtBoundary(const VectorN& point, const Scalar& tol = 0.01) const override {
-        return std::abs((point - center_).template lpNorm<Norm>() - threshold_) <= tol;
+    [[nodiscard]] bool IsAtBoundary(const VectorN& point) const override {
+        return std::abs((point - center_).template lpNorm<Norm>() - threshold_) <= this->tol_;
     }
 
-    [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point, const Scalar& tol = 0.01) const override {
+    [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const override {
         // An exact (and simple) solution exists in 1D
         if constexpr(Dimensions == 1){
             const VectorN point_shifted_origin = point - center_;
@@ -40,7 +41,7 @@ public:
         } 
         // Although exact solutions exist for specific cases, e.g. Norm = 2, Dimensions = 2, they are very complicated. It's easier to solve this numerically with the default implementation
         else {
-            return BoundBase<Dimensions, Scalar>::GetNearestPointWithinBound(point, prev_point, tol);
+            return BoundBase<Dimensions, Scalar>::GetNearestPointWithinBound(point, prev_point);
         }
     }
 
@@ -57,8 +58,7 @@ public:
         }
         // Infinity-norm: https://math.stackexchange.com/questions/2696519/finding-the-derivative-of-the-infinity-norm
         else if constexpr(Norm == Eigen::Infinity){
-            constexpr Scalar tol = 0.0001;
-            const VectorN derivative = ((point_shifted_origin.cwiseAbs().array() - point_shifted_origin.cwiseAbs().maxCoeff()).cwiseAbs() < tol).template cast<Scalar>() * point_shifted_origin.array().sign();
+            const VectorN derivative = ((point_shifted_origin.cwiseAbs().array() - point_shifted_origin.cwiseAbs().maxCoeff()).cwiseAbs() < this->tol_).template cast<Scalar>() * point_shifted_origin.array().sign();
             return derivative.normalized();
         }
         // p-norm (p >= 1): https://math.stackexchange.com/questions/1482494/derivative-of-the-l-p-norm
