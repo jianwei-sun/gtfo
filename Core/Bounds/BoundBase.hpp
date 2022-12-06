@@ -154,12 +154,12 @@ public:
         return prev_point + scale_opt * difference_vector;
     }
 
-    [[nodiscard]] virtual VectorN GetNegativeSurfaceNormal(const VectorN& point) const {
+    [[nodiscard]] virtual VectorN GetSurfaceNormal(const VectorN& point) const {
         if(tree_.empty()){
             return VectorN::Zero();
         }
         if(tree_.size() == 1){
-            return tree_[0]->GetNegativeSurfaceNormal(point);
+            return tree_[0]->GetSurfaceNormal(point);
         }
 
         // Find the bounds for which the point is at the boundary
@@ -173,10 +173,10 @@ public:
             return VectorN::Zero();
         }
 
-        // Otherwise, return the average of the negative surface normal vectors
+        // Otherwise, return the average of the surface normal vectors
         VectorN sum = VectorN::Zero();
         for(const BoundPtr& ptr : on_boundary){
-            sum += ptr->GetNegativeSurfaceNormal(point);
+            sum += ptr->GetSurfaceNormal(point);
         }
         return sum / on_boundary.size();
     } 
@@ -251,7 +251,7 @@ public:
         return prev_point + scale_opt * difference_vector;
     }
 
-    [[nodiscard]] virtual VectorN GetNegativeSurfaceNormal(const VectorN& point) const override {
+    [[nodiscard]] virtual VectorN GetSurfaceNormal(const VectorN& point) const override {
         return VectorN::Zero();
     }
 };

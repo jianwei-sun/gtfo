@@ -71,10 +71,10 @@ namespace gtfo
             velocity_ = new_state.row(1);
 
             if(hard_bound_.IsAtBoundary(position_)){
-                const VectorN negative_surface_normal = hard_bound_.GetNegativeSurfaceNormal(position_);
-                const Scalar inner_product = velocity_.dot(negative_surface_normal);
-                if(inner_product < 0.0){
-                    velocity_ += inner_product * negative_surface_normal;
+                const VectorN surface_normal = hard_bound_.GetSurfaceNormal(position_);
+                const Scalar inner_product = velocity_.dot(surface_normal);
+                if(inner_product > 0.0){
+                    velocity_ -= inner_product * surface_normal;
                 }
             }
 

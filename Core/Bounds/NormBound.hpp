@@ -44,27 +44,27 @@ public:
         }
     }
 
-    [[nodiscard]] VectorN GetNegativeSurfaceNormal(const VectorN& point) const override {
+    [[nodiscard]] VectorN GetSurfaceNormal(const VectorN& point) const override {
         const VectorN point_shifted_origin = point - center_;
         // 1-norm: https://math.stackexchange.com/questions/1395699/differentiation-of-1-norm-of-a-vector
         if constexpr(Norm == 1){
             const VectorN derivative = point_shifted_origin.array().sign();
-            return -derivative.normalized();
+            return derivative.normalized();
         } 
         // 2-norm: https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
         else if constexpr(Norm == 2){
-            return -point_shifted_origin.normalized();
+            return point_shifted_origin.normalized();
         }
         // Infinity-norm: https://math.stackexchange.com/questions/2696519/finding-the-derivative-of-the-infinity-norm
         else if constexpr(Norm == Eigen::Infinity){
             constexpr Scalar tol = 0.0001;
             const VectorN derivative = ((point_shifted_origin.cwiseAbs().array() - point_shifted_origin.cwiseAbs().maxCoeff()).cwiseAbs() < tol).template cast<Scalar>() * point_shifted_origin.array().sign();
-            return -derivative.normalized();
+            return derivative.normalized();
         }
         // p-norm (p >= 1): https://math.stackexchange.com/questions/1482494/derivative-of-the-l-p-norm
         else {
             const VectorN derivative = (point_shifted_origin.cwiseAbs() / point_shifted_origin.template lpNorm<Norm>()).array().pow(Norm - 1) * point_shifted_origin.array().sign();
-            return -derivative.normalized();
+            return derivative.normalized();
         }
     }
 
