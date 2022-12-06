@@ -40,11 +40,8 @@ private:
     };
 
 public:
-    BoundExpression(const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
-        :   relation_(Relation::Intersection), tol_(tol) {}
-
-    BoundExpression(const Relation& relation, const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
-        :   relation_(relation), tol_(tol) {}
+    BoundExpression() : relation_(Relation::Intersection) {}
+    BoundExpression(const Relation& relation) : relation_(relation) {}
 
     template <typename DerivedA, typename DerivedB>
     friend BoundExpression operator&(const DerivedA& lhs, const DerivedB& rhs){
@@ -190,7 +187,6 @@ public:
     } 
 
 protected:
-
     Scalar BisectionSearch(std::function<bool(const Scalar&)> evaluator, const Scalar& tol = ALGORITHMIC_CONVERGENCE_TOLERANCE) const {
         std::pair<Scalar, Scalar> search_interval = std::make_pair(0.0, 1.0);
         while((search_interval.second - search_interval.first) > tol){
@@ -204,10 +200,7 @@ protected:
         return search_interval.first;
     }
 
-    const Scalar tol_;
-
 private:
-
     template <typename Container>
     [[nodiscard]] bool ContainerContains(const Container& container, const VectorN& point) const {
         // any_of returns false if the container is empty
@@ -232,8 +225,7 @@ class BoundBase : public BoundExpression<Dimensions, Scalar>{
 public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    BoundBase(const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
-        :   BoundExpression<Dimensions, Scalar>(tol) {}
+    BoundBase(const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE) : tol_(tol) {}
     BoundBase(const BoundBase& other) = default;
 
     [[nodiscard]] virtual bool Contains(const VectorN& point) const override {
@@ -265,6 +257,9 @@ public:
     [[nodiscard]] virtual VectorN GetSurfaceNormal(const VectorN& point) const override {
         return VectorN::Zero();
     }
+
+protected:
+    const Scalar tol_;
 };
 
 }   // namespace gtfo
