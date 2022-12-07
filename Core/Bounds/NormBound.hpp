@@ -16,7 +16,7 @@ public:
 
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    NormBound(const Scalar& threshold, const VectorN& center = VectorN::Zero(), const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE)
+    NormBound(const Scalar& threshold, const VectorN& center = VectorN::Zero(), const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
         :   BoundBase<Dimensions, Scalar>(tol),
             threshold_(threshold),
             center_(center)

@@ -14,13 +14,8 @@
 // Third-party dependencies
 #include <Eigen/Dense>
 
-// Tolerance constants
-#ifndef EQUALITY_COMPARISON_TOLERANCE
-    #define EQUALITY_COMPARISON_TOLERANCE (0.001)
-#endif
-#ifndef ALGORITHMIC_CONVERGENCE_TOLERANCE
-    #define ALGORITHMIC_CONVERGENCE_TOLERANCE (0.01)
-#endif
+// Project-specific
+#include "../Utils/Constants.hpp"
 
 namespace gtfo {
 
@@ -187,7 +182,7 @@ public:
     } 
 
 protected:
-    Scalar BisectionSearch(std::function<bool(const Scalar&)> evaluator, const Scalar& tol = ALGORITHMIC_CONVERGENCE_TOLERANCE) const {
+    Scalar BisectionSearch(std::function<bool(const Scalar&)> evaluator, const Scalar& tol = GTFO_ALGORITHMIC_CONVERGENCE_TOLERANCE) const {
         std::pair<Scalar, Scalar> search_interval = std::make_pair(0.0, 1.0);
         while((search_interval.second - search_interval.first) > tol){
             const Scalar scale = (search_interval.first + search_interval.second) / 2.0;
@@ -225,7 +220,7 @@ class BoundBase : public BoundExpression<Dimensions, Scalar>{
 public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    BoundBase(const Scalar& tol = EQUALITY_COMPARISON_TOLERANCE) : tol_(tol) {}
+    BoundBase(const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE) : tol_(tol) {}
     BoundBase(const BoundBase& other) = default;
 
     [[nodiscard]] virtual bool Contains(const VectorN& point) const override {
