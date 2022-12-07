@@ -279,80 +279,141 @@ TEST(NormBoundTest, IsAtBoundary3D) {
     EXPECT_FALSE(bound3Norm.IsAtBoundary(Eigen::Vector3d(0.0, 0.0, 0.9)));
 }
 
-TEST(NormBoundTest, GetSurfaceNormal1D) {
+TEST(NormBoundTest, GetSurfaceNormals1D) {
     static constexpr double threshold = 1.0;
 
     // Infinite-Norm
     gtfo::NormBound<Eigen::Infinity, 1> boundInfNorm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(1.0)), Eigen::Matrix<double, 1, 1>(1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(-1.0)), Eigen::Matrix<double, 1, 1>(-1.0)));
+    std::vector<Eigen::Matrix<double, 1, 1>> surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(1.0)));
+
+    surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(-1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(-1.0)));
 
     // 1-Norm
     gtfo::NormBound<1, 1> bound1Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound1Norm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(1.0)), Eigen::Matrix<double, 1, 1>(1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound1Norm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(-1.0)), Eigen::Matrix<double, 1, 1>(-1.0)));
+    surface_normals = bound1Norm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(1.0)));
+
+    surface_normals = bound1Norm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(-1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(-1.0)));
 
     // 2-Norm
     gtfo::NormBound<2, 1> bound2Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound2Norm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(1.0)), Eigen::Matrix<double, 1, 1>(1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound2Norm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(-1.0)), Eigen::Matrix<double, 1, 1>(-1.0)));
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(1.0)));
+
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(-1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(-1.0)));
 
     // 3-Norm
     gtfo::NormBound<3, 1> bound3Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound3Norm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(1.0)), Eigen::Matrix<double, 1, 1>(1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound3Norm.GetSurfaceNormal(Eigen::Matrix<double, 1, 1>(-1.0)), Eigen::Matrix<double, 1, 1>(-1.0)));
+    surface_normals = bound3Norm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(1.0)));
+
+    surface_normals = bound3Norm.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(-1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(-1.0)));
 }
 
-TEST(NormBoundTest, GetSurfaceNormal2D) {
+TEST(NormBoundTest, GetSurfaceNormals2D) {
     static constexpr double threshold = 1.0;
 
     // Infinite-Norm
     gtfo::NormBound<Eigen::Infinity, 2> boundInfNorm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Vector2d(0.0, 1.0)), Eigen::Vector2d(0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Vector2d(-1.0, 0.0)), Eigen::Vector2d(-1.0, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Vector2d(1.0, 0.99)), Eigen::Vector2d(1.0, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Vector2d(1.0, -1.0)), Eigen::Vector2d(1.0, -1.0).normalized()));
+    std::vector<Eigen::Vector2d> surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Vector2d(0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(0.0, 1.0)));
+
+    surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Vector2d(-1.0, 0.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(-1.0, 0.0)));
+
+    surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Vector2d(1.0, 0.99));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 0.0)));
+
+    surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Vector2d(1.0, -1.0));
+    EXPECT_TRUE(surface_normals.size() == 2 
+        && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 0.0))
+        && gtfo::IsEqual(surface_normals[1], Eigen::Vector2d(0.0, -1.0)));
 
     // 1-Norm
     gtfo::NormBound<1, 2> bound1Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound1Norm.GetSurfaceNormal(Eigen::Vector2d(0.0, 1.0)), Eigen::Vector2d(0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound1Norm.GetSurfaceNormal(Eigen::Vector2d(0.5, 0.5)), Eigen::Vector2d(1.0, 1.0).normalized()));
-    EXPECT_TRUE(gtfo::IsEqual(bound1Norm.GetSurfaceNormal(Eigen::Vector2d(0.7, 0.3)), Eigen::Vector2d(1.0, 1.0).normalized()));
+    surface_normals = bound1Norm.GetSurfaceNormals(Eigen::Vector2d(0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 2 
+        && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, -1.0).normalized())
+        && gtfo::IsEqual(surface_normals[1], Eigen::Vector2d(-1.0, -1.0).normalized()));
+
+    surface_normals = bound1Norm.GetSurfaceNormals(Eigen::Vector2d(0.5, 0.5));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 1.0).normalized()));
+
+    surface_normals = bound1Norm.GetSurfaceNormals(Eigen::Vector2d(0.7, 0.3));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 1.0).normalized()));
 
     // 2-Norm
     gtfo::NormBound<2, 2> bound2Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound2Norm.GetSurfaceNormal(Eigen::Vector2d(0.0, 1.0)), Eigen::Vector2d(0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound2Norm.GetSurfaceNormal(Eigen::Vector2d(1.0, 1.0).normalized()), Eigen::Vector2d(1.0, 1.0).normalized()));
-    EXPECT_TRUE(gtfo::IsEqual(bound2Norm.GetSurfaceNormal(Eigen::Vector2d(-1.0, 0.0)), Eigen::Vector2d(-1.0, 0.0)));
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector2d(0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(0.0, 1.0)));
+
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector2d(1.0, 1.0).normalized());
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 1.0).normalized()));
+
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector2d(-1.0, 0.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(-1.0, 0.0)));
     
     // 3-Norm
     gtfo::NormBound<3, 2> bound3Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound3Norm.GetSurfaceNormal(Eigen::Vector2d(0.0, 1.0)), Eigen::Vector2d(0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound3Norm.GetSurfaceNormal(Eigen::Vector2d(0.7937, 0.7937)), Eigen::Vector2d(1.0, 1.0).normalized()));
-    EXPECT_TRUE(gtfo::IsEqual(bound3Norm.GetSurfaceNormal(Eigen::Vector2d(-1.0, 0.0)), Eigen::Vector2d(-1.0, 0.0)));
+    surface_normals = bound3Norm.GetSurfaceNormals(Eigen::Vector2d(0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(0.0, 1.0)));
+
+    surface_normals = bound3Norm.GetSurfaceNormals(Eigen::Vector2d(0.7937, 0.7937));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 1.0).normalized()));
+
+    surface_normals = bound3Norm.GetSurfaceNormals(Eigen::Vector2d(-1.0, 0.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(-1.0, 0.0)));
 }
 
-TEST(NormBoundTest, GetSurfaceNormal3D) {
+TEST(NormBoundTest, GetSurfaceNormals3D) {
     static constexpr double threshold = 1.0;
 
     // Infinite-Norm
     gtfo::NormBound<Eigen::Infinity, 3> boundInfNorm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Vector3d(0.0, 0.0, 1.0)), Eigen::Vector3d(0.0, 0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Vector3d(-1.0, 0.5, -1.0)), Eigen::Vector3d(-1.0, 0.0, -1.0).normalized()));
-    EXPECT_TRUE(gtfo::IsEqual(boundInfNorm.GetSurfaceNormal(Eigen::Vector3d(1.0, -1.0, 1.0)), Eigen::Vector3d(1.0, -1.0, 1.0).normalized()));
+    std::vector<Eigen::Vector3d> surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Vector3d(0.0, 0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(0.0, 0.0, 1.0)));
+
+    surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Vector3d(-1.0, 0.5, -1.0));
+    EXPECT_TRUE(surface_normals.size() == 2 
+        && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(-1.0, 0.0, 0.0))
+        && gtfo::IsEqual(surface_normals[1], Eigen::Vector3d(0.0, 0.0, -1.0)));
+
+    surface_normals = boundInfNorm.GetSurfaceNormals(Eigen::Vector3d(1.0, -1.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 3 
+        && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(1.0, 0.0, 0.0))
+        && gtfo::IsEqual(surface_normals[1], Eigen::Vector3d(0.0, -1.0, 0.0))
+        && gtfo::IsEqual(surface_normals[2], Eigen::Vector3d(0.0, 0.0, 1.0)));
 
     // 1-Norm
     gtfo::NormBound<1, 3> bound1Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound1Norm.GetSurfaceNormal(Eigen::Vector3d(0.0, 0.0, 1.0)), Eigen::Vector3d(0.0, 0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound1Norm.GetSurfaceNormal(Eigen::Vector3d(0.3333, -0.3333, 0.3333)), Eigen::Vector3d(1.0, -1.0, 1.0).normalized()));
+    surface_normals = bound1Norm.GetSurfaceNormals(Eigen::Vector3d(0.0, 0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 4
+        && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(1.0, 0.0, -1.0).normalized())
+        && gtfo::IsEqual(surface_normals[1], Eigen::Vector3d(-1.0, 0.0, -1.0).normalized())
+        && gtfo::IsEqual(surface_normals[2], Eigen::Vector3d(0.0, 1.0, -1.0).normalized())
+        && gtfo::IsEqual(surface_normals[3], Eigen::Vector3d(0.0, -1.0, -1.0).normalized()));
+
+    surface_normals = bound1Norm.GetSurfaceNormals(Eigen::Vector3d(0.3333, -0.3333, 0.3333));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(1.0, -1.0, 1.0).normalized()));
 
     // 2-Norm
     gtfo::NormBound<2, 3> bound2Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound2Norm.GetSurfaceNormal(Eigen::Vector3d(0.0, 0.0, 1.0)), Eigen::Vector3d(0.0, 0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound2Norm.GetSurfaceNormal(Eigen::Vector3d(1.0, 1.0, 1.0).normalized()), Eigen::Vector3d(1.0, 1.0, 1.0).normalized()));
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector3d(0.0, 0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(0.0, 0.0, 1.0)));
+
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector3d(1.0, 1.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(1.0, 1.0, 1.0).normalized()));
 
     // 3-Norm
     gtfo::NormBound<3, 3> bound3Norm(threshold);
-    EXPECT_TRUE(gtfo::IsEqual(bound3Norm.GetSurfaceNormal(Eigen::Vector3d(0.0, 0.0, 1.0)), Eigen::Vector3d(0.0, 0.0, 1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(bound3Norm.GetSurfaceNormal(Eigen::Vector3d(1.0, 1.0, 1.0) / Eigen::Vector3d(1.0, 1.0, 1.0).lpNorm<3>()), Eigen::Vector3d(1.0, 1.0, 1.0).normalized()));
+    surface_normals = bound3Norm.GetSurfaceNormals(Eigen::Vector3d(0.0, 0.0, 1.0));
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(0.0, 0.0, 1.0)));
+
+    surface_normals = bound3Norm.GetSurfaceNormals(Eigen::Vector3d(1.0, 1.0, 1.0) / Eigen::Vector3d(1.0, 1.0, 1.0).lpNorm<3>());
+    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(1.0, 1.0, 1.0).normalized()));
 }

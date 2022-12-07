@@ -22,7 +22,7 @@ namespace gtfo
     {
         Scalar dt;
 
-        ParametersBase() : dt(0.001) {}
+        ParametersBase() : dt(1.0) {}
 
         ParametersBase(const Scalar &dt) : dt(dt)
         {
@@ -65,18 +65,22 @@ namespace gtfo
         {
             const VectorN total_input = user_input + environment_input;
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << position_.transpose(), velocity_.transpose()).finished();
-            const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + (total_input * B_discrete_.transpose()).transpose();
+            Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
+
+            velocity_ = new_state.row(1);
+            if(hard_bound_.IsAtBoundary(position_)){
+                for(const VectorN& surface_normal : hard_bound_.GetSurfaceNormals(position_)){
+                    const Scalar inner_product = velocity_.dot(surface_normal);
+                    if(inner_product > 0.0){
+                        velocity_ -= inner_product * surface_normal;
+                    }
+                }
+                // Update the new position with a semi-implicit Euler approximation with the corrected velocity, 
+                // since the bound-oblivious exact discretization equations would have likely violated the bound
+                new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
+            }
 
             position_ = hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
-            velocity_ = new_state.row(1);
-
-            if(hard_bound_.IsAtBoundary(position_)){
-                const VectorN surface_normal = hard_bound_.GetSurfaceNormal(position_);
-                const Scalar inner_product = velocity_.dot(surface_normal);
-                if(inner_product > 0.0){
-                    velocity_ -= inner_product * surface_normal;
-                }
-            }
 
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }

@@ -154,12 +154,12 @@ public:
         return prev_point + scale_opt * difference_vector;
     }
 
-    [[nodiscard]] virtual VectorN GetSurfaceNormal(const VectorN& point) const {
+    [[nodiscard]] virtual std::vector<VectorN> GetSurfaceNormals(const VectorN& point) const {
         if(tree_.empty()){
-            return VectorN::Zero();
+            return std::vector<VectorN>();
         }
         if(tree_.size() == 1){
-            return tree_[0]->GetSurfaceNormal(point);
+            return tree_[0]->GetSurfaceNormals(point);
         }
 
         // Find the bounds for which the point is at the boundary
@@ -170,15 +170,16 @@ public:
 
         // If there are no bounds, then the point is not at a boundary
         if(on_boundary.empty()){
-            return VectorN::Zero();
+            return std::vector<VectorN>();
         }
 
-        // Otherwise, return the average of the surface normal vectors
-        VectorN sum = VectorN::Zero();
+        // Otherwise, return all the surface normal vectors
+        std::vector<VectorN> total_surface_normals;
         for(const BoundPtr& ptr : on_boundary){
-            sum += ptr->GetSurfaceNormal(point);
+            const std::vector<VectorN> surface_normals = ptr->GetSurfaceNormals(point);
+            total_surface_normals.insert(total_surface_normals.end(), surface_normals.begin(), surface_normals.end());
         }
-        return sum / on_boundary.size();
+        return total_surface_normals;
     } 
 
 protected:
@@ -249,8 +250,8 @@ public:
         return prev_point + scale_opt * difference_vector;
     }
 
-    [[nodiscard]] virtual VectorN GetSurfaceNormal(const VectorN& point) const override {
-        return VectorN::Zero();
+    [[nodiscard]] virtual std::vector<VectorN> GetSurfaceNormals(const VectorN& point) const override {
+        return std::vector<VectorN>();
     }
 
 protected:
