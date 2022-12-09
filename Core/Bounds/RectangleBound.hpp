@@ -22,10 +22,17 @@ namespace gtfo
               center_(center)
         {
             // All lower limits must be lower than their respective upper limits
-            for (unsigned i = 0; i < Dimensions; i++)
-            {
-                assert(lower_limits[i] < upper_limits[i]);
-            }
+            assert((lower_limits.array() < upper_limits.array()).all());
+        }
+
+        // Case where we want same limit ditance in upper and lower bounds
+        RectangleBound(const VectorN &bilateral_limits, const VectorN &center = VectorN::Zero())
+            : lower_limits_(-bilateral_limits),
+              upper_limits_(bilateral_limits),
+              center_(center)
+        {
+            // All lower limits must be lower than their respective upper limits
+            assert((bilateral_limits > 0).all());
         }
 
         [[nodiscard]] bool Contains(const VectorN &point) const override
@@ -47,23 +54,7 @@ namespace gtfo
             // In 1D the solution will be one of the limits
             if constexpr (Dimensions == 1)
             {
-                // Below lower limit
-                if (point[0] < (this->center_[0] + this->lower_limits_[0]))
-                {
-                    // Snap to lower limits
-                    return this->lower_limits_;
-                }
-                // Above upper limit
-                else if (point[0] > (this->center_[0] + this->upper_limits_[0])) // Above upper limit
-                {
-                    // Snap to lower limits
-                    return this->upper_limits_;
-                }
-                // Else We are already in the bounds
-                else
-                {
-                    return point;
-                }
+                return point.cwiseMax(center_ + lower_limits_).cwiseMin(center_ + upper_limits_);
             }
 
             // There might be a smarter math way to do higher dimensions considering intersections of hyperplanes and hypershapes, but for now we can do this numerically
@@ -76,15 +67,15 @@ namespace gtfo
         [[nodiscard]] std::vector<VectorN> GetSurfaceNormals(const VectorN &point) const override
         {
             // Build Boolean array for where we are at boundaries
-            const VectorN combined_surface_vectors = ((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
-                                                     (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>();
+            const VectorN combined_surface_vectors = (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
+                                                     ((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).template cast<Scalar>();
             std::vector<VectorN> surface_normals;
 
-            for (unsigned i = 0; i < Dimensions; i++)
+            for (unsigned i = 0; i < Dimensions; ++i)
             {
-                if (abs(combined_surface_vectors[i]) > this->tol_)
+                if (std::abs(combined_surface_vectors[i]) > this->tol_)
                 {
-                    surface_normals.push_back(-combined_surface_vectors[i] * VectorN::Unit(i));
+                    surface_normals.push_back(combined_surface_vectors[i] * VectorN::Unit(i));
                 }
             }
             return surface_normals;
