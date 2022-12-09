@@ -1,6 +1,8 @@
 //----------------------------------------------------------------------------------------------------
 // File: PointMassFirstOrder.hpp
 // Desc: a first-order dynamics model
+//       This essentially serves as a low-pass filter. I.e., if a constant "force" is input to the
+//       system, its position will asymptotically equal the force * dc gain
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
@@ -41,14 +43,8 @@ public:
 
         // Update the discrete-time state transition matrices, which are computed using exact discretization
         const Scalar exponent = std::exp(-dt / time_constant);
-        this->A_discrete_ << exponent, 0.0, 0.0, 1.0;
-        this->B_discrete_ << (1.0 - exponent) * dc_gain, 0.0;
-    }
-
-    void Step(const VectorN &input) override
-    {
-        this->velocity_ = -1.0 / this->parameters_.time_constant * this->position_ + input * this->parameters_.dc_gain / this->parameters_.time_constant;
-        Base::Step(input);
+        this->A_discrete_ << exponent, 0.0, -1.0 / time_constant, 0.0;
+        this->B_discrete_ << (1.0 - exponent) * dc_gain, dc_gain / time_constant;
     }
 };
 
