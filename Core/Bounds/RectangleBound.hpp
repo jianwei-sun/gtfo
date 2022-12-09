@@ -16,8 +16,9 @@ namespace gtfo
     public:
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-        RectangleBound(const VectorN &lower_limits, const VectorN &upper_limits, const VectorN &center = VectorN::Zero())
-            : lower_limits_(lower_limits),
+        RectangleBound(const VectorN &lower_limits, const VectorN &upper_limits, const VectorN &center, const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
+            : BoundBase<Dimensions, Scalar>(GTFO_EQUALITY_COMPARISON_TOLERANCE),
+              lower_limits_(lower_limits),
               upper_limits_(upper_limits),
               center_(center)
         {
@@ -26,13 +27,14 @@ namespace gtfo
         }
 
         // Case where we want same limit ditance in upper and lower bounds
-        RectangleBound(const VectorN &bilateral_limits, const VectorN &center = VectorN::Zero())
-            : lower_limits_(-bilateral_limits),
+        RectangleBound(const VectorN &bilateral_limits, const VectorN& center = VectorN::Zero(), const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
+            : BoundBase<Dimensions, Scalar>(GTFO_EQUALITY_COMPARISON_TOLERANCE),
+              lower_limits_(-bilateral_limits),
               upper_limits_(bilateral_limits),
               center_(center)
         {
             // All lower limits must be lower than their respective upper limits
-            assert((bilateral_limits > 0).all());
+            assert((bilateral_limits.array() > 0.0).all());
         }
 
         [[nodiscard]] bool Contains(const VectorN &point) const override
