@@ -61,7 +61,7 @@ public:
             // Otherwise, there are 2 * (Dimensions - 1) normal vectors
             else{
                 // Ensure that only one coordinate is at the corner
-                assert(at_corner.cast<unsigned int>().sum() == 1);
+                assert(at_corner.template cast<unsigned int>().sum() == 1);
 
                 // Get the coordinate of the corner
                 size_t index_of_corner;
