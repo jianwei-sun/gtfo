@@ -16,28 +16,29 @@ public:
 
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    NormBound(const Scalar& threshold, const VectorN& center = VectorN::Zero(), const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
-        :   BoundBase<Dimensions, Scalar>(tol),
-            threshold_(threshold),
-            center_(center)
+    NormBound(const Scalar &radius, const VectorN &center = VectorN::Zero(), const Scalar &tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
+        : BoundBase<Dimensions, Scalar>(tol),
+          radius_(radius),
+          center_(center)
     {
-        assert(threshold > 0.0);
+        assert(radius > 0.0);
     }
 
     // The constant Eigen::Infinity, defined as -1, can be used for the infinite norm
     [[nodiscard]] bool Contains(const VectorN& point) const override {
-        return (point - center_).template lpNorm<Norm>() <= threshold_;
+        return (point - center_).template lpNorm<Norm>() <= radius_;
     }
 
     [[nodiscard]] bool IsAtBoundary(const VectorN& point) const override {
-        return std::abs((point - center_).template lpNorm<Norm>() - threshold_) <= this->tol_;
+        // Only tol distance inside the boundary is valid
+        return (std::abs((radius_ - ((point - center_).template lpNorm<Norm>())) <= this->tol_) && (radius_ - ((point - center_).template lpNorm<Norm>()) >= 0.0));
     }
 
     [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const override {
         // An exact (and simple) solution exists in 1D
         if constexpr(Dimensions == 1){
             const VectorN point_shifted_origin = point - center_;
-            return std::min(point_shifted_origin.template lpNorm<Norm>(), threshold_) * point_shifted_origin.normalized() + center_;
+            return std::min(point_shifted_origin.template lpNorm<Norm>(), radius_) * point_shifted_origin.normalized() + center_;
         } 
         // Although exact solutions exist for specific cases, e.g. Norm = 2, Dimensions = 2, they are very complicated. It's easier to solve this numerically with the default implementation
         else {
@@ -51,7 +52,7 @@ public:
         // 1-norm: 
         if constexpr(Norm == 1){
             // Determine if any coordinate is at a corner, since there are more normal vectors there
-            Eigen::Matrix<bool, Dimensions, 1> at_corner = (point_shifted_origin.array().abs() - threshold_).abs() <= this->tol_;
+            Eigen::Matrix<bool, Dimensions, 1> at_corner = (point_shifted_origin.array().abs() - radius_).abs() <= this->tol_;
 
             // If the point is not at any corner, then there is only one normal vector according to:
             // https://math.stackexchange.com/questions/1395699/differentiation-of-1-norm-of-a-vector
@@ -105,7 +106,7 @@ public:
     }
 
 private:
-    const Scalar threshold_;
+    const Scalar radius_;
     const VectorN center_;
 };
 
