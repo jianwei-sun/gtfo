@@ -45,6 +45,7 @@ public:
         }
     }
 
+    // TODO: Possibly deprecate the nondifferentiable norms (1 and infinite) and use RectangleBound instead
     [[nodiscard]] std::vector<VectorN> GetSurfaceNormals(const VectorN& point) const override {
         const VectorN point_shifted_origin = point - center_;
         // 1-norm: 
