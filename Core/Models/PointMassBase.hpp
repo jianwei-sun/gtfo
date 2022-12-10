@@ -53,37 +53,26 @@ namespace gtfo
 
         virtual void SetParameters(const Parameters &parameters) = 0;
 
+        // For making and adding hard bounds to the system
         template <typename BoundType>
-        void SetHardBound(const BoundType& bound){
+        void SetHardBound(const BoundType &bound)
+        {
             static_assert(std::is_base_of_v<BoundExpression<Dimensions, Scalar>, BoundType>, "Hard bound must be a BoundExpression or a derived class");
             hard_bound_ = hard_bound_ & bound;
             assert(hard_bound_.Contains(position_));
         }
 
-        // Propagate the dynamics forward by one time-step
-        virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero())
+        // For making and adding soft bounds to the system
+        template <typename BoundType>
+        void SetSoftBound(const BoundType &bound)
         {
-            const VectorN total_input = user_input + environment_input;
-            const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << position_.transpose(), velocity_.transpose()).finished();
-            Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
-
-            velocity_ = new_state.row(1);
-            if(hard_bound_.IsAtBoundary(position_)){
-                for(const VectorN& surface_normal : hard_bound_.GetSurfaceNormals(position_)){
-                    const Scalar inner_product = velocity_.dot(surface_normal);
-                    if(inner_product > 0.0){
-                        velocity_ -= inner_product * surface_normal;
-                    }
-                }
-                // Update the new position with a semi-implicit Euler approximation with the corrected velocity, 
-                // since the bound-oblivious exact discretization equations would have likely violated the bound
-                new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
-            }
-
-            position_ = hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
-
-            acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
+            static_assert(std::is_base_of_v<BoundExpression<Dimensions, Scalar>, BoundType>, "Soft bound must be a BoundExpression or a derived class");
+            soft_bound_ = soft_bound_ & bound;
+            assert(soft_bound_.Contains(position_));
         }
+
+        // Propagate the dynamics forward by one time-step
+        virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero()) = 0;
 
         [[nodiscard]] inline const VectorN &GetPosition() const
         {
@@ -110,8 +99,10 @@ namespace gtfo
         VectorN velocity_;
         VectorN acceleration_;
 
-    private:
         BoundExpression<Dimensions, Scalar> hard_bound_;
+        BoundExpression<Dimensions, Scalar> soft_bound_;
+
+    private:
     };
 
 } // namespace gtfo
