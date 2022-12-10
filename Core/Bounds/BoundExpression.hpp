@@ -10,6 +10,8 @@
 #include <type_traits>
 #include <memory>
 #include <unordered_set>
+#include <array>
+#include <vector>
 
 // Third-party dependencies
 #include <Eigen/Dense>
