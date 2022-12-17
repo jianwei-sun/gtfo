@@ -36,6 +36,28 @@ private:
         Union
     };
 
+    class SurfaceNormalsCache{
+    public:
+        SurfaceNormalsCache() : point_(VectorN::Constant(NAN)) {}
+
+        bool Contains(const VectorN& point) const{
+            return (point.array() == point_.array()).all();
+        }
+
+        std::vector<VectorN> Get() const{
+            return surface_normals_;
+        }
+
+        void Set(const VectorN& point, const std::vector<VectorN>& surface_normals){
+            point_ = point;
+            surface_normals_ = surface_normals;
+        }
+
+    private:
+        VectorN point_;
+        std::vector<VectorN> surface_normals_;
+    };
+
 public:
     BoundExpression() : relation_(Relation::Intersection) {}
     BoundExpression(const Relation& relation) : relation_(relation) {}
@@ -133,6 +155,11 @@ public:
     }
 
     [[nodiscard]] virtual std::vector<VectorN> GetSurfaceNormals(const VectorN& point) const {
+        // Check the cache first since IsAtBoundary also calls GetSurfaceNormals, 
+        // and the two are usually used together
+        if(surface_normals_cache_.Contains(point)){
+            return surface_normals_cache_.Get();
+        }
         if(tree_.empty()){
             return std::vector<VectorN>();
         }
@@ -204,6 +231,8 @@ public:
         });
         combined_surface_normals.erase(new_end, combined_surface_normals.end());
 
+        // Update the cache and return the result
+        surface_normals_cache_.Set(point, combined_surface_normals);
         return combined_surface_normals;
     } 
 
@@ -239,6 +268,7 @@ private:
 
     Relation relation_;
     std::vector<BoundPtr> tree_;
+    mutable SurfaceNormalsCache surface_normals_cache_;
 };
 
 }   // namespace gtfo
