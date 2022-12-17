@@ -17,7 +17,9 @@
 #include <Eigen/Dense>
 
 // Project-specific
-#include "../Utils/Constants.hpp"
+#include "../Utils/Containers.hpp"
+
+namespace gtfo {
 
 template <unsigned int Dimensions, typename Scalar>
 class BoundExpression{
@@ -95,31 +97,7 @@ public:
         if(tree_.size() == 1){
             return tree_[0]->IsAtBoundary(point);
         }
-
-        // Classify each bound expression as whether the point is at its boundary
-        std::unordered_set<BoundPtr> on_boundary;
-        std::unordered_set<BoundPtr> not_on_boundary;
-        for(const BoundPtr& ptr : tree_){
-            if(ptr->IsAtBoundary(point)){
-                on_boundary.insert(ptr);
-            } else{
-                not_on_boundary.insert(ptr);
-            }
-        }
-
-        // If the point is not on any boundary, then it cannot be on the boundary of any finite boolean expression of bounds
-        if(on_boundary.empty()){
-            return false;
-        }
-
-        // For the bounds for which the point is not on its boundary:
-        //   Union: those bounds should not contain the point
-        //   Intersection: those bounds should all contain the point
-        if(relation_ == Relation::Union){
-            return !ContainerContains(not_on_boundary, point);
-        } else {
-            return ContainerContains(not_on_boundary, point);
-        }
+        return !GetSurfaceNormals(point).empty();
     }
 
     [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const {
@@ -162,24 +140,71 @@ public:
             return tree_[0]->GetSurfaceNormals(point);
         }
 
-        // Find the bounds for which the point is at the boundary
-        std::unordered_set<BoundPtr> on_boundary;
-        std::copy_if(tree_.begin(), tree_.end(), std::inserter(on_boundary, on_boundary.begin()), [&point](const BoundPtr& ptr)->bool{
-            return ptr->IsAtBoundary(point);
-        });
+        // Classify each bound expression as whether the point is at its boundary
+        std::vector<BoundPtr> bounds_with_point_on_boundary;
+        std::vector<BoundPtr> bounds_with_point_not_on_boundary;
+        for(const BoundPtr& ptr : tree_){
+            if(ptr->IsAtBoundary(point)){
+                bounds_with_point_on_boundary.push_back(ptr);
+            } else{
+                bounds_with_point_not_on_boundary.push_back(ptr);
+            }
+        }
 
-        // If there are no bounds, then the point is not at a boundary
-        if(on_boundary.empty()){
+        // If the query point is not on any boundary, or if it is an interior point, 
+        // or an exterior point, then there can be no active bounds
+        if(bounds_with_point_on_boundary.empty() || 
+            (relation_ == Relation::Union && ContainerContains(bounds_with_point_not_on_boundary, point)) ||
+            (relation_ == Relation::Intersection && !ContainerContains(bounds_with_point_not_on_boundary, point)))
+        {
             return std::vector<VectorN>();
         }
 
-        // Otherwise, return all the surface normal vectors
-        std::vector<VectorN> total_surface_normals;
-        for(const BoundPtr& ptr : on_boundary){
-            const std::vector<VectorN> surface_normals = ptr->GetSurfaceNormals(point);
-            total_surface_normals.insert(total_surface_normals.end(), surface_normals.begin(), surface_normals.end());
+        // Construct the vector of surface normals
+        std::vector<VectorN> combined_surface_normals;
+
+        // Union case: annihilate surface normals that point exactly opposite of each other; these occur when boundaries 
+        // are merged together. For example, if the bound expression is a union of two unit rectangles placed tangent to 
+        // each other along a side, then that side should not be a boundary
+        if(relation_ == Relation::Union){
+            for(const BoundPtr& ptr: bounds_with_point_on_boundary){
+                for(const VectorN& surface_normal : ptr->GetSurfaceNormals(point)){
+                    // Check if there already is a surface normal that points in the opposite direction
+                    const typename std::vector<VectorN>::iterator it = std::find_if(combined_surface_normals.begin(), combined_surface_normals.end(), [&surface_normal](const VectorN& vector)->bool{
+                        return IsEqual(-surface_normal, vector);
+                    });
+                    // If there is, remove it
+                    if(it != combined_surface_normals.end()){
+                        combined_surface_normals.erase(it);
+                    // Otherwise, insert the surface normal to the collection
+                    } else{
+                        combined_surface_normals.push_back(surface_normal);
+                    }
+                }
+            }
         }
-        return total_surface_normals;
+        // Intersection case: simply take all the surface normals
+        else {
+            for(const BoundPtr& ptr : bounds_with_point_on_boundary){
+                const std::vector<VectorN> surface_normals = ptr->GetSurfaceNormals(point);
+                combined_surface_normals.insert(combined_surface_normals.end(), surface_normals.begin(), surface_normals.end());
+            }
+        }
+
+        // Remove exact duplicates. Uses a vector instead of an unsorted_set because the
+        // number of elements is small
+        std::vector<VectorN> duplicates;
+        const auto new_end = std::remove_if(combined_surface_normals.begin(), combined_surface_normals.end(), [&duplicates](const VectorN& vector)->bool{
+            if(std::find(duplicates.begin(), duplicates.end(), vector) != duplicates.end()){
+                return true;
+            } else{
+                duplicates.push_back(vector);
+                return false;
+            }
+        });
+        combined_surface_normals.erase(new_end, combined_surface_normals.end());
+
+        return combined_surface_normals;
     } 
 
 protected:
@@ -215,3 +240,5 @@ private:
     Relation relation_;
     std::vector<BoundPtr> tree_;
 };
+
+}   // namespace gtfo
