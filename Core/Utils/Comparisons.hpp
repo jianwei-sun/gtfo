@@ -12,6 +12,8 @@
 
 namespace gtfo {
 
+// Compares if two eigen types are equal; they are considered equal if the 
+// infinite norm of their error is less than the specified tolerance
 template <typename DerivedA, typename DerivedB>
 [[nodiscard]] inline const bool IsEqual(const Eigen::DenseBase<DerivedA>& a, const Eigen::DenseBase<DerivedB>& b, const typename Eigen::DenseBase<DerivedA>::Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE){
     return ((a.derived() - b.derived()).array().abs() <= tol).all();
