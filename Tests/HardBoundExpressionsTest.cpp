@@ -138,7 +138,7 @@ TEST(HardBoundExpressionTest, BoundsOverlappingIntersection){
 }
 
 // Move a virtual mass through an L-shaped region formed by a union of two bounds
-TEST(HardBoundExpressionTest, SecondOrderSystem2D){
+TEST(HardBoundExpressionTest, SecondOrderSystem2DLShapedBound){
     const gtfo::RectangleBound<2> bound1(Eigen::Vector2d(2.0, 0.5), Eigen::Vector2d(2.0, 0.5));
     const gtfo::RectangleBound<2> bound2(Eigen::Vector2d(0.5, 2.0), Eigen::Vector2d(3.5, 2.0));
 
@@ -157,6 +157,31 @@ TEST(HardBoundExpressionTest, SecondOrderSystem2D){
     }
 
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector2d(4.0, 4.0)));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector2d::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Eigen::Vector2d::Zero()));
+}
+
+// Move a virtual mass through a small opening between bounds
+TEST(HardBoundExpressionTest, SecondOrderSystem2DSmallOpening){
+    const gtfo::NormBound<2,2> bound1(1.0);
+    const gtfo::NormBound<2,2> bound2(1.0, Eigen::Vector2d(2.0, 0.0));
+
+    const auto bound = bound1 | bound2;
+
+    gtfo::PointMassSecondOrder<2> system;
+    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    system.SetHardBound(bound);
+
+    const Eigen::Vector2d force(1.0, 0.0);
+
+    for (size_t i = 0; i < 10; ++i)
+    {
+        system.Step(force);
+    }
+
+    std::cout << system.GetPosition().transpose();
+
+    EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector2d(3.0, 0.0)));
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector2d::Zero()));
     EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Eigen::Vector2d::Zero()));
 }
