@@ -123,22 +123,8 @@ public:
     }
 
     [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const {
-        if(tree_.empty()){
-            return point;
-        }
-        if(tree_.size() == 1){
-            return tree_[0]->GetNearestPointWithinBound(point, prev_point);
-        }
-        // It is assumed that prev_point is contained within the bound
-
-        // Find the set of expressions that contain the previous point, but not the current one
-        std::unordered_set<BoundPtr> violated_bounds;
-        std::copy_if(tree_.begin(), tree_.end(), std::inserter(violated_bounds, violated_bounds.begin()), [&point](const BoundPtr& ptr)->bool{
-            return !ptr->Contains(point);
-        });
-
-        // If that set is empty, then the point is already contained within the bound
-        if(violated_bounds.empty()){
+        // If the currently point is already within the bound, then no additional work is needed
+        if(Contains(point)){
             return point;
         }
 
@@ -148,7 +134,7 @@ public:
         const VectorN difference_vector = point - prev_point;
         const Scalar scale_opt = BisectionSearch([&](const Scalar& scale)->bool{
             const VectorN test_point = prev_point + scale * difference_vector;
-            return ContainerContains(violated_bounds, test_point);
+            return ContainerContains(tree_, test_point);
         });
 
         return prev_point + scale_opt * difference_vector;
