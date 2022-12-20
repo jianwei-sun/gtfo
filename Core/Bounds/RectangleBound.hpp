@@ -40,15 +40,17 @@ namespace gtfo
         [[nodiscard]] bool Contains(const VectorN &point) const override
         {
             // If all upper and lower boundaries are satisfied we are inside
-            return ((point.array() > (this->center_ + this->lower_limits_).array()).all() &&
-                    (point.array() < (this->center_ + this->upper_limits_).array()).all());
+            return ((point.array() >= (this->center_ + this->lower_limits_).array()).all() &&
+                    (point.array() <= (this->center_ + this->upper_limits_).array()).all());
         }
 
         [[nodiscard]] bool IsAtBoundary(const VectorN &point) const override
         {
-            // Any dimension within tolerance of a boundary means our point is at a boundary
-            return (((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).any() ||
-                    (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).any());
+            // Any inside position within tolerance of a boundary means our point is at a boundary
+            const Eigen::Array<Scalar, Dimensions, 1> point_shifted_origin = (point - center_).array();
+            return ((lower_limits_.array() <= point_shifted_origin && point_shifted_origin <= (lower_limits_.array() + this->tol_).array()).any() 
+                   || ((upper_limits_.array() - this->tol_).array() <= point_shifted_origin && point_shifted_origin <= upper_limits_.array()).any()) 
+                   && Contains(point);
         }
 
         [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN &point, const VectorN &prev_point) const override
