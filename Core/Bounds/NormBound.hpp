@@ -31,7 +31,8 @@ public:
 
     [[nodiscard]] bool IsAtBoundary(const VectorN& point) const override {
         // Only tol distance inside the boundary is valid
-        return (std::abs((radius_ - ((point - center_).template lpNorm<Norm>())) <= this->tol_) && (radius_ - ((point - center_).template lpNorm<Norm>()) >= 0.0));
+        const Scalar point_shifted_origin_norm = (point - center_).template lpNorm<Norm>();
+        return (radius_ - this->tol_) <= point_shifted_origin_norm && point_shifted_origin_norm <= radius_;
     }
 
     [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const override {

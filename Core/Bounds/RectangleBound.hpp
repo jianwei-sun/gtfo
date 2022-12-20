@@ -45,8 +45,10 @@ namespace gtfo
         [[nodiscard]] bool IsAtBoundary(const VectorN &point) const override
         {
             // Any inside position within tolerance of a boundary means our point is at a boundary
-            return ((((point - (this->center_ + this->lower_limits_)).array() <= this->tol_).cwiseProduct(((point - (this->center_ + this->lower_limits_)).array() >= 0.0))).any() ||
-                    ((((this->center_ + this->upper_limits_) - point).array() <= this->tol_).cwiseProduct(((point - (this->center_ + this->lower_limits_)).array() >= 0.0))).any());
+            const Eigen::Array<Scalar, Dimensions, 1> point_shifted_origin = (point - center_).array();
+            return ((lower_limits_.array() <= point_shifted_origin && point_shifted_origin <= (lower_limits_.array() + this->tol_).array()).any() 
+                   || ((upper_limits_.array() - this->tol_).array() <= point_shifted_origin && point_shifted_origin <= upper_limits_.array()).any()) 
+                   && Contains(point);
         }
 
         [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN &point, const VectorN &prev_point) const override

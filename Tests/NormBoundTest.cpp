@@ -274,7 +274,8 @@ TEST(NormBoundTest, IsAtBoundary3D) {
     // 3-Norm
     gtfo::NormBound<3, 3> bound3Norm(threshold);
     EXPECT_TRUE(bound3Norm.IsAtBoundary(Eigen::Vector3d(1.0, 0.0, 0.0)));
-    EXPECT_TRUE(bound3Norm.IsAtBoundary(Eigen::Vector3d(0.6934, -0.6934, -0.6934)));
+    EXPECT_TRUE(bound3Norm.IsAtBoundary(Eigen::Vector3d(0.6933, -0.6933, -0.6933)));
+    EXPECT_FALSE(bound3Norm.IsAtBoundary(Eigen::Vector3d(0.6934, -0.6934, -0.6934)));
     EXPECT_FALSE(bound3Norm.IsAtBoundary(Eigen::Vector3d(1.0, 1.0, 1.0)));
     EXPECT_FALSE(bound3Norm.IsAtBoundary(Eigen::Vector3d(0.0, 0.0, 0.9)));
 }
