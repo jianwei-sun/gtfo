@@ -85,6 +85,23 @@ namespace gtfo
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }
 
+        // Provides functionality for setting the virtual position to a physical position,
+        // which allows for more accurate bounds behavior in case the underlying position
+        // controller of the robot is poor. If a physical position is to be used, this function
+        // should be called everytime before Step is called, since the position is used to
+        // check for bound violations.
+        // If the given position is valid (not violating any hard bounds), set the position 
+        // and return true. Otherwise, do not set the position and return false.
+        inline bool SetPosition(const VectorN& position)
+        {
+            if(hard_bound_.Contains(position)){
+                position_ = position;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
         [[nodiscard]] inline const VectorN &GetPosition() const
         {
             return position_;
