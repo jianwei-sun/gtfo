@@ -51,6 +51,13 @@ public:
               (1.0 - exponent) / damping;
     }
 
+    template <typename BoundType>
+    void SetSoftBound(const BoundType& bound){
+        static_assert(std::is_base_of_v<BoundExpression<Dimensions, Scalar>, BoundType>, "Soft bound must be a BoundExpression or a derived class");
+        soft_bound_ = soft_bound_ & bound;
+        assert(soft_bound_.Contains(this->position_));
+    }
+
     // Propagate the dynamics forward by one time-step
     void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero()) override
     {
@@ -58,34 +65,15 @@ public:
         // Check for softbound violations and introduce our restorative force
         if (!this->soft_bound_.Contains(this->position_))
         {
-            // TODO impliment this once SoftBoundPhysics is done
-            // restorative_soft_bound_force = RestoringForce(this->soft_bound_, this->position_)
-        }
-        const VectorN total_input = user_input + environment_input + restorative_soft_bound_force;
-        const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << this->position_.transpose(), this->velocity_.transpose()).finished();
-        Eigen::Matrix<Scalar, 2, Dimensions> new_state = this->A_discrete_ * state + this->B_discrete_ * total_input.transpose();
-
-        this->velocity_ = new_state.row(1);
-
-        // Check for hard bounds and react accordingly
-        if (this->hard_bound_.IsAtBoundary(this->position_))
-        {
-            for (const VectorN &surface_normal : this->hard_bound_.GetSurfaceNormals(this->position_))
-            {
-                const Scalar inner_product = this->velocity_.dot(surface_normal);
-                if (inner_product > 0.0)
-                {
-                    this->velocity_ -= inner_product * surface_normal;
-                }
-            }
-            // Update the new position with a semi-implicit Euler approximation with the corrected velocity,
-            // since the bound-oblivious exact discretization equations would have likely violated the bound
-            new_state.row(0) = state.row(0) + this->velocity_.transpose() * this->parameters_.dt;
+            // TODO calculate softbound physics here
         }
 
-        this->position_ = this->hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
-        this->acceleration_ = (this->velocity_ - state.row(1).transpose()) / this->parameters_.dt;
+        // Step the system using the base implementation
+        Base::Step(user_input, environment_input + restorative_soft_bound_force);
     }
+
+private:
+    BoundExpression<Dimensions, Scalar> soft_bound_;
 };
 
 }   // namespace gtfo
