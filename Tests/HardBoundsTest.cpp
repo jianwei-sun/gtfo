@@ -31,7 +31,8 @@ TEST(HardBoundsTest, FirstOrderSystem2DRectangle) {
     // So, the force input is set as a value past the rectangular bound, in order to test the hard bound
     const Eigen::Vector2d force(2.0, 1.0);
 
-    for(size_t i = 0; i < 10; ++i){
+    for (size_t i = 0; i < 10; ++i)
+    {
         system.Step(force);
     }
 
