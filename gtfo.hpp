@@ -4,7 +4,9 @@
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
+#include "Core/Utils/Constants.hpp"
 #include "Core/Utils/Comparisons.hpp"
+#include "Core/Utils/Containers.hpp"
 
 #include "Core/ModelArray.hpp"
 #include "Core/Models/PointMassFirstOrder.hpp"
