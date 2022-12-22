@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-
 #include "../gtfo.hpp"
 
 // Verifies that a union of hard bounds behaves correctly
@@ -179,9 +178,40 @@ TEST(HardBoundExpressionTest, SecondOrderSystem2DSmallOpening){
         system.Step(force);
     }
 
-    std::cout << system.GetPosition().transpose();
+    std::cout << "Final position: " << system.GetPosition().transpose() << "\n";
 
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector2d(3.0, 0.0)));
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector2d::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Eigen::Vector2d::Zero()));
+}
+
+// Prevent going out of bounds at corners between bounds
+TEST(HardBoundExpressionTest, EscapingAtCorners){
+    const gtfo::RectangleBound<2> bound1(Eigen::Vector2d::Ones(), -Eigen::Vector2d::Ones());
+    const gtfo::RectangleBound<2> bound2(Eigen::Vector2d::Ones(), Eigen::Vector2d::Ones());
+
+    const auto bound = bound1 | bound2;
+
+    gtfo::PointMassSecondOrder<2> system;
+    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    system.SetHardBound(bound);
+
+    const Eigen::Vector2d force(-1.0, 1.0);
+
+    // Test a range of forces that all point out of the bound expression
+    for (double angle = 95; angle < 175; angle += 5.0)
+    {
+        const double angle_radian = angle * std::atan(1.0) / 45.0;
+        const Eigen::Vector2d force = Eigen::Vector2d(cos(angle_radian), sin(angle_radian));
+        system.Step(force);
+    }
+
+    std::cout << "Final position: " << system.GetPosition().transpose() << "\n";
+    EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector2d::Zero()));
+
+    std::cout << "Final velocity: " << system.GetVelocity().transpose() << "\n";
+    EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector2d::Zero()));
+    
+    std::cout << "Final acceleration: " << system.GetAcceleration().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Eigen::Vector2d::Zero()));
 }
