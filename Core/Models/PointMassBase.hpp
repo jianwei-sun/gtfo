@@ -44,8 +44,8 @@ namespace gtfo
         PointMassBase(const VectorN &initial_physical_position_ = VectorN::Zero())
             : A_discrete_(Matrix2::Zero()),
               B_discrete_(Vector2::Zero()),
-              hard_virtual_position_(physical_position_),
-              physical_position_(physical_position_),
+              hard_virtual_position_(initial_physical_position_),
+              physical_position_(initial_physical_position_),
               velocity_(VectorN::Zero()),
               acceleration_(VectorN::Zero())
         {
@@ -61,13 +61,13 @@ namespace gtfo
             assert(hard_bound_.Contains(hard_virtual_position_));
         }
 
-        // Function for the user to call to update the virtual position based on the physical position of their system - Typically called before step()
-        virtual void SetVirtualPosition(const VectorN &physical_position)
+        // Upddates the hard virtual position given a physical position provided by the user
+        virtual void UpdateHardVirtualPosition(const VectorN &physical_position)
         {
           if(hard_bound_.IsAtBoundary(hard_virtual_position_))
           {
             const VectorN physical_velocity = (this->physical_position_ - physical_position) / this->parameters_.dt; 
-            // Uncomment when RemoveBadVelocites exists
+            // Uncomment when RemoveBadVelocites function exists
             //this->hard_virtual_position_ = this->hard_virtual_position_ + RemoveBadVelocities(physical_velocity) * this->parameters_.dt; 
           }
         
@@ -76,8 +76,9 @@ namespace gtfo
         }
 
         // Propagate the dynamics forward by one time-step
-        virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero())
+        virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero(), const VectorN &physical_position = hard_virtual_position_)
         {
+            UpdateHardVirtualPosition(physical_position); // Update position from the user
             const VectorN total_input = user_input + environment_input;
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << hard_virtual_position_.transpose(), velocity_.transpose()).finished();
             Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
