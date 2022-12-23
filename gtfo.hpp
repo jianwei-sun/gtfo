@@ -4,6 +4,7 @@
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
+#include "Core/Utils/BooleanExpression.hpp"
 #include "Core/Utils/Constants.hpp"
 #include "Core/Utils/Comparisons.hpp"
 #include "Core/Utils/Containers.hpp"
