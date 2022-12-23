@@ -61,7 +61,7 @@ namespace gtfo
             assert(hard_bound_.Contains(hard_virtual_position_));
         }
 
-        // Upddates the hard virtual position given a physical position provided by the user
+        // Updates the hard virtual position given a physical position provided by the user
         virtual void UpdateHardVirtualPosition(const VectorN &physical_position)
         {
           if(hard_bound_.IsAtBoundary(hard_virtual_position_))
