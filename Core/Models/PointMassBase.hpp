@@ -44,8 +44,8 @@ namespace gtfo
         PointMassBase(const VectorN &initial_physical_position_ = VectorN::Zero())
             : A_discrete_(Matrix2::Zero()),
               B_discrete_(Vector2::Zero()),
-              hard_virtual_position_(initial_physical_position_),
-              physical_position_(initial_physical_position_),
+              hard_bounded_position_(initial_physical_position_),
+              true_position_(initial_physical_position_),
               velocity_(VectorN::Zero()),
               acceleration_(VectorN::Zero())
         {
@@ -58,34 +58,33 @@ namespace gtfo
         void SetHardBound(const BoundType& bound){
             static_assert(std::is_base_of_v<BoundExpression<Dimensions, Scalar>, BoundType>, "Hard bound must be a BoundExpression or a derived class");
             hard_bound_ = hard_bound_ & bound;
-            assert(hard_bound_.Contains(hard_virtual_position_));
+            assert(hard_bound_.Contains(hard_bounded_position_));
         }
 
-        // Updates the hard virtual position given a physical position provided by the user
-        virtual void UpdateHardVirtualPosition(const VectorN &physical_position)
+        // Updates the hard bounded position given a physical position provided by the user
+        virtual void UpdateHardBoundedPosition(const VectorN &physical_position)
         {
-          if(hard_bound_.IsAtBoundary(hard_virtual_position_))
+          if(hard_bound_.IsAtBoundary(hard_bounded_position_))
           {
-            const VectorN physical_velocity = (this->physical_position_ - physical_position) / this->parameters_.dt; 
+            const VectorN physical_shift = (this->true_position_ - physical_position); 
             // Uncomment when RemoveBadVelocites function exists
-            //this->hard_virtual_position_ = this->hard_virtual_position_ + RemoveBadVelocities(physical_velocity) * this->parameters_.dt; 
+            //this->hard_bounded_position_ = this->hard_bounded_position_ + RemoveBadDirections(physical_shift); 
           }
         
-          this->hard_virtual_position_ = hard_bound_.GetNearestPointWithinBound(physical_position,this->hard_virtual_position_);
-          this->physical_position_ = physical_position; 
+          this->hard_bounded_position_ = hard_bound_.GetNearestPointWithinBound(physical_position,this->hard_bounded_position_);
+          this->true_position_ = physical_position; 
         }
 
-        // Propagate the dynamics forward by one time-step
-        virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero(), const VectorN &physical_position = hard_virtual_position_)
+        // Propagate the dynamics forward by one time-step. Note force_input is the combined user input plus any virtual environmental effects to be included
+        virtual void Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN))
         {
-            UpdateHardVirtualPosition(physical_position); // Update position from the user
-            const VectorN total_input = user_input + environment_input;
-            const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << hard_virtual_position_.transpose(), velocity_.transpose()).finished();
-            Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
+            UpdateHardBoundedPosition(physical_position.array().isNaN().select(hard_bounded_position_,physical_position)); // Update position from the user if given
+            const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << hard_bounded_position_.transpose(), velocity_.transpose()).finished();
+            Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
 
             velocity_ = new_state.row(1);
-            if(hard_bound_.IsAtBoundary(hard_virtual_position_)){
-                for(const VectorN& surface_normal : hard_bound_.GetSurfaceNormals(hard_virtual_position_)){
+            if(hard_bound_.IsAtBoundary(hard_bounded_position_)){
+                for(const VectorN& surface_normal : hard_bound_.GetSurfaceNormals(hard_bounded_position_)){
                     const Scalar inner_product = velocity_.dot(surface_normal);
                     if(inner_product > 0.0){
                         velocity_ -= inner_product * surface_normal;
@@ -96,14 +95,14 @@ namespace gtfo
                 new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
             }
 
-            hard_virtual_position_ = hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
+            hard_bounded_position_ = hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
 
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }
 
         [[nodiscard]] inline const VectorN &GetPosition() const
         {
-            return hard_virtual_position_;
+            return hard_bounded_position_;
         }
 
         [[nodiscard]] inline const VectorN &GetVelocity() const
@@ -122,8 +121,8 @@ namespace gtfo
         Matrix2 A_discrete_;
         Vector2 B_discrete_;
 
-        VectorN hard_virtual_position_;    // Position of the virtual system which cannoy exceede hard bounds
-        VectorN physical_position_;        // Position of the physical system updated by user.  If no update is given this is always equal to hard_virtual_position_
+        VectorN hard_bounded_position_;    // Position of the virtual system which respects hard bounds limitations
+        VectorN true_position_;            // Actual position of the system. This can be set by the user each step. If not set, it is always equal to hard_bounded_position_
         VectorN velocity_;
         VectorN acceleration_;
 
