@@ -58,23 +58,29 @@ namespace gtfo
         template <typename BoundType>
         void SetHardBound(const BoundType& bound){
             static_assert(
-                std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>,
-                "Hard bound must derive from BoundBase");
+                std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>, 
+                "Hard bound must derive from BoundBase"
+            );
             hard_bound_ = std::make_shared<BoundType>(bound);
             assert(hard_bound_->Contains(position_));
         }
 
-        // Propagate the dynamics forward by one time-step
-        virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero())
+        // Propagate the dynamics forward by one time-step.  Returns false if fails to set a physical position
+        virtual bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN))
         {
+            // If we were given a physical location we update our virtual position to match
+            bool err = PointMassBase::SyncVirtualPositionToPhysical(physical_position);
+
             // Sum the external forces and build the current state
-            const VectorN total_input = user_input + environment_input;
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << position_.transpose(), velocity_.transpose()).finished();
 
             // Step the dynamics to determine our next state
-            Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
+            Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
 
-            // Update the velocity TODO: add velocity limiter function here
+            // Ensure the new position is within the bounds
+            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
+            
+            // Ensure the new velocity points in the interior of the bound
             velocity_ = new_state.row(1);
 
             // Enfoce hard bounds if they exist and then update the state position
@@ -82,6 +88,9 @@ namespace gtfo
 
             // Update acceleration for new state
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
+
+            // Return error state to user. TODO: Consider converting to int for allowing other error states
+            return err;
         }
 
         [[nodiscard]] inline const VectorN &GetPosition() const
@@ -109,9 +118,24 @@ namespace gtfo
         VectorN velocity_;
         VectorN acceleration_;
 
-    private:
         BoundPtr hard_bound_;
 
+        // Sets the virtual position to the physical one if the physical input is in hard bounds.
+        virtual bool SyncVirtualPositionToPhysical(const VectorN &physical_position)
+        {
+            if (!physical_position.array().isNaN().any())
+            {
+                // Snap position to closest point to physical position in bounds.
+                position_ = hard_bound_->GetNearestPointWithinBound(physical_position);
+
+                // Let user know if snap worked
+               return !hard_bound_->Contains(physical_position);
+            }
+
+            return true;
+        }
+
+    private:
         // Enfoce hard bound limits on a state to determine position new state
         virtual void EnforceHardBound(const Eigen::Matrix<Scalar, 2, Dimensions> &state, Eigen::Matrix<Scalar, 2, Dimensions> &new_state)
         {

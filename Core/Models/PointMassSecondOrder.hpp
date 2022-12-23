@@ -67,19 +67,23 @@ namespace gtfo{
         }
 
         // Propagate dynamics for a second order system but using softbounds if they exist
-        void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero()) override
+        bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN)) override
         {
+            // If we were given a physical location we update our virtual position to match
+            bool err = Base::SyncVirtualPositionToPhysical(physical_position);
+
             // Check to first see if we are outside a softbound
             if (!soft_bound_->Contains(this->position_))
             {
-                // If we are outside we need to enforce the softbound and use its restoring force to step
+                // If we are outside we need to enforce the softbound and use its restoring force to step without a physical position since we already synced it (if it was valid)
                 VectorN soft_bound_restoring_force = EnforceSoftBound();
-                Base::Step(user_input, environment_input + soft_bound_restoring_force);
-                return;
+                Base::Step(force_input + soft_bound_restoring_force);
+                return err;
             }
 
-            // Otherwise step without a restoring force
-            Base::Step(user_input, environment_input);
+            // Otherwise step without a restoring force and also without a physical position since we already synced it (if it was valid)
+            Base::Step(force_input);
+            return err;
         }
 
     private:
