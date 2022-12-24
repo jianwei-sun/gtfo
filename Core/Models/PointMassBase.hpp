@@ -12,7 +12,7 @@
 #include <Eigen/Dense>
 
 // Project-specific
-#include "../Bounds/BoundBase.hpp"
+#include "../Bounds/BoundExpression.hpp"
 
 namespace gtfo
 {
@@ -55,7 +55,11 @@ namespace gtfo
 
         template <typename BoundType>
         void SetHardBound(const BoundType& bound){
-            static_assert(std::is_base_of_v<BoundExpression<Dimensions, Scalar>, BoundType>, "Hard bound must be a BoundExpression or a derived class");
+            static_assert(
+                std::is_same_v<BoundExpression<Dimensions, Scalar>, BoundType> ||
+                std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>, 
+                "Hard bound must be a BoundExpression or a derived class"
+            );
             hard_bound_ = hard_bound_ & bound;
             assert(hard_bound_.Contains(position_));
         }
