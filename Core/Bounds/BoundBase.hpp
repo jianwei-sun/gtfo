@@ -30,25 +30,21 @@ public:
     // Intersection of two bounds should return a BoundExpression with Intersection
     template <typename LeftType, typename RightType>
     [[nodiscard]] friend typename std::enable_if_t<
-        std::is_base_of_v<BoundBase, LeftType> && std::is_base_of_v<BoundBase, RightType>, 
+        std::is_base_of_v<BoundBase, LeftType> && 
+        std::is_base_of_v<BoundBase, RightType>, 
     BoundExpression> 
     operator&(const LeftType& lhs, const RightType& rhs){
-        return BoundExpression(Relation::Intersection, 
-            std::static_pointer_cast<BoundBase>(std::make_shared<LeftType>(lhs)), 
-            std::static_pointer_cast<BoundBase>(std::make_shared<RightType>(rhs))
-        );
+        return BoundExpression(Relation::Intersection, lhs, rhs);
     }
 
     // Union of two bounds should return a BoundExpression with Union
     template <typename LeftType, typename RightType>
     [[nodiscard]] friend typename std::enable_if_t<
-        std::is_base_of_v<BoundBase, LeftType> && std::is_base_of_v<BoundBase, RightType>, 
+        std::is_base_of_v<BoundBase, LeftType> && 
+        std::is_base_of_v<BoundBase, RightType>, 
     BoundExpression> 
     operator|(const LeftType& lhs, const RightType& rhs){
-        return BoundExpression(Relation::Union, 
-            std::static_pointer_cast<BoundBase>(std::make_shared<LeftType>(lhs)), 
-            std::static_pointer_cast<BoundBase>(std::make_shared<RightType>(rhs))
-        );
+        return BoundExpression(Relation::Union, lhs, rhs);
     }
 
     // Returns whether the given point is contained in the bound
