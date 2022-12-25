@@ -34,59 +34,117 @@ public:
 
 
     // TODO: create mega constructor
-    template <typename... InputTypes, typename = 
-        typename std::enable_if_t<(true && ... &&
-            (std::is_base_of_v<BooleanExpression, InputTypes> ||
-            std::is_base_of_v<Operand, InputTypes> ||
-            std::is_same_v<Operand, InputTypes>)), void
-        >
-    >
-    BooleanExpression(const Relation& relation, InputTypes&... inputs)
+    // static_cast(std::is_same<T, std::vector<typename T::value_type>>::value);
+    // template <typename... InputTypes, typename = 
+    //     typename std::enable_if_t<(true && ... &&
+    //         (std::is_base_of_v<BooleanExpression, InputTypes> ||
+    //         std::is_base_of_v<Operand, InputTypes> ||
+    //         std::is_same_v<Operand, InputTypes>)), void
+    //     >
+    // >
+    // BooleanExpression(const Relation& relation, InputTypes&... inputs)
+    //     : relation_(relation)
+    // {    
+    //     ([&]{
+    //         if constexpr(std::is_base_of_v<BooleanExpression, InputTypes>){
+    //             if(inputs.relation_ == relation_){
+    //                 std::copy(inputs.subexpressions_.cbegin(), inputs.subexpressions_.cend(), std::back_inserter(subexpressions_));
+    //                 std::copy(inputs.operands_.cbegin(), inputs.operands_.cend(), std::back_inserter(operands_));
+    //             } else{
+    //                 subexpressions_.push_back(inputs);
+    //             }
+    //         } else if constexpr(std::is_base_of_v<Operand, InputTypes> || std::is_same_v<Operand, InputTypes>){
+    //             operands_.push_back(std::static_pointer_cast<Operand>(std::make_shared<InputTypes>(inputs)));
+    //         } else{
+    //             static_assert(!sizeof(InputTypes), "Constructor arguments must inherit from either BooleanExpression or Operand.");
+    //         }
+    //     }(), ...);
+    // }
+
+    template <typename... InputTypes>
+    BooleanExpression(const Relation& relation, const InputTypes&... inputs)
         : relation_(relation)
-    {    
+    {
+        Insert(inputs...);
+    }
+
+    template <typename... InputTypes>
+    void Insert(const InputTypes&... inputs){
         ([&]{
-            if constexpr(std::is_base_of_v<BooleanExpression, InputTypes>){
+            // Input is / inherits from a BooleanExpression 
+            if constexpr(std::is_base_of_v<BooleanExpression, InputTypes>)
+            {
                 if(inputs.relation_ == relation_){
                     std::copy(inputs.subexpressions_.cbegin(), inputs.subexpressions_.cend(), std::back_inserter(subexpressions_));
                     std::copy(inputs.operands_.cbegin(), inputs.operands_.cend(), std::back_inserter(operands_));
                 } else{
                     subexpressions_.push_back(inputs);
                 }
-            } else if constexpr(std::is_base_of_v<Operand, InputTypes> || std::is_same_v<Operand, InputTypes>){
+            } 
+            // Input is / inherits from an Operand
+            else if constexpr(std::is_base_of_v<Operand, InputTypes> || std::is_same_v<Operand, InputTypes>)
+            {
                 operands_.push_back(std::static_pointer_cast<Operand>(std::make_shared<InputTypes>(inputs)));
-            } else{
-                static_assert(!sizeof(InputTypes), "Constructor arguments must inherit from either BooleanExpression or Operand.");
+            } 
+            // Input is a std::vector of a type that is / inherits from a BooleanExpression
+            else if constexpr(std::is_same_v<InputTypes, std::vector<typename InputTypes::value_type>> && 
+                std::is_base_of_v<BooleanExpression, typename InputTypes::value_type>)
+            {
+                for(const BooleanExpression& input : inputs){
+                    if(input.relation_ == relation_){
+                        std::copy(input.subexpressions_.cbegin(), input.subexpressions_.cend(), std::back_inserter(subexpressions_));
+                        std::copy(input.operands_.cbegin(), input.operands_.cend(), std::back_inserter(operands_));
+                    } else{
+                        subexpressions_.push_back(input);
+                    }
+                }
+            }
+            // Input is a std::vector of a type that is / inherits from an Operand
+            else if constexpr(std::is_same_v<InputTypes, std::vector<typename InputTypes::value_type>> && 
+                (std::is_base_of_v<Operand, typename InputTypes::value_type> || std::is_same_v<Operand, typename InputTypes::value_type>))
+            {
+                std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(operands_), 
+                    [](const typename InputTypes::value_type& input)->OperandPtr{
+                        return std::static_pointer_cast<Operand>(std::make_shared<InputTypes::value_type>(input));
+                    }
+                );
+            }
+            // Otherwise produce an error
+            else
+            {
+                static_assert(!sizeof(InputTypes), 
+                    "Constructor arguments must inherit from either BooleanExpression or Operand, or be a std::vector of such type");
             }
         }(), ...);
     }
 
-    template <typename InputType>
-    BooleanExpression(
-        const Relation& relation, 
-        const std::enable_if_t<
-            std::is_base_of_v<BooleanExpression, InputType> ||
-            std::is_base_of_v<Operand, InputType> ||
-            std::is_same_v<Operand, InputType>, 
-        std::vector<InputType>>& inputs)
-        : relation_(relation)
-    {
-        if constexpr(std::is_base_of_v<BooleanExpression, InputType>){
-            for(const BooleanExpression& input : inputs){
-                if(input.relation_ == relation_){
-                    std::copy(input.subexpressions_.cbegin(), input.subexpressions_.cend(), std::back_inserter(subexpressions_));
-                    std::copy(input.operands_.cbegin(), input.operands_.cend(), std::back_inserter(operands_));
-                } else{
-                    subexpressions_.push_back(input);
-                }
-            }
-        } else if constexpr(std::is_base_of_v<Operand, InputType> || std::is_same_v<Operand, InputType>){
-            std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(operands_), 
-                [](const InputType& input)->OperandPtr{
-                    return std::static_pointer_cast<Operand>(std::make_shared<InputType>(input));
-                }
-            );
-        }
-    }
+    // template <typename InputType>
+    // BooleanExpression(
+    //     const Relation& relation, 
+    //     const std::enable_if_t<
+    //         std::is_base_of_v<BooleanExpression, InputType> ||
+    //         std::is_base_of_v<Operand, InputType> ||
+    //         std::is_same_v<Operand, InputType>, 
+    //     std::vector<InputType>>& inputs)
+    //     : relation_(relation)
+    // {
+    //     if constexpr(std::is_base_of_v<BooleanExpression, InputType>){
+    //         for(const BooleanExpression& input : inputs){
+    //             if(input.relation_ == relation_){
+    //                 std::copy(input.subexpressions_.cbegin(), input.subexpressions_.cend(), std::back_inserter(subexpressions_));
+    //                 std::copy(input.operands_.cbegin(), input.operands_.cend(), std::back_inserter(operands_));
+    //             } else{
+    //                 subexpressions_.push_back(input);
+    //             }
+    //         }
+    //     } else if constexpr(std::is_base_of_v<Operand, InputType> || std::is_same_v<Operand, InputType>){
+    //         std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(operands_), 
+    //             [](const InputType& input)->OperandPtr{
+    //                 return std::static_pointer_cast<Operand>(std::make_shared<InputType>(input));
+    //             }
+    //         );
+    //     }
+    // }
 
     // template <typename InputType>
     // void PushBack(

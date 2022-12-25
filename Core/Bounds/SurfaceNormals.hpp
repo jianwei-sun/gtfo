@@ -33,11 +33,11 @@ public:
     SurfaceNormals(const Relation& relation, const InputTypes&... inputs) 
         : BooleanExpression(relation, inputs...) {}
 
-    SurfaceNormals(const Relation& relation, const std::vector<SurfaceNormals>& collection)
-        : BooleanExpression(relation, collection) {}
+    // SurfaceNormals(const Relation& relation, const std::vector<SurfaceNormals>& collection)
+    //     : BooleanExpression(relation, collection) {}
 
-    SurfaceNormals(const Relation& relation, const std::vector<VectorType>& vectors)
-        : BooleanExpression(relation, vectors) {}
+    // SurfaceNormals(const Relation& relation, const std::vector<VectorType>& vectors)
+    //     : BooleanExpression(relation, vectors) {}
 
     [[nodiscard]] bool Contains(const VectorType& vector) const{
         const std::function<bool(const VectorType&)> vector_equal = 
