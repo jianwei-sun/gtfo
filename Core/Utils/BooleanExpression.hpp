@@ -32,15 +32,23 @@ public:
 
     BooleanExpression(const BooleanExpression&) = default;
 
-    template <typename... InputTypes>
-    BooleanExpression(const Relation& relation, const InputTypes&... inputs)
+
+    // TODO: create mega constructor
+    template <typename... InputTypes, typename = 
+        typename std::enable_if_t<(true && ... &&
+            (std::is_base_of_v<BooleanExpression, InputTypes> ||
+            std::is_base_of_v<Operand, InputTypes> ||
+            std::is_same_v<Operand, InputTypes>)), void
+        >
+    >
+    BooleanExpression(const Relation& relation, InputTypes&... inputs)
         : relation_(relation)
     {    
         ([&]{
             if constexpr(std::is_base_of_v<BooleanExpression, InputTypes>){
                 if(inputs.relation_ == relation_){
-                    std::copy(inputs.subexpressions_.begin(), inputs.subexpressions_.end(), std::back_inserter(subexpressions_));
-                    std::copy(inputs.operands_.begin(), inputs.operands_.end(), std::back_inserter(operands_));
+                    std::copy(inputs.subexpressions_.cbegin(), inputs.subexpressions_.cend(), std::back_inserter(subexpressions_));
+                    std::copy(inputs.operands_.cbegin(), inputs.operands_.cend(), std::back_inserter(operands_));
                 } else{
                     subexpressions_.push_back(inputs);
                 }
@@ -51,6 +59,54 @@ public:
             }
         }(), ...);
     }
+
+    template <typename InputType>
+    BooleanExpression(
+        const Relation& relation, 
+        const std::enable_if_t<
+            std::is_base_of_v<BooleanExpression, InputType> ||
+            std::is_base_of_v<Operand, InputType> ||
+            std::is_same_v<Operand, InputType>, 
+        std::vector<InputType>>& inputs)
+        : relation_(relation)
+    {
+        if constexpr(std::is_base_of_v<BooleanExpression, InputType>){
+            for(const BooleanExpression& input : inputs){
+                if(input.relation_ == relation_){
+                    std::copy(input.subexpressions_.cbegin(), input.subexpressions_.cend(), std::back_inserter(subexpressions_));
+                    std::copy(input.operands_.cbegin(), input.operands_.cend(), std::back_inserter(operands_));
+                } else{
+                    subexpressions_.push_back(input);
+                }
+            }
+        } else if constexpr(std::is_base_of_v<Operand, InputType> || std::is_same_v<Operand, InputType>){
+            std::transform(inputs.cbegin(), inputs.cend(), std::back_inserter(operands_), 
+                [](const InputType& input)->OperandPtr{
+                    return std::static_pointer_cast<Operand>(std::make_shared<InputType>(input));
+                }
+            );
+        }
+    }
+
+    // template <typename InputType>
+    // void PushBack(
+    //     const std::enable_if_t<
+    //         std::is_base_of_v<BooleanExpression, InputType> ||
+    //         std::is_base_of_v<Operand, InputType> ||
+    //         std::is_same_v<Operand, InputType>, 
+    //     InputType>& input)
+    // {
+    //     if constexpr(std::is_base_of_v<BooleanExpression, InputType>){
+    //         if(input.relation_ == relation_){
+    //             std::copy(input.subexpressions_.cbegin(), input.subexpressions_.cend(), std::back_inserter(subexpressions_));
+    //             std::copy(input.operands_.cbegin(), input.operands_.cend(), std::back_inserter(operands_));
+    //         } else{
+    //             subexpressions_.push_back(input);
+    //         }
+    //     } else if constexpr(std::is_base_of_v<Operand, InputType> || std::is_same_v<Operand, InputType>){
+    //         operands_.push_back(std::static_pointer_cast<Operand>(std::make_shared<InputType>(input)));
+    //     }
+    // }
 
     template <typename ReturnType>
     ReturnType MapReduce(

@@ -18,11 +18,10 @@ TEST(HardBoundExpressionTest, BoundsSideBySideUnion){
     EXPECT_FALSE(bound.IsAtBoundary(side_test_point));
 
     const auto corner_surface_normals = bound.GetSurfaceNormals(corner_test_point);
-    EXPECT_EQ(corner_surface_normals.size(), 1);
-    EXPECT_TRUE(gtfo::IsEqual(corner_surface_normals[0], Eigen::Vector2d(0.0, 1.0)));
+    EXPECT_TRUE(corner_surface_normals.Contains(Eigen::Vector2d(0.0, 1.0)));
 
     const auto side_surface_normals = bound.GetSurfaceNormals(side_test_point);
-    EXPECT_EQ(side_surface_normals.size(), 0);
+    EXPECT_TRUE(side_surface_normals.IsEmpty());
 }
 
 // Verifies that a union of hard bounds in a different shape behaves correctly
@@ -36,18 +35,16 @@ TEST(HardBoundExpressionTest, BoundsOverlappingUnion){
     EXPECT_TRUE(bound.IsAtBoundary(concave_corner_test_point));
 
     const auto surface_normals_at_concave = bound.GetSurfaceNormals(concave_corner_test_point);
-    EXPECT_EQ(surface_normals_at_concave.size(), 2);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_concave, Eigen::Vector2d(0.0, 1.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_concave, Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_concave.Contains(Eigen::Vector2d(0.0, 1.0)));
+    EXPECT_TRUE(surface_normals_at_concave.Contains(Eigen::Vector2d(-1.0, 0.0)));
     
     // Now verify the convex corner point
     const Eigen::Vector2d convex_corner_test_point(2.0, 0.0);
     EXPECT_TRUE(bound.IsAtBoundary(convex_corner_test_point));
 
     const auto surface_normals_at_convex = bound.GetSurfaceNormals(convex_corner_test_point);
-    EXPECT_EQ(surface_normals_at_convex.size(), 2);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_convex, Eigen::Vector2d(1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_convex, Eigen::Vector2d(0.0, -1.0)));
+    EXPECT_TRUE(surface_normals_at_convex.Contains(Eigen::Vector2d(1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_convex.Contains(Eigen::Vector2d(0.0, -1.0)));
 }
 
 // Verifies that an intersection of hard bounds behaves correctly
@@ -63,27 +60,24 @@ TEST(HardBoundExpressionTest, BoundsSideBySideIntersection){
     const Eigen::Vector2d top_test_point(1.0, 1.0);
     EXPECT_TRUE(bound.IsAtBoundary(top_test_point));
     const auto surface_normals_at_top = bound.GetSurfaceNormals(top_test_point);
-    EXPECT_EQ(surface_normals_at_top.size(), 3);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_top, Eigen::Vector2d(1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_top, Eigen::Vector2d(-1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_top, Eigen::Vector2d(0.0, 1.0)));
+    EXPECT_TRUE(surface_normals_at_top.Contains(Eigen::Vector2d(1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_top.Contains(Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_top.Contains(Eigen::Vector2d(0.0, 1.0)));
 
     // Check the test point at (1,0)
     const Eigen::Vector2d middle_test_point(1.0, 0.0);
     EXPECT_TRUE(bound.IsAtBoundary(middle_test_point));
     const auto surface_normals_at_middle = bound.GetSurfaceNormals(middle_test_point);
-    EXPECT_EQ(surface_normals_at_middle.size(), 2);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_middle, Eigen::Vector2d(-1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_middle, Eigen::Vector2d(1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_middle.Contains(Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_middle.Contains(Eigen::Vector2d(1.0, 0.0)));
 
     // Check the test point at (1,-1)
     const Eigen::Vector2d bottom_test_point(1.0, -1.0);
     EXPECT_TRUE(bound.IsAtBoundary(middle_test_point));
     const auto surface_normals_at_bottom = bound.GetSurfaceNormals(bottom_test_point);
-    EXPECT_EQ(surface_normals_at_bottom.size(), 3);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom, Eigen::Vector2d(-1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom, Eigen::Vector2d(1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom, Eigen::Vector2d(0.0, -1.0)));
+    EXPECT_TRUE(surface_normals_at_bottom.Contains(Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_bottom.Contains(Eigen::Vector2d(1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_bottom.Contains(Eigen::Vector2d(0.0, -1.0)));
 }
 
 TEST(HardBoundExpressionTest, BoundsOverlappingIntersection){
@@ -109,31 +103,26 @@ TEST(HardBoundExpressionTest, BoundsOverlappingIntersection){
     // Check points along the unit square resulting from the intersection,
     // starting with the top left
     const auto surface_normals_at_top_left = bound.GetSurfaceNormals(Eigen::Vector2d(1.0, 1.0));
-    EXPECT_EQ(surface_normals_at_top_left.size(), 2);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_top_left, Eigen::Vector2d(-1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_top_left, Eigen::Vector2d(0.0, 1.0)));
+    EXPECT_TRUE(surface_normals_at_top_left.Contains(Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_top_left.Contains(Eigen::Vector2d(0.0, 1.0)));
 
     // Midpoint on left side
     const auto surface_normals_at_left = bound.GetSurfaceNormals(Eigen::Vector2d(1.0, 0.5));
-    EXPECT_EQ(surface_normals_at_left.size(), 1);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_left, Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_left.Contains(Eigen::Vector2d(-1.0, 0.0)));
 
     // Bottom left corner
     const auto surface_normals_at_bottom_left = bound.GetSurfaceNormals(Eigen::Vector2d(1.0, 0.0));
-    EXPECT_EQ(surface_normals_at_bottom_left.size(), 2);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom_left, Eigen::Vector2d(-1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom_left, Eigen::Vector2d(0.0, -1.0)));
+    EXPECT_TRUE(surface_normals_at_bottom_left.Contains(Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_bottom_left.Contains(Eigen::Vector2d(0.0, -1.0)));
 
     // Midpoint on bottom side
     const auto surface_normals_at_bottom = bound.GetSurfaceNormals(Eigen::Vector2d(1.5, 0.0));
-    EXPECT_EQ(surface_normals_at_bottom.size(), 1);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom, Eigen::Vector2d(0.0, -1.0)));
+    EXPECT_TRUE(surface_normals_at_bottom.Contains(Eigen::Vector2d(0.0, -1.0)));
 
     // Bottom right corner
     const auto surface_normals_at_bottom_right = bound.GetSurfaceNormals(Eigen::Vector2d(2.0, 0.0));
-    EXPECT_EQ(surface_normals_at_bottom_right.size(), 2);
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom_right, Eigen::Vector2d(1.0, 0.0)));
-    EXPECT_TRUE(gtfo::ContainsVector(surface_normals_at_bottom_right, Eigen::Vector2d(0.0, -1.0)));
+    EXPECT_TRUE(surface_normals_at_bottom_right.Contains(Eigen::Vector2d(1.0, 0.0)));
+    EXPECT_TRUE(surface_normals_at_bottom_right.Contains(Eigen::Vector2d(0.0, -1.0)));
 }
 
 // Move a virtual mass through an L-shaped region formed by a union of two bounds

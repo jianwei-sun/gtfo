@@ -15,6 +15,7 @@ public:
     static_assert(Norm >= 2, "Norm argument needs to be at least 2");
 
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
+    using SurfaceNormals = SurfaceNormals<VectorN>;
 
     NormBound(const Scalar &radius, const VectorN &center = VectorN::Zero(), const Scalar &tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
         : BoundBase<Dimensions, Scalar>(tol),
@@ -46,16 +47,16 @@ public:
         }
     }
 
-    [[nodiscard]] std::vector<VectorN> GetSurfaceNormals(const VectorN& point) const override {
+    [[nodiscard]] SurfaceNormals GetSurfaceNormals(const VectorN& point) const override {
         const VectorN point_shifted_origin = point - center_;
         // 2-norm: https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
         if constexpr(Norm == 2){
-            return std::vector<VectorN>{point_shifted_origin.normalized()};
+            return SurfaceNormals(Relation::Intersection, point_shifted_origin.normalized());
         }
         // p-norm (p >= 1): https://math.stackexchange.com/questions/1482494/derivative-of-the-l-p-norm
         else {
             const VectorN derivative = (point_shifted_origin.cwiseAbs() / point_shifted_origin.template lpNorm<Norm>()).array().pow(Norm - 1) * point_shifted_origin.array().sign();
-            return std::vector<VectorN>{derivative.normalized()};
+            return SurfaceNormals(Relation::Intersection, derivative.normalized());
         }
     }
 

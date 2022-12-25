@@ -68,7 +68,7 @@ namespace gtfo
             }
         }
 
-        [[nodiscard]] std::vector<VectorN> GetSurfaceNormals(const VectorN &point) const override
+        [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN &point) const override
         {
             // Build Boolean array for where we are at boundaries
             const VectorN combined_surface_vectors = (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
@@ -82,7 +82,7 @@ namespace gtfo
                     surface_normals.push_back(combined_surface_vectors[i] * VectorN::Unit(i));
                 }
             }
-            return surface_normals;
+            return SurfaceNormals<VectorN>(Relation::Union, surface_normals);
         }
 
     private:

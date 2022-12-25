@@ -12,6 +12,7 @@
 #include "../Utils/Algorithms.hpp"
 #include "../Utils/BooleanExpression.hpp"
 #include "../Utils/Constants.hpp"
+#include "SurfaceNormals.hpp"
 
 namespace gtfo {
 
@@ -77,12 +78,12 @@ public:
         return prev_point + scale_opt * difference_vector;
     }
 
-    // Returns a vector of outward-pointing surface unit vectors at the given point. For smooth shapes, this
+    // Returns a collection of surface unit normal vectors at the given point. For smooth shapes, this
     // should almost always return a single unit normal. However, for bounds with corners (such as rectangles)
-    // multiple surface normals are needed to correctly update the dynamics at the bound. If the query point is
-    // not on the boundary, then just return an empty vector
-    [[nodiscard]] virtual std::vector<VectorN> GetSurfaceNormals(const VectorN& point) const {
-        return std::vector<VectorN>();
+    // multiple surface normals are needed to correctly update the dynamics at the bound.
+    [[nodiscard]] virtual SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN& point) const {
+        // Since there are no boundaries in this base class, return an empty surface normals collection
+        return SurfaceNormals<VectorN>();
     }
 
 protected:
