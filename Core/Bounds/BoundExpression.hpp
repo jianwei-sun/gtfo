@@ -124,49 +124,88 @@ public:
         // return ContainerContains(tree_, point);
     }
 
+    // [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point) const {
+    //     using BoundPtr = std::shared_ptr<const BoundBase>;
+    //     using BoundsWithResult = std::pair<std::vector<BoundPtr>, bool>;
+    //     // if(tree_.empty()){
+    //     //     return false;
+    //     // }
+    //     // if(tree_.size() == 1){
+    //     //     return tree_[0]->IsAtBoundary(point);
+    //     // }
+    //     // return !GetSurfaceNormals(point).empty();
+    //     const std::function<BoundsWithResult(const BoundBase&)> point_at_bound_boundary = 
+    //         [&point](const BoundBase& bound)->BoundsWithResult{
+    //             return std::make_pair(std::vector<BoundPtr>{std::make_shared<BoundBase>(bound)}, bound.IsAtBoundary(point));
+    //         };
+
+    //     const std::function<BoundsWithResult(const Relation&, const std::vector<BoundsWithResult>&)> combine_results = 
+    //         [&point](const Relation& relation, const std::vector<BoundsWithResult>& collection)->BoundsWithResult{
+    //             std::vector<BoundPtr> not_on_boundary;
+    //             for(const BoundsWithResult& bounds_with_result : collection){
+    //                 if(!bounds_with_result.second){
+    //                     std::copy(bounds_with_result.first.cbegin(), bounds_with_result.first.cend(), std::back_inserter(not_on_boundary));
+    //                 }
+    //             }
+
+    //             // For the bounds for which the point is not on its boundary:
+    //             //   Union: those bounds should not contain the point
+    //             //   Intersection: those bounds should all contain the point
+    //             if(relation == Relation::Union){
+    //                 return std::make_pair(not_on_boundary, !std::any_of(not_on_boundary.cbegin(), not_on_boundary.cend(), 
+    //                     [&point](const BoundPtr& ptr)->bool{
+    //                         return ptr->Contains(point);
+    //                     }
+    //                 ));
+    //             } else {
+    //                 return std::make_pair(not_on_boundary, std::all_of(not_on_boundary.cbegin(), not_on_boundary.cend(), 
+    //                     [&point](const BoundPtr& ptr)->bool{
+    //                         return ptr->Contains(point);
+    //                     }
+    //                 ));
+    //             }
+    //         };
+
+    //     return MapReduce(point_at_bound_boundary, combine_results).second;
+    // }
+
     [[nodiscard]] virtual bool IsAtBoundary(const VectorN& point) const {
-        using BoundPtr = std::shared_ptr<const BoundBase>;
-        using BoundsWithResult = std::pair<std::vector<BoundPtr>, bool>;
-        // if(tree_.empty()){
-        //     return false;
-        // }
-        // if(tree_.size() == 1){
-        //     return tree_[0]->IsAtBoundary(point);
-        // }
-        // return !GetSurfaceNormals(point).empty();
-        const std::function<BoundsWithResult(const BoundBase&)> point_at_bound_boundary = 
-            [&point](const BoundBase& bound)->BoundsWithResult{
-                return std::make_pair(std::vector<BoundPtr>{BoundPtr(&bound)}, bound.IsAtBoundary(point));
-            };
+        // using Result = std::pair<bool, bool>;
+        // const std::function<Result(const BoundBase&)> contains_and_at_boundary = 
+        //     [&point](const BoundBase& bound)->Result{
+        //         if(bound.Contains(point)){
+        //             return std::make_pair(true, bound.IsAtBoundary(point));
+        //         } else{
+        //             return std::make_pair(false, false);
+        //         }
+        //     };
 
-        const std::function<BoundsWithResult(const Relation&, const std::vector<BoundsWithResult>&)> combine_results = 
-            [&point](const Relation& relation, const std::vector<BoundsWithResult>& collection)->BoundsWithResult{
-                std::vector<BoundPtr> not_on_boundary;
-                for(const BoundsWithResult& bounds_with_result : collection){
-                    if(!bounds_with_result.second){
-                        std::copy(bounds_with_result.first.cbegin(), bounds_with_result.first.cend(), std::back_inserter(not_on_boundary));
-                    }
-                }
+        // const std::function<Result(const Relation&, const std::vector<Result>&)> combine_results = 
+        //     [](const Relation& relation, const std::vector<Result>& results)->Result{
+        //         // For the bounds for which the point is not on its boundary:
+        //         //   Union: those bounds should not contain the point
+        //         //   Intersection: those bounds should all contain the point
+        //         // bool at_boundary = true;
+        //         if(relation == Relation::Union){
+        //             for(const Result& result : results){
+        //                 if(!result.second && result.first){
+        //                     // at_boundary = false;
+        //                     return std::make_pair(false, false);
+        //                 }
+        //             }
+        //         } else{
+        //             for(const Result& result : results){
+        //                 if(!result.second && !result.first){
+        //                     // at_boundary = false;
+        //                     return std::make_pair(true, false);
+        //                 }
+        //             }
+        //         }
+        //         return std::make_pair(true, true);
+        //     };
 
-                // For the bounds for which the point is not on its boundary:
-                //   Union: those bounds should not contain the point
-                //   Intersection: those bounds should all contain the point
-                if(relation == Relation::Union){
-                    return std::make_pair(not_on_boundary, !std::any_of(not_on_boundary.cbegin(), not_on_boundary.cend(), 
-                        [&point](const BoundPtr& ptr)->bool{
-                            return ptr->Contains(point);
-                        }
-                    ));
-                } else {
-                    return std::make_pair(not_on_boundary, std::all_of(not_on_boundary.cbegin(), not_on_boundary.cend(), 
-                        [&point](const BoundPtr& ptr)->bool{
-                            return ptr->Contains(point);
-                        }
-                    ));
-                }
-            };
-
-        return MapReduce(point_at_bound_boundary, combine_results).second;
+        //     return MapReduce(contains_and_at_boundary, combine_results).second;
+        return !GetSurfaceNormals(point).IsEmpty();
     }
 
     [[nodiscard]] virtual VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const {
@@ -188,7 +227,10 @@ public:
     }
 
     [[nodiscard]] virtual SurfaceNormals GetSurfaceNormals(const VectorN& point) const {
-        // return std::vector<VectorN>();
+        // Surface normals are empty if the point is not contained
+        if(!Contains(point)){
+            return SurfaceNormals();
+        }
 
         const std::function<SurfaceNormals(const BoundBase&)> get_bound_surface_normals = 
             [&point](const BoundBase& bound)->SurfaceNormals{
@@ -197,7 +239,11 @@ public:
 
         const std::function<SurfaceNormals(const Relation&, const std::vector<SurfaceNormals>&)> combine_surface_normals = 
             [](const Relation& relation, const std::vector<SurfaceNormals>& collection)->SurfaceNormals{
-                return SurfaceNormals(relation, collection);
+                if(relation == Relation::Intersection){
+                    return SurfaceNormals(Relation::Union, collection);
+                } else{
+                    return SurfaceNormals(Relation::Intersection, collection);
+                }
             };
 
         return MapReduce(get_bound_surface_normals, combine_surface_normals);

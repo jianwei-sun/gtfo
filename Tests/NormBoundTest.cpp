@@ -225,7 +225,7 @@ TEST(NormBoundTest, GetSurfaceNormals3D) {
     auto surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector3d(0.0, 0.0, 1.0));
     EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(0.0, 0.0, 1.0)));
 
-    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector3d(1.0, 1.0, 1.0));
+    surface_normals = bound2Norm.GetSurfaceNormals(Eigen::Vector3d(1.0, 1.0, 1.0).normalized());
     EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(1.0, 1.0, 1.0).normalized()));
 
     // 3-Norm

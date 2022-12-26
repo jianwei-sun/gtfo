@@ -48,6 +48,11 @@ public:
     }
 
     [[nodiscard]] SurfaceNormals GetSurfaceNormals(const VectorN& point) const override {
+        // Surface normals are nonempty only at the boundaries
+        if(!IsAtBoundary(point)){
+            return SurfaceNormals();
+        }
+
         const VectorN point_shifted_origin = point - center_;
         // 2-norm: https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
         if constexpr(Norm == 2){

@@ -16,8 +16,13 @@ TEST(HardBoundsTest, SecondOrderSystem2DRectangle)
         system.Step(force);
     }
 
+    std::cout << "Final position: " << system.GetPosition().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector2d(1.0, 1.0)));
+
+    std::cout << "Final velocity: " << system.GetVelocity().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector2d::Zero()));
+
+    std::cout << "Final acceleration: " << system.GetAcceleration().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Eigen::Vector2d::Zero()));
 }
 

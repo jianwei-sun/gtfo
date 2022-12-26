@@ -15,6 +15,7 @@ namespace gtfo
     {
     public:
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
+        using SurfaceNormals = SurfaceNormals<VectorN>;
 
         RectangleBound(const VectorN &lower_limits, const VectorN &upper_limits, const VectorN &center, const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
             : BoundBase<Dimensions, Scalar>(tol),
@@ -68,8 +69,13 @@ namespace gtfo
             }
         }
 
-        [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN &point) const override
+        [[nodiscard]] SurfaceNormals GetSurfaceNormals(const VectorN &point) const override
         {
+            // Surface normals are nonempty only at the boundaries
+            if(!IsAtBoundary(point)){
+                return SurfaceNormals();
+            }
+
             // Build Boolean array for where we are at boundaries
             const VectorN combined_surface_vectors = (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
                                                      ((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).template cast<Scalar>();
@@ -82,7 +88,12 @@ namespace gtfo
                     surface_normals.push_back(combined_surface_vectors[i] * VectorN::Unit(i));
                 }
             }
-            return SurfaceNormals<VectorN>(Relation::Union, surface_normals);
+            if(surface_normals.empty()){
+                std::cout << "Rectangle bound: created empty surface normals\n";
+            } else{
+                std::cout << "Rectangle bound has " << surface_normals.size() << " surface normals: " << combined_surface_vectors.transpose() << "\n";
+            }
+            return SurfaceNormals(Relation::Union, surface_normals);
         }
 
     private:
