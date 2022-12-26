@@ -88,11 +88,6 @@ namespace gtfo
                     surface_normals.push_back(combined_surface_vectors[i] * VectorN::Unit(i));
                 }
             }
-            if(surface_normals.empty()){
-                std::cout << "Rectangle bound: created empty surface normals\n";
-            } else{
-                std::cout << "Rectangle bound has " << surface_normals.size() << " surface normals: " << combined_surface_vectors.transpose() << "\n";
-            }
             return SurfaceNormals(Relation::Union, surface_normals);
         }
 

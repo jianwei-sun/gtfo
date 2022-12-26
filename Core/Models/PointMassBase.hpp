@@ -72,11 +72,10 @@ namespace gtfo
             Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
 
             velocity_ = new_state.row(1);
-            if(hard_bound_.IsAtBoundary(position_)){
-                velocity_ -= hard_bound_.GetSurfaceNormals(position_).GetProjectionOf(velocity_);
-
-                // Update the new position with a semi-implicit Euler approximation with the corrected velocity, 
-                // since the bound-oblivious exact discretization equations would have likely violated the bound
+            
+            const auto surface_normals = hard_bound_.GetSurfaceNormals(position_);
+            if(surface_normals.HasPositiveDotProductWith(velocity_)){
+                surface_normals.RemoveComponentIn(velocity_);
                 new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
             }
 

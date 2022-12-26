@@ -131,21 +131,31 @@ TEST(HardBoundExpressionTest, SecondOrderSystem2DLShapedBound){
     const gtfo::RectangleBound<2> bound2(Eigen::Vector2d(0.5, 2.0), Eigen::Vector2d(3.5, 2.0));
 
     // Test with a more complex bound that is geometrically equivalent to bound1 | bound2
-    const auto bound = bound1 & bound1 | bound2 & bound2 | bound1;
+    // const auto bound = bound1 & bound1 | bound2 & bound2 | bound1;
+    const auto bound = bound1 | bound2;
 
+    std::cout << "Creating system\n";
     gtfo::PointMassSecondOrder<2> system;
     system.SetParameters(gtfo::SecondOrderParameters<double>());
+    std::cout << "Setting system hard bound\n";
     system.SetHardBound(bound);
 
     const Eigen::Vector2d force(1.0, 1.0);
 
     for (size_t i = 0; i < 15; ++i)
     {
+        std::cout << "Position: " << system.GetPosition().transpose() << "\n";
+        //std::cout << "Velocity: " << system.GetVelocity().transpose() << "\n";
         system.Step(force);
     }
 
+    std::cout << "Final position: " << system.GetPosition().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector2d(4.0, 4.0)));
+
+    std::cout << "Final velocity: " << system.GetVelocity().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector2d::Zero()));
+    
+    std::cout << "Final acceleration: " << system.GetAcceleration().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Eigen::Vector2d::Zero()));
 }
 
@@ -168,9 +178,12 @@ TEST(HardBoundExpressionTest, SecondOrderSystem2DSmallOpening){
     }
 
     std::cout << "Final position: " << system.GetPosition().transpose() << "\n";
-
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector2d(3.0, 0.0)));
+
+    std::cout << "Final velocity: " << system.GetVelocity().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector2d::Zero()));
+    
+    std::cout << "Final acceleration: " << system.GetAcceleration().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Eigen::Vector2d::Zero()));
 }
 
