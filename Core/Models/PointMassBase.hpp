@@ -12,7 +12,7 @@
 #include <Eigen/Dense>
 
 // Project-specific
-#include "../Bounds/BoundExpression.hpp"
+#include "../Bounds/BoundBase.hpp"
 
 namespace gtfo
 {
@@ -41,6 +41,8 @@ namespace gtfo
         using Vector2 = Eigen::Matrix<Scalar, 2, 1>;
         using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
 
+        using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
+
         PointMassBase()
             : A_discrete_(Matrix2::Zero()),
               B_discrete_(Vector2::Zero()),
@@ -48,7 +50,7 @@ namespace gtfo
               velocity_(VectorN::Zero()),
               acceleration_(VectorN::Zero())
         {
-            
+            hard_bound_ = std::make_shared<BoundBase<Dimensions, Scalar>>();
         }
 
         virtual void SetParameters(const Parameters &parameters) = 0;
@@ -56,12 +58,11 @@ namespace gtfo
         template <typename BoundType>
         void SetHardBound(const BoundType& bound){
             static_assert(
-                std::is_same_v<BoundExpression<Dimensions, Scalar>, BoundType> ||
                 std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>, 
-                "Hard bound must be a BoundExpression or a derived class"
+                "Hard bound must derive from BoundBase"
             );
-            hard_bound_ = hard_bound_ & bound;
-            assert(hard_bound_.Contains(position_));
+            hard_bound_ = std::make_shared<BoundType>(bound);
+            assert(hard_bound_->Contains(position_));
         }
 
         // Propagate the dynamics forward by one time-step
@@ -73,13 +74,13 @@ namespace gtfo
 
             velocity_ = new_state.row(1);
             
-            const auto surface_normals = hard_bound_.GetSurfaceNormals(position_);
+            const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
             if(surface_normals.HasPositiveDotProductWith(velocity_)){
                 surface_normals.RemoveComponentIn(velocity_);
                 new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
             }
 
-            position_ = hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
+            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
 
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }
@@ -110,7 +111,7 @@ namespace gtfo
         VectorN acceleration_;
 
     private:
-        BoundExpression<Dimensions, Scalar> hard_bound_;
+        BoundPtr hard_bound_;
     };
 
 } // namespace gtfo

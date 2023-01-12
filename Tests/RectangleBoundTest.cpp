@@ -45,28 +45,27 @@ TEST(RectangleBoundTest, NearestPointWithinBound1D){
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<1> bound(Eigen::Matrix<double, 1, 1>::Ones() * threshold);
 
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(2.0), Eigen::Matrix<double, 1, 1>(0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(2.0), Eigen::Matrix<double, 1, 1>(-0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(-2.0), Eigen::Matrix<double, 1, 1>(0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(-2.0), Eigen::Matrix<double, 1, 1>(-0.5))));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(2.0)), Eigen::Matrix<double, 1, 1>(1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(-2.0)), Eigen::Matrix<double, 1, 1>(-1.0)));
 }   
 
 TEST(RectangleBoundTest, NearestPointWithinBound2D){
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<2> bound(Eigen::Vector2d::Ones() * threshold);
     
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 2.0), Eigen::Vector2d(0.4, 0.3))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 0.2), Eigen::Vector2d(-0.4, 0.3))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector2d(-2.0, -2.0), Eigen::Vector2d(-1.0, -1.0))));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 2.0)), Eigen::Vector2d(1.0, 1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 0.2)), Eigen::Vector2d(1.0, 0.2)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector2d(-2.0, -2.0)), Eigen::Vector2d(-1.0, -1.0)));
 }   
 
 TEST(RectangleBoundTest, NearestPointWithinBound3D){
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<3> bound(Eigen::Vector3d::Ones() * threshold);
     
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector3d(2.0, 2.0, 2.0), Eigen::Vector3d(0.4, 0.3, 0.2))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector3d(-12.0, 12.0, -5.0), Eigen::Vector3d(0.3, -0.2, 0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector3d(20.0, 20.0, 20.0), Eigen::Vector3d(-1.0, -1.0, -1.0))));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(2.0, 2.0, 2.0)), Eigen::Vector3d(1.0, 1.0, 1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(-12.0, 12.0, -5.0)), Eigen::Vector3d(-1.0, 1.0, -1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(20.0, 20.0, 20.0)), Eigen::Vector3d(1.0, 1.0, 1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(-10.0, 0.0, -0.5)), Eigen::Vector3d(-1.0, 0.0, -0.5)));
 }   
 
 //----------------------------------------------------------------------------------------------------
