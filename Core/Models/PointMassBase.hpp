@@ -50,7 +50,7 @@ namespace gtfo
               velocity_(VectorN::Zero()),
               acceleration_(VectorN::Zero())
         {
-            hard_bound_ = std::make_shared<BoundBase<Dimensions, Scalar>>();
+            hard_bound_ = nullptr;
         }
 
         virtual void SetParameters(const Parameters &parameters) = 0;
@@ -68,20 +68,27 @@ namespace gtfo
         // Propagate the dynamics forward by one time-step
         virtual void Step(const VectorN &user_input, const VectorN &environment_input = VectorN::Zero())
         {
+            // Sum the external forces and build the current state
             const VectorN total_input = user_input + environment_input;
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << position_.transpose(), velocity_.transpose()).finished();
+
+            // Step the dynamics to determine our next state
             Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
 
+            // Update the velocity TODO: add velocity limiter function here
             velocity_ = new_state.row(1);
-            
-            const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
-            if(surface_normals.HasPositiveDotProductWith(velocity_)){
-                surface_normals.RemoveComponentIn(velocity_);
-                new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
+
+            // Enfoce hard bounds if they exist and then update the state position
+            if (hard_bound_)
+            {
+                EnforceHardBound(state, new_state);
+            }
+            else
+            {
+                position_ = new_state.row(0);
             }
 
-            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
-
+            // Update acceleration for new state
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }
 
@@ -112,6 +119,18 @@ namespace gtfo
 
     private:
         BoundPtr hard_bound_;
+
+        // Enfoce hard bound limits on a state to determine position new state
+        virtual void EnforceHardBound(const Eigen::Matrix<Scalar, 2, Dimensions> &state, Eigen::Matrix<Scalar, 2, Dimensions> &new_state)
+        {
+            const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
+            if (surface_normals.HasPositiveDotProductWith(velocity_))
+            {
+                surface_normals.RemoveComponentIn(velocity_);
+                new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
+            }
+            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
+        }
     };
 
 } // namespace gtfo
