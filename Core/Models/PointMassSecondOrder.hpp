@@ -102,14 +102,17 @@ namespace gtfo{
                 if (surface_normals.HasPositiveDotProductWith(temp_velocity))
                 {
                     // Add a restoring force in directions that we are pushing away from bounds
-                    int i = 0;
                     for (const VectorN &surface_normal : surface_normals)
                     {
-                        if (temp_velocity.dot(surface_normal) > 0.0)
+                        for (unsigned i = 0; i < temp_velocity.size(); i++)
                         {
-                            soft_bound_restoring_force(i) = soft_bound_spring_constant * (soft_bound_->GetNearestPointWithinBound(temp_position)(i) - temp_position(i));
+                            VectorN single_direction_velocity = VectorN::Zero();
+                            single_direction_velocity(i) = temp_velocity(i);
+                            if (single_direction_velocity.dot(surface_normal) > 0.0)
+                            {
+                                soft_bound_restoring_force(i) = soft_bound_restoring_force(i) + soft_bound_spring_constant * (soft_bound_->GetNearestPointWithinBound(temp_position)(i) - temp_position(i));
+                            }
                         }
-                        i++;
                     }
                 }
             }
