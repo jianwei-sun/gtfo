@@ -72,16 +72,17 @@ namespace gtfo
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << position_.transpose(), velocity_.transpose()).finished();
             Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
 
-            velocity_ = new_state.row(1);
+            // Ensure the new position is within the bounds
+            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
             
+            // Ensure the new velocity points in the interior of the bound
+            velocity_ = new_state.row(1);
             const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
             if(surface_normals.HasPositiveDotProductWith(velocity_)){
                 surface_normals.RemoveComponentIn(velocity_);
-                new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
             }
-
-            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
-
+            
+            // Update the acceleration with a backward difference
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }
 
