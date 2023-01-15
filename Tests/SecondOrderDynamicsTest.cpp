@@ -21,7 +21,7 @@ TEST(SecondOrderDynamicsTest, MoveUpwards)
 
     // Define fake force input for force sensor
     Eigen::Matrix<float, dimensions, 1> force_input;
-    force_input << 0, 0, 20;
+    force_input << 0.0f, 0.0f, 20.0f;
 
     // Position and velocity
     Eigen::Matrix<float, dimensions, 1>
@@ -36,5 +36,5 @@ TEST(SecondOrderDynamicsTest, MoveUpwards)
         test_admittance_controller.Step(force_input);
     }
 
-    EXPECT_TRUE(gtfo::IsEqual(velocity, Eigen::Matrix<float, dimensions, 1>(0, 0, 1.3333)));
+    EXPECT_TRUE(gtfo::IsEqual(velocity, Eigen::Matrix<float, dimensions, 1>(0.0f, 0.0f, 1.3333f)));
 }
