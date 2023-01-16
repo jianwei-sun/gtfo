@@ -8,6 +8,7 @@
 #include <Eigen/Dense>
 
 // Project-specific
+#include "BooleanExpression.hpp"
 #include "Comparisons.hpp"
 
 namespace gtfo {

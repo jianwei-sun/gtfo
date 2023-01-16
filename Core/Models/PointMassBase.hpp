@@ -41,6 +41,8 @@ namespace gtfo
         using Vector2 = Eigen::Matrix<Scalar, 2, 1>;
         using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
 
+        using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
+
         PointMassBase()
             : A_discrete_(Matrix2::Zero()),
               B_discrete_(Vector2::Zero()),
@@ -48,16 +50,19 @@ namespace gtfo
               velocity_(VectorN::Zero()),
               acceleration_(VectorN::Zero())
         {
-            
+            hard_bound_ = std::make_shared<BoundBase<Dimensions, Scalar>>();
         }
 
         virtual void SetParameters(const Parameters &parameters) = 0;
 
         template <typename BoundType>
         void SetHardBound(const BoundType& bound){
-            static_assert(std::is_base_of_v<BoundExpression<Dimensions, Scalar>, BoundType>, "Hard bound must be a BoundExpression or a derived class");
-            hard_bound_ = hard_bound_ & bound;
-            assert(hard_bound_.Contains(position_));
+            static_assert(
+                std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>, 
+                "Hard bound must derive from BoundBase"
+            );
+            hard_bound_ = std::make_shared<BoundType>(bound);
+            assert(hard_bound_->Contains(position_));
         }
 
         // Propagate the dynamics forward by one time-step
@@ -67,21 +72,17 @@ namespace gtfo
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << position_.transpose(), velocity_.transpose()).finished();
             Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * total_input.transpose();
 
+            // Ensure the new position is within the bounds
+            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
+            
+            // Ensure the new velocity points in the interior of the bound
             velocity_ = new_state.row(1);
-            if(hard_bound_.IsAtBoundary(position_)){
-                for(const VectorN& surface_normal : hard_bound_.GetSurfaceNormals(position_)){
-                    const Scalar inner_product = velocity_.dot(surface_normal);
-                    if(inner_product > 0.0){
-                        velocity_ -= inner_product * surface_normal;
-                    }
-                }
-                // Update the new position with a semi-implicit Euler approximation with the corrected velocity, 
-                // since the bound-oblivious exact discretization equations would have likely violated the bound
-                new_state.row(0) = state.row(0) + velocity_.transpose() * parameters_.dt;
+            const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
+            if(surface_normals.HasPositiveDotProductWith(velocity_)){
+                surface_normals.RemoveComponentIn(velocity_);
             }
-
-            position_ = hard_bound_.GetNearestPointWithinBound(new_state.row(0), state.row(0));
-
+            
+            // Update the acceleration with a backward difference
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
         }
 
@@ -111,7 +112,7 @@ namespace gtfo
         VectorN acceleration_;
 
     private:
-        BoundExpression<Dimensions, Scalar> hard_bound_;
+        BoundPtr hard_bound_;
     };
 
 } // namespace gtfo

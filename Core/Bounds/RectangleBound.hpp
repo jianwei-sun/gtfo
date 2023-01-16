@@ -53,27 +53,23 @@ namespace gtfo
                    && Contains(point);
         }
 
-        [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN &point, const VectorN &prev_point) const override
+        [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN &point) const override
         {
-            // In 1D the solution will be one of the limits
-            if constexpr (Dimensions == 1)
-            {
-                return point.cwiseMax(center_ + lower_limits_).cwiseMin(center_ + upper_limits_);
-            }
-
-            // There might be a smarter math way to do higher dimensions considering intersections of hyperplanes and hypershapes, but for now we can do this numerically
-            else
-            {
-                return BoundBase<Dimensions, Scalar>::GetNearestPointWithinBound(point, prev_point);
-            }
+            const VectorN point_shifted_origin = point - center_;
+            return point_shifted_origin.cwiseMax(lower_limits_).cwiseMin(upper_limits_) + center_;
         }
 
-        [[nodiscard]] std::vector<VectorN> GetSurfaceNormals(const VectorN &point) const override
+        [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN &point) const override
         {
+            // Surface normals are nonempty only at the boundaries
+            if(!IsAtBoundary(point)){
+                return SurfaceNormals<VectorN>();
+            }
+
             // Build Boolean array for where we are at boundaries
             const VectorN combined_surface_vectors = (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
                                                      ((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).template cast<Scalar>();
-            std::vector<VectorN> surface_normals;
+            SurfaceNormals<VectorN> surface_normals;
 
             for (unsigned i = 0; i < Dimensions; ++i)
             {

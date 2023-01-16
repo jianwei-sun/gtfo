@@ -34,28 +34,36 @@ public:
         return (radius_ - this->tol_) <= point_shifted_origin_norm && point_shifted_origin_norm <= radius_;
     }
 
-    [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN& point, const VectorN& prev_point) const override {
-        // An exact (and simple) solution exists in 1D
-        if constexpr(Dimensions == 1){
-            const VectorN point_shifted_origin = point - center_;
-            return std::min(point_shifted_origin.template lpNorm<Norm>(), radius_) * point_shifted_origin.normalized() + center_;
-        } 
-        // Although exact solutions exist for specific cases, e.g. Norm = 2, Dimensions = 2, they are very complicated. It's easier to solve this numerically with the default implementation
-        else {
-            return BoundBase<Dimensions, Scalar>::GetNearestPointWithinBound(point, prev_point);
+    [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN& point) const override {
+        // If the point is already contained within the bound, then just return it
+        if(Contains(point)){
+            return point;
+        }
+        // Otherwise, clamp the norm to the radius
+        const VectorN point_shifted_origin = point - center_;
+        const Scalar clamped_norm = std::min(point_shifted_origin.template lpNorm<Norm>(), radius_);
+        if constexpr(Norm == 2){
+            return clamped_norm * point_shifted_origin.normalized() + center_;
+        } else{
+            return clamped_norm / point_shifted_origin.template lpNorm<Norm>() * point_shifted_origin + center_;
         }
     }
 
-    [[nodiscard]] std::vector<VectorN> GetSurfaceNormals(const VectorN& point) const override {
+    [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN& point) const override {
+        // Surface normals are nonempty only at the boundaries
+        if(!IsAtBoundary(point)){
+            return SurfaceNormals<VectorN>();
+        }
+
         const VectorN point_shifted_origin = point - center_;
         // 2-norm: https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
         if constexpr(Norm == 2){
-            return std::vector<VectorN>{point_shifted_origin.normalized()};
+            return SurfaceNormals<VectorN>(point_shifted_origin.normalized());
         }
         // p-norm (p >= 1): https://math.stackexchange.com/questions/1482494/derivative-of-the-l-p-norm
         else {
             const VectorN derivative = (point_shifted_origin.cwiseAbs() / point_shifted_origin.template lpNorm<Norm>()).array().pow(Norm - 1) * point_shifted_origin.array().sign();
-            return std::vector<VectorN>{derivative.normalized()};
+            return SurfaceNormals<VectorN>(derivative.normalized());
         }
     }
 

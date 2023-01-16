@@ -45,28 +45,27 @@ TEST(RectangleBoundTest, NearestPointWithinBound1D){
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<1> bound(Eigen::Matrix<double, 1, 1>::Ones() * threshold);
 
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(2.0), Eigen::Matrix<double, 1, 1>(0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(2.0), Eigen::Matrix<double, 1, 1>(-0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(-2.0), Eigen::Matrix<double, 1, 1>(0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(-2.0), Eigen::Matrix<double, 1, 1>(-0.5))));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(2.0)), Eigen::Matrix<double, 1, 1>(1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Matrix<double, 1, 1>(-2.0)), Eigen::Matrix<double, 1, 1>(-1.0)));
 }   
 
 TEST(RectangleBoundTest, NearestPointWithinBound2D){
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<2> bound(Eigen::Vector2d::Ones() * threshold);
     
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 2.0), Eigen::Vector2d(0.4, 0.3))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 0.2), Eigen::Vector2d(-0.4, 0.3))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector2d(-2.0, -2.0), Eigen::Vector2d(-1.0, -1.0))));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 2.0)), Eigen::Vector2d(1.0, 1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector2d(2.0, 0.2)), Eigen::Vector2d(1.0, 0.2)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector2d(-2.0, -2.0)), Eigen::Vector2d(-1.0, -1.0)));
 }   
 
 TEST(RectangleBoundTest, NearestPointWithinBound3D){
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<3> bound(Eigen::Vector3d::Ones() * threshold);
     
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector3d(2.0, 2.0, 2.0), Eigen::Vector3d(0.4, 0.3, 0.2))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector3d(-12.0, 12.0, -5.0), Eigen::Vector3d(0.3, -0.2, 0.5))));
-    EXPECT_TRUE(bound.Contains(bound.GetNearestPointWithinBound(Eigen::Vector3d(20.0, 20.0, 20.0), Eigen::Vector3d(-1.0, -1.0, -1.0))));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(2.0, 2.0, 2.0)), Eigen::Vector3d(1.0, 1.0, 1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(-12.0, 12.0, -5.0)), Eigen::Vector3d(-1.0, 1.0, -1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(20.0, 20.0, 20.0)), Eigen::Vector3d(1.0, 1.0, 1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(bound.GetNearestPointWithinBound(Eigen::Vector3d(-10.0, 0.0, -0.5)), Eigen::Vector3d(-1.0, 0.0, -0.5)));
 }   
 
 //----------------------------------------------------------------------------------------------------
@@ -112,47 +111,44 @@ TEST(RectangleBoundTest, GetSurfaceNormals1D) {
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<1> bound(Eigen::Matrix<double, 1, 1>::Ones() * threshold);
 
-    std::vector<Eigen::Matrix<double, 1, 1>> surface_normals = bound.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(1.0));
-    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(1.0)));
+    auto surface_normals = bound.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(1.0));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Matrix<double, 1, 1>(1.0)));
 
     surface_normals = bound.GetSurfaceNormals(Eigen::Matrix<double, 1, 1>(-1.0));
-    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Matrix<double, 1, 1>(-1.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Matrix<double, 1, 1>(-1.0)));
 }
 
 TEST(RectangleBoundTest, GetSurfaceNormals2D) {
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<2> bound(Eigen::Vector2d::Ones() * threshold);
 
-    std::vector<Eigen::Vector2d> surface_normals = bound.GetSurfaceNormals(Eigen::Vector2d(0.0, 1.0));
-    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(0.0, 1.0)));
+    auto surface_normals = bound.GetSurfaceNormals(Eigen::Vector2d(0.0, 1.0));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector2d(0.0, 1.0)));
 
     surface_normals = bound.GetSurfaceNormals(Eigen::Vector2d(-1.0, 0.0));
-    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(-1.0, 0.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector2d(-1.0, 0.0)));
 
     surface_normals = bound.GetSurfaceNormals(Eigen::Vector2d(1.0, 0.99));
-    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 0.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector2d(1.0, 0.0)));
 
     surface_normals = bound.GetSurfaceNormals(Eigen::Vector2d(1.0, -1.0));
-    EXPECT_TRUE(surface_normals.size() == 2 
-        && gtfo::IsEqual(surface_normals[0], Eigen::Vector2d(1.0, 0.0))
-        && gtfo::IsEqual(surface_normals[1], Eigen::Vector2d(0.0, -1.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector2d(1.0, 0.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector2d(0.0, -1.0)));
 }
 
 TEST(RectangleBoundTest, GetSurfaceNormals3D) {
     static constexpr double threshold = 1.0;
     const gtfo::RectangleBound<3> bound(Eigen::Vector3d::Ones() * threshold);
 
-    std::vector<Eigen::Vector3d> surface_normals = bound.GetSurfaceNormals(Eigen::Vector3d(0.0, 0.0, 1.0));
-    EXPECT_TRUE(surface_normals.size() == 1 && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(0.0, 0.0, 1.0)));
+    auto surface_normals = bound.GetSurfaceNormals(Eigen::Vector3d(0.0, 0.0, 1.0));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(0.0, 0.0, 1.0)));
 
     surface_normals = bound.GetSurfaceNormals(Eigen::Vector3d(-1.0, 0.5, -1.0));
-    EXPECT_TRUE(surface_normals.size() == 2 
-        && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(-1.0, 0.0, 0.0))
-        && gtfo::IsEqual(surface_normals[1], Eigen::Vector3d(0.0, 0.0, -1.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(-1.0, 0.0, 0.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(0.0, 0.0, -1.0)));
 
     surface_normals = bound.GetSurfaceNormals(Eigen::Vector3d(1.0, -1.0, 1.0));
-    EXPECT_TRUE(surface_normals.size() == 3 
-        && gtfo::IsEqual(surface_normals[0], Eigen::Vector3d(1.0, 0.0, 0.0))
-        && gtfo::IsEqual(surface_normals[1], Eigen::Vector3d(0.0, -1.0, 0.0))
-        && gtfo::IsEqual(surface_normals[2], Eigen::Vector3d(0.0, 0.0, 1.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(1.0, 0.0, 0.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(0.0, -1.0, 0.0)));
+    EXPECT_TRUE(surface_normals.Contains(Eigen::Vector3d(0.0, 0.0, 1.0)));
 }
