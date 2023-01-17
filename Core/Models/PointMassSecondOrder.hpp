@@ -33,7 +33,6 @@ namespace gtfo{
     public:
         using Base = PointMassBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>;
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-        using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
         PointMassSecondOrder()
             : Base() 
@@ -50,9 +49,9 @@ namespace gtfo{
 
             // Update the discrete-time state transition matrices, which are computed using exact discretization
             const Scalar exponent = std::exp(-damping / mass * dt);
-            this->A_discrete_ << 1.0, (1.0 - exponent) * mass / damping, 
+            Base::A_discrete_ << 1.0, (1.0 - exponent) * mass / damping, 
                 0.0, exponent;
-            this->B_discrete_ << (damping * dt - (1.0 - exponent) * mass) / (damping * damping),
+            Base::B_discrete_ << (damping * dt - (1.0 - exponent) * mass) / (damping * damping),
                 (1.0 - exponent) / damping;
         }
 
@@ -60,10 +59,10 @@ namespace gtfo{
         bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN)) override
         {
             // If we were given a physical location we update our virtual position to match
-            bool err = Base::SyncVirtualPositionToPhysical(physical_position);
+            const bool err = Base::SyncVirtualPositionToPhysical(physical_position);
 
             // If we are outside we need to enforce the softbound and use its restoring force to step without a physical position since we already synced it (if it was valid)
-            VectorN soft_bound_restoring_force = this->EnforceSoftBound();
+            const VectorN soft_bound_restoring_force = this->EnforceSoftBound();
 
             // Otherwise step without a restoring force and also without a physical position since we already synced it (if it was valid)
             Base::Step(force_input + soft_bound_restoring_force);

@@ -32,10 +32,10 @@ public:
     using Base = PointMassBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    PointMassFirstOrder(){}
+    PointMassFirstOrder() : Base() {}
 
     void SetParameters(const FirstOrderParameters<Scalar>& parameters) override{
-        this->parameters_ = parameters;
+        Base::parameters_ = parameters;
 
         const Scalar& dt = parameters.dt;
         const Scalar& dc_gain = parameters.dc_gain;
@@ -43,8 +43,8 @@ public:
 
         // Update the discrete-time state transition matrices, which are computed using exact discretization
         const Scalar exponent = std::exp(-dt / time_constant);
-        this->A_discrete_ << exponent, 0.0, -1.0 / time_constant, 0.0;
-        this->B_discrete_ << (1.0 - exponent) * dc_gain, dc_gain / time_constant;
+        Base::A_discrete_ << exponent, 0.0, -1.0 / time_constant, 0.0;
+        Base::B_discrete_ << (1.0 - exponent) * dc_gain, dc_gain / time_constant;
     }
 };
 

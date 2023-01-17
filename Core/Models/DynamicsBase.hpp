@@ -77,26 +77,26 @@ public:
     // velocity so that the restoring force can be used in Step
     [[nodiscard]] VectorN EnforceSoftBound(void) const{
         // Default to no restoring force
-            VectorN soft_bound_restoring_force = VectorN::Zero();
+        VectorN soft_bound_restoring_force = VectorN::Zero();
 
-            // Find your surface normals to so we can see if we are moving towards bounds or away
-            const auto surface_normals = soft_bound_->GetSurfaceNormals(soft_bound_->GetNearestPointWithinBound(position_));
+        // Find your surface normals to so we can see if we are moving towards bounds or away
+        const auto surface_normals = soft_bound_->GetSurfaceNormals(soft_bound_->GetNearestPointWithinBound(position_));
 
-            // Add a spring force based on how far we are outside the bounds
-            soft_bound_restoring_force = -soft_bound_spring_constant_ * (position_ - soft_bound_->GetNearestPointWithinBound(position_));
+        // Add a spring force based on how far we are outside the bounds
+        soft_bound_restoring_force = -soft_bound_spring_constant_ * (position_ - soft_bound_->GetNearestPointWithinBound(position_));
 
-            // If we are trying to move outward we also add a damping force in directions that we are pushing away from bounds
-            if (surface_normals.HasPositiveDotProductWith(velocity_))
+        // If we are trying to move outward we also add a damping force in directions that we are pushing away from bounds
+        if (surface_normals.HasPositiveDotProductWith(velocity_))
+        {
+            for(const VectorN& surface_normal : surface_normals)
             {
-                for(const VectorN& surface_normal : surface_normals)
-                {
-                    const Scalar dot_product = surface_normal.dot(velocity_);
-                    if(dot_product > 0.0){
-                        soft_bound_restoring_force += -soft_bound_damping_constant_ * dot_product * surface_normal;
-                    }
+                const Scalar dot_product = surface_normal.dot(velocity_);
+                if(dot_product > 0.0){
+                    soft_bound_restoring_force += -soft_bound_damping_constant_ * dot_product * surface_normal;
                 }
             }
-            return soft_bound_restoring_force;
+        }
+        return soft_bound_restoring_force;
     }
 
     // Sets the virtual position to the physical one if the physical input is in hard bounds.

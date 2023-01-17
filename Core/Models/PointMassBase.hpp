@@ -6,7 +6,6 @@
 
 // Project-specific
 #include "DynamicsBase.hpp"
-#include "../Bounds/BoundBase.hpp"
 
 namespace gtfo
 {
@@ -27,15 +26,12 @@ namespace gtfo
     {
     public:
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-        using Vector2 = Eigen::Matrix<Scalar, 2, 1>;
-        using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
         using Base = DynamicsBase<Dimensions, Scalar>;
-        using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
         PointMassBase()
             :   Base(),
-                A_discrete_(Matrix2::Zero()),
-                B_discrete_(Vector2::Zero()),
+                A_discrete_(Eigen::Matrix<Scalar, 2, 2>::Zero()),
+                B_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
                 acceleration_(VectorN::Zero())
         {
 
@@ -47,13 +43,13 @@ namespace gtfo
         virtual bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN)) override
         {
             // If we were given a physical location we update our virtual position to match
-            bool err = Base::SyncVirtualPositionToPhysical(physical_position);
+            const bool err = Base::SyncVirtualPositionToPhysical(physical_position);
 
             // Sum the external forces and build the current state
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << Base::position_.transpose(), Base::velocity_.transpose()).finished();
 
             // Step the dynamics to determine our next state
-            Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
+            const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
             
             // Update position and velocity
             Base::position_ = new_state.row(0);
@@ -77,8 +73,8 @@ namespace gtfo
     protected:
         Parameters parameters_;
 
-        Matrix2 A_discrete_;
-        Vector2 B_discrete_;
+        Eigen::Matrix<Scalar, 2, 2> A_discrete_;
+        Eigen::Matrix<Scalar, 2, 1> B_discrete_;
 
     private:
         VectorN acceleration_;
