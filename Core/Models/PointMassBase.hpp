@@ -50,7 +50,7 @@ namespace gtfo
               velocity_(VectorN::Zero()),
               acceleration_(VectorN::Zero())
         {
-            hard_bound_ = nullptr;
+            hard_bound_ = std::make_shared<BoundBase<Dimensions, Scalar>>();
         }
 
         virtual void SetParameters(const Parameters &parameters) = 0;
@@ -58,9 +58,8 @@ namespace gtfo
         template <typename BoundType>
         void SetHardBound(const BoundType& bound){
             static_assert(
-                std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>, 
-                "Hard bound must derive from BoundBase"
-            );
+                std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>,
+                "Hard bound must derive from BoundBase");
             hard_bound_ = std::make_shared<BoundType>(bound);
             assert(hard_bound_->Contains(position_));
         }
