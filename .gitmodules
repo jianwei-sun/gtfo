@@ -1,3 +1,6 @@
 [submodule "External/eigen"]
 	path = External/eigen
 	url = https://gitlab.com/libeigen/eigen.git
+[submodule "External/mujoco"]
+	path = External/mujoco
+	url = https://github.com/deepmind/mujoco.git
