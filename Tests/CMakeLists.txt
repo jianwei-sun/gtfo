@@ -38,6 +38,7 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}
     GTest::gtest_main
+    mujoco::mujoco
 )
 
 # Automatically find all tests under the Google Test framework
