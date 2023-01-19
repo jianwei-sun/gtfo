@@ -78,14 +78,7 @@ namespace gtfo
             velocity_ = new_state.row(1);
 
             // Enfoce hard bounds if they exist and then update the state position
-            if (!hard_bound_->Contains(position_))
-            {
-                EnforceHardBound(state, new_state);
-            }
-            else
-            {
-                position_ = new_state.row(0);
-            }
+            EnforceHardBound(state, new_state);
 
             // Update acceleration for new state
             acceleration_ = (velocity_ - state.row(1).transpose()) / parameters_.dt;
