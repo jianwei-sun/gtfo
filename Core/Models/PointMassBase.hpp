@@ -40,7 +40,6 @@ namespace gtfo
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
         using Vector2 = Eigen::Matrix<Scalar, 2, 1>;
         using Matrix2 = Eigen::Matrix<Scalar, 2, 2>;
-
         using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
         PointMassBase()
