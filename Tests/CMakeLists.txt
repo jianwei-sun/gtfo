@@ -41,5 +41,12 @@ target_link_libraries(
     mujoco::mujoco
 )
 
+# Copy the MuJoCo runtime, which is only on Windows
+if(WIN32)
+    file(INSTALL ${mujoco_DIR}/../../../bin/mujoco.dll
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    )
+endif()
+
 # Automatically find all tests under the Google Test framework
 gtest_discover_tests(${PROJECT_NAME})
