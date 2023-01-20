@@ -136,7 +136,7 @@ namespace gtfo
         }
 
     private:
-        // Enfoce hard bound limits on a state to determine position new state
+        // Enforce hard bound limits on a state to determine position new state
         virtual void EnforceHardBound(const Eigen::Matrix<Scalar, 2, Dimensions> &state, Eigen::Matrix<Scalar, 2, Dimensions> &new_state)
         {
             const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
