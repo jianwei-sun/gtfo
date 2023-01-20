@@ -36,8 +36,8 @@ namespace gtfo{
         using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
         PointMassSecondOrder()
+            :soft_bound_(std::make_shared<BoundBase<Dimensions, Scalar>>())
         {
-            soft_bound_ = std::make_shared<BoundBase<Dimensions, Scalar>>();
         }
 
         void SetParameters(const SecondOrderParameters<Scalar> &parameters) override
@@ -74,12 +74,12 @@ namespace gtfo{
             {
                 // If we are outside we need to enforce the softbound and use its restoring force to step
                 VectorN soft_bound_restoring_force = EnforceSoftBound();
-                PointMassBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>::Step(user_input, environment_input + soft_bound_restoring_force);
+                Base::Step(user_input, environment_input + soft_bound_restoring_force);
                 return;
             }
 
             // Otherwise step without a restoring force
-            PointMassBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>::Step(user_input, environment_input);
+            Base::Step(user_input, environment_input);
         }
 
     private:
@@ -93,7 +93,7 @@ namespace gtfo{
             // Default to no restoring force
             VectorN soft_bound_restoring_force = VectorN::Zero();
 
-            // Find our surface normals to so we can see if we are moving twoards bounds or away
+            // Find your surface normals to so we can see if we are moving towards bounds or away
             const auto surface_normals = soft_bound_->GetSurfaceNormals(soft_bound_->GetNearestPointWithinBound(this->position_));
 
             // Add a spring force based on how far we are outside the bounds
@@ -102,20 +102,14 @@ namespace gtfo{
             // If we are trying to move outward we also add a damping force in directions that we are pushing away from bounds
             if (surface_normals.HasPositiveDotProductWith(this->velocity_))
             {
-                for (const VectorN &surface_normal : surface_normals)
+                for(const VectorN& surface_normal : surface_normals)
                 {
-                    for (unsigned i = 0; i < this->velocity_.size(); i++)
-                    {
-                        VectorN single_direction_velocity = VectorN::Zero();
-                        single_direction_velocity(i) = this->velocity_(i);
-                        if (single_direction_velocity.dot(surface_normal) > 0.0)
-                        {
-                            soft_bound_restoring_force(i) = soft_bound_restoring_force(i) + soft_bound_damping_constant * -this->velocity_(i);
-                        }
+                    const Scalar dot_product = surface_normal.dot(this->velocity_);
+                    if(dot_product > 0.0){
+                        soft_bound_restoring_force += -soft_bound_damping_constant * dot_product * surface_normal;
                     }
                 }
             }
-
             return soft_bound_restoring_force;
         }
     };
