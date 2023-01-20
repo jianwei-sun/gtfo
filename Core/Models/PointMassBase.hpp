@@ -76,9 +76,6 @@ namespace gtfo
 
             // Step the dynamics to determine our next state
             Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
-
-            // Ensure the new position is within the bounds
-            position_ = hard_bound_->GetNearestPointWithinBound(new_state.row(0));
             
             // Ensure the new velocity points in the interior of the bound
             velocity_ = new_state.row(1);
