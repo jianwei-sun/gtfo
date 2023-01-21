@@ -52,7 +52,7 @@ public:
 
     // Hard bound logic modifies the position_ and velocity_ member variables. This function
     // should be called after the position and velocity have been updated by Step
-    void EnforceHardBound(void){
+    virtual void EnforceHardBound(void){
         position_ = hard_bound_->GetNearestPointWithinBound(position_);
         const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
         if(surface_normals.HasPositiveDotProductWith(velocity_)){
@@ -75,7 +75,7 @@ public:
     // Since the soft bound only computes a restoring force, it should not modify the position
     // or velocity states. It should typically be called before Step updates position and
     // velocity so that the restoring force can be used in Step
-    [[nodiscard]] VectorN EnforceSoftBound(void) const{
+    [[nodiscard]] virtual VectorN EnforceSoftBound(void) const{
         // Default to no restoring force
         VectorN soft_bound_restoring_force = VectorN::Zero();
 
