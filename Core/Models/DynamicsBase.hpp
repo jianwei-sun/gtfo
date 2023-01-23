@@ -28,8 +28,8 @@ public:
     DynamicsBase()
         :   position_(VectorN::Zero()),
             velocity_(VectorN::Zero()),
-            hard_bound_(std::make_shared<BoundBase<Dimensions, Scalar>>()),
-            soft_bound_(std::make_shared<BoundBase<Dimensions, Scalar>>()),
+            hard_bound_(new BoundBase<Dimensions, Scalar>()),
+            soft_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_spring_constant_(0.0),
             soft_bound_damping_constant_(0.0)
     {
