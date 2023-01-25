@@ -26,13 +26,13 @@ namespace gtfo
     {
     public:
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-        using DynamicsBase = DynamicsBase<Dimensions, Scalar>;
+        using DynamicsModelBase = DynamicsBase<Dimensions, Scalar>;
 
         PointMassBase()
-            :   DynamicsBase(),
-                A_discrete_(Eigen::Matrix<Scalar, 2, 2>::Zero()),
-                B_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
-                acceleration_(VectorN::Zero())
+            : DynamicsModelBase(),
+              A_discrete_(Eigen::Matrix<Scalar, 2, 2>::Zero()),
+              B_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
+              acceleration_(VectorN::Zero())
         {
 
         }
@@ -43,25 +43,23 @@ namespace gtfo
         virtual bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN)) override
         {
             // If we were given a physical location we update our virtual position to match
-            const bool err = DynamicsBase::SyncVirtualPositionToPhysical(physical_position);
+            const bool err = DynamicsModelBase::SyncVirtualPositionToPhysical(physical_position);
 
             // Sum the external forces and build the current state
-            const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << 
-                DynamicsBase::position_.transpose(), DynamicsBase::velocity_.transpose()
-            ).finished();
+            const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << DynamicsModelBase::position_.transpose(), DynamicsModelBase::velocity_.transpose()).finished();
 
             // Step the dynamics to determine our next state
             const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
             
             // Update position and velocity
-            DynamicsBase::position_ = new_state.row(0);
-            DynamicsBase::velocity_ = new_state.row(1);
+            DynamicsModelBase::position_ = new_state.row(0);
+            DynamicsModelBase::velocity_ = new_state.row(1);
 
             // Ensure the hard bound is satisfied
             this->EnforceHardBound();
 
             // Update acceleration for new state
-            acceleration_ = (DynamicsBase::velocity_ - state.row(1).transpose()) / parameters_.dt;
+            acceleration_ = (DynamicsModelBase::velocity_ - state.row(1).transpose()) / parameters_.dt;
 
             // Return error state to user. TODO: Consider converting to int for allowing other error states
             return err;
