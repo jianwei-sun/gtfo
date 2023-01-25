@@ -55,7 +55,11 @@ public:
         data_ = mj_makeData(model_);
     }
 
-    void Step(const VectorN& user_input, const VectorN& environment_input) override{
+    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        // Update the virtual position if a physical position is given
+        const bool err = this->SyncVirtualPositionToPhysical(physical_position);
+        VectorN::Map(data_->qpos) = Base::position_;
+
         // Compute all intermediate results dependent on the state, but not the control
         // Note that by using mj_step1 and mj_step2, the integrator must be the default Euler
         mj_step1(model_, data_);
@@ -66,7 +70,7 @@ public:
         const VectorN previous_velocity = VectorN::Map(data_->qvel);
 
         // Apply the control
-        VectorN::Map(data_->ctrl) = user_input + environment_input + this->EnforceSoftBound();
+        VectorN::Map(data_->ctrl) = force_input + this->EnforceSoftBound();
 
         // Finish computing results that depend on the control input
         mj_step2(model_, data_);
@@ -78,6 +82,13 @@ public:
 
         // Update the acceleration with a backward difference
         acceleration_ = (Base::velocity_ - previous_velocity) / timestep_;
+
+        return err;
+    }
+
+    [[nodiscard]] inline const VectorN &GetAcceleration() const
+    {
+        return acceleration_;
     }
 
     ~MujocoWrapper(){
