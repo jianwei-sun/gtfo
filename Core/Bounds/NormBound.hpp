@@ -21,7 +21,7 @@ public:
           radius_(radius),
           center_(center)
     {
-        assert(radius > 0.0);
+        assert(radius >= 0.0);
     }
 
     [[nodiscard]] bool Contains(const VectorN& point) const override {

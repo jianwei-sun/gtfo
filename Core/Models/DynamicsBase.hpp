@@ -13,6 +13,7 @@
 
 // Project-specific
 #include "../Bounds/BoundBase.hpp"
+#include "../Bounds/NormBound.hpp"
 
 namespace gtfo{
 
@@ -31,7 +32,8 @@ public:
             hard_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_spring_constant_(0.0),
-            soft_bound_damping_constant_(0.0)
+            soft_bound_damping_constant_(0.0),
+            velocity_bound_(new BoundBase<Dimensions, Scalar>())
     {
         
     }
@@ -99,6 +101,17 @@ public:
         return soft_bound_restoring_force;
     }
 
+    // Sets a norm-bound for the velocity
+    void SetVelocityLimit(const Scalar& limit){
+        assert(limit >= 0.0);
+        velocity_bound_ = std::make_shared<NormBound<2, Dimensions>>(limit);
+    }
+
+    // Modifies the current velocity to the closest point within the velocity bound
+    virtual void EnforceVelocityLimit(void){
+        velocity_ = velocity_bound_->GetNearestPointWithinBound(velocity_);
+    }
+
     // Sets the virtual position to the physical one if the physical input is in hard bounds.
     virtual bool SyncVirtualPositionToPhysical(const VectorN &physical_position)
     {
@@ -135,6 +148,9 @@ private:
     BoundPtr soft_bound_;
     Scalar soft_bound_spring_constant_;
     Scalar soft_bound_damping_constant_;
+
+    // Same goes for velocity limit
+    BoundPtr velocity_bound_;
 };
 
 }

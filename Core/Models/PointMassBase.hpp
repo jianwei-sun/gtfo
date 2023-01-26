@@ -55,8 +55,9 @@ namespace gtfo
             DynamicsModelBase::position_ = new_state.row(0);
             DynamicsModelBase::velocity_ = new_state.row(1);
 
-            // Ensure the hard bound is satisfied
+            // Ensure the position and velocity bounds are satisfied
             this->EnforceHardBound();
+            this->EnforceVelocityLimit();
 
             // Update acceleration for new state
             acceleration_ = (DynamicsModelBase::velocity_ - state.row(1).transpose()) / parameters_.dt;
