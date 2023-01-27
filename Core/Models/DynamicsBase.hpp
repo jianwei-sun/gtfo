@@ -26,8 +26,8 @@ public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
     using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
-    DynamicsBase()
-        :   position_(VectorN::Zero()),
+    DynamicsBase(const VectorN& initial_position = VectorN::Zero())
+        :   position_(initial_position),
             velocity_(VectorN::Zero()),
             hard_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_(new BoundBase<Dimensions, Scalar>()),

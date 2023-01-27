@@ -28,8 +28,8 @@ namespace gtfo
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
         using DynamicsModelBase = DynamicsBase<Dimensions, Scalar>;
 
-        PointMassBase()
-            : DynamicsModelBase(),
+        PointMassBase(const VectorN& initial_position = VectorN::Zero())
+            : DynamicsModelBase(initial_position),
               A_discrete_(Eigen::Matrix<Scalar, 2, 2>::Zero()),
               B_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
               acceleration_(VectorN::Zero())
