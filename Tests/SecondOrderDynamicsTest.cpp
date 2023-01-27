@@ -30,11 +30,10 @@ TEST(SecondOrderDynamicsTest, MoveUpwards)
 
     for(unsigned i = 0; i < 20000; ++i)
     {
-        position = test_admittance_controller.GetPosition();
-        velocity = test_admittance_controller.GetVelocity();
-        std::cout << "Pos: " << position.transpose() << ", vel: " << velocity.transpose() << "\n";
         test_admittance_controller.Step(force_input);
     }
 
-    EXPECT_TRUE(gtfo::IsEqual(velocity, Eigen::Matrix<float, dimensions, 1>(0.0f, 0.0f, 1.3333f)));
+    std::cout << "Final position: " << test_admittance_controller.GetPosition().transpose() << "\n";
+    std::cout << "Final velocity: " << test_admittance_controller.GetVelocity().transpose() << "\n";
+    EXPECT_TRUE(gtfo::IsEqual(test_admittance_controller.GetVelocity(), Eigen::Matrix<float, dimensions, 1>(0.0f, 0.0f, 1.3333f)));
 }
