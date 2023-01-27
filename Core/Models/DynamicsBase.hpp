@@ -104,7 +104,7 @@ public:
     // Sets a norm-bound for the velocity
     void SetVelocityLimit(const Scalar& limit){
         assert(limit >= 0.0);
-        velocity_bound_ = std::make_shared<NormBound<2, Dimensions>>(limit);
+        velocity_bound_ = std::make_shared<NormBound<2, Dimensions, Scalar>>(limit);
     }
 
     // Modifies the current velocity to the closest point within the velocity bound
