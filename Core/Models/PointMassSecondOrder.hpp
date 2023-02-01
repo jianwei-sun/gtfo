@@ -25,6 +25,18 @@ namespace gtfo{
         {
             assert(mass > 0.0 && damping > 0.0);
         }
+
+        SecondOrderParameters operator+(const SecondOrderParameters& other){
+            return SecondOrderParameters(ParametersBase<Scalar>::dt, 
+                mass + other.mass, 
+                damping + other.damping);
+        }
+
+        SecondOrderParameters operator*(const Scalar& scalar){
+            return SecondOrderParameters(ParametersBase<Scalar>::dt, 
+                scalar * mass, 
+                scalar * damping);
+        }
     };
 
     template <unsigned int Dimensions, typename Scalar = double>

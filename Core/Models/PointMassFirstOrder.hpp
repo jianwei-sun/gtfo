@@ -24,6 +24,18 @@ struct FirstOrderParameters : ParametersBase<Scalar>{
     {
         assert(time_constant > 0.0 && dc_gain > 0.0);
     }
+
+    FirstOrderParameters operator+(const FirstOrderParameters& other){
+        return FirstOrderParameters(ParametersBase<Scalar>::dt, 
+            time_constant + other.time_constant, 
+            dc_gain + other.dc_gain);
+    }
+
+    FirstOrderParameters operator*(const Scalar& scalar){
+        return FirstOrderParameters(ParametersBase<Scalar>::dt, 
+            scalar * time_constant, 
+            scalar * dc_gain);
+    }
 };
 
 template<unsigned int Dimensions, typename Scalar = double>
