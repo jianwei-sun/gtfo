@@ -62,13 +62,18 @@ namespace gtfo
         [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN &point) const override
         {
             // Surface normals are nonempty only at the boundaries
-            if(!IsAtBoundary(point)){
-                return SurfaceNormals<VectorN>();
-            }
+            // if(!IsAtBoundary(point)){
+            //     return SurfaceNormals<VectorN>();
+            // }
 
             // Build Boolean array for where we are at boundaries
-            const VectorN combined_surface_vectors = (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
-                                                     ((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).template cast<Scalar>();
+            // const VectorN combined_surface_vectors = (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
+            //                                          ((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).template cast<Scalar>();
+
+            // Build a boolean array for where we are at or beyond the boundaries
+            const VectorN point_shifted_origin = point - center_;
+            const VectorN combined_surface_vectors = ((point_shifted_origin.array() >= (this->upper_limits_.array() - this->tol_).array()) || (point_shifted_origin.array() <= (this->lower_limits_.array() + this->tol_).array())).template cast<Scalar>();
+
             SurfaceNormals<VectorN> surface_normals;
 
             for (unsigned i = 0; i < Dimensions; ++i)

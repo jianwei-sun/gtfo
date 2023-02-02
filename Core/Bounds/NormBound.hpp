@@ -50,8 +50,8 @@ public:
     }
 
     [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN& point) const override {
-        // Surface normals are nonempty only at the boundaries
-        if(!IsAtBoundary(point)){
+        // If the query point is in the interior, then return empty 
+        if((point - center_).template lpNorm<Norm>() < (radius_ - this->tol_)){
             return SurfaceNormals<VectorN>();
         }
 
