@@ -66,12 +66,9 @@ public:
 
             return surface_normals;
         }
-        else
+        else if (point_shifted_origin.template lpNorm<Norm>() < (radius_ - Base::tol_))
         {
-            if (point_shifted_origin.template lpNorm<Norm>() < (radius_ - Base::tol_))
-            {
-                return SurfaceNormals<VectorN>();
-            }
+            return SurfaceNormals<VectorN>();
         }
 
         // 2-norm: https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
