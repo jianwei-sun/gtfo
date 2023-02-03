@@ -52,12 +52,28 @@ public:
     [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN& point) const override {
         const VectorN point_shifted_origin = point - center_;
 
-        // If the query point is in the interior, or if it is too small, then surface normals don't make sense
-        if(point_shifted_origin.template lpNorm<Norm>() < (radius_ - Base::tol_) 
-            || point_shifted_origin.template lpNorm<Norm>() < Base::tol_){
-            return SurfaceNormals<VectorN>();
+        // Special case where surface norms break down because our bound is smaller than our tolerance
+        if (radius_ <= Base::tol_)
+        {
+            SurfaceNormals<VectorN> surface_normals;
+
+            // For we spoof the surface normal to be a +/- unit vector in all dimensions to restrict movement
+            for (unsigned i = 0; i < Dimensions; ++i)
+            {
+                surface_normals.push_back(VectorN::Unit(i));
+                surface_normals.push_back(VectorN::Unit(i) * -1.0);
+            }
+
+            return surface_normals;
         }
-        
+        else
+        {
+            if (point_shifted_origin.template lpNorm<Norm>() < (radius_ - Base::tol_))
+            {
+                return SurfaceNormals<VectorN>();
+            }
+        }
+
         // 2-norm: https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
         if constexpr(Norm == 2){
             return SurfaceNormals<VectorN>(point_shifted_origin.normalized());
