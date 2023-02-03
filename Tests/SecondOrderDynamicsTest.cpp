@@ -37,3 +37,4 @@ TEST(SecondOrderDynamicsTest, MoveUpwards)
     std::cout << "Final velocity: " << test_admittance_controller.GetVelocity().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(test_admittance_controller.GetVelocity(), Eigen::Matrix<float, dimensions, 1>(0.0f, 0.0f, 1.3333f)));
 }
+

@@ -29,6 +29,7 @@ public:
     DynamicsBase(const VectorN& initial_position = VectorN::Zero())
         :   position_(initial_position),
             velocity_(VectorN::Zero()),
+            dynamics_paused_(false),
             hard_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_spring_constant_(0.0),
@@ -40,7 +41,16 @@ public:
 
     // Pure virtual function to be implemented by the subclass. The function should
     // update position and velocity using the inputs, and enforce bounds if necessary
+    // The function should also pause dynamics by referring to the dynamics_paused_ flag
     virtual bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) = 0;
+
+    virtual void PauseDynamics(const bool& pause){
+        dynamics_paused_ = pause;
+    }
+
+    [[nodiscard]] inline bool DynamicsArePaused(void){
+        return dynamics_paused_;
+    }
 
     template <typename BoundType>
     void SetHardBound(const BoundType& bound){
@@ -142,6 +152,7 @@ protected:
     VectorN position_;
     VectorN velocity_;
 
+    bool dynamics_paused_;
 private:
     // Hard and soft bounds are included for convenience, but do not have to be used
     BoundPtr hard_bound_;

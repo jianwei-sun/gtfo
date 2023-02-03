@@ -58,11 +58,29 @@ namespace gtfo
             soft_start_timer_ = 0.0;
         }
 
+        // Override the pause dynamics method so that the soft start timer can be reset
+        void PauseDynamics(const bool& pause) override{
+            // If dynamics are being unpaused, then restart the soft start timer
+            if(this->DynamicsArePaused() && !pause){
+                ResetSoftStartTimer();
+            }
+            DynamicsModelBase::PauseDynamics(pause);
+        }
+
         // Propagate the dynamics forward by one time-step.  Returns false if fails to set a physical position
         virtual bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN)) override
         {
             // If we were given a physical location we update our virtual position to match
             const bool err = DynamicsModelBase::SyncVirtualPositionToPhysical(physical_position);
+
+            // When the dynamics are paused, position can still be updated by the physical_position passed into Step.
+            // However, velocity is zeroed. Acceleration is also zeroed to prevent an impulse, even though the actual
+            // instantaneous acceleration is -velocity / dt
+            if(this->DynamicsArePaused()){
+                DynamicsModelBase::velocity_.setZero();
+                acceleration_.setZero();
+                return err;
+            }
 
             // Update the soft start parameters
             if(0.0 < soft_start_duration_ && soft_start_timer_ <= soft_start_duration_){
