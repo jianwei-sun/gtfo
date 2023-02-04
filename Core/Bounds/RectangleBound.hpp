@@ -14,6 +14,7 @@ namespace gtfo
     class RectangleBound : public BoundBase<Dimensions, Scalar>
     {
     public:
+        using Base = BoundBase<Dimensions, Scalar>;
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
         RectangleBound(const VectorN &lower_limits, const VectorN &upper_limits, const VectorN &center, const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
@@ -23,7 +24,7 @@ namespace gtfo
               center_(center)
         {
             // All lower limits must be lower than their respective upper limits
-            assert((lower_limits.array() < upper_limits.array()).all());
+            assert((lower_limits.array() <= upper_limits.array()).all());
         }
 
         // Case where we want same limit ditance in upper and lower bounds
@@ -34,22 +35,22 @@ namespace gtfo
               center_(center)
         {
             // All lower limits must be lower than their respective upper limits
-            assert((bilateral_limits.array() > 0.0).all());
+            assert((bilateral_limits.array() >= 0.0).all());
         }
 
         [[nodiscard]] bool Contains(const VectorN &point) const override
         {
             // If all upper and lower boundaries are satisfied we are inside
-            return ((point.array() >= (this->center_ + this->lower_limits_).array()).all() &&
-                    (point.array() <= (this->center_ + this->upper_limits_).array()).all());
+            return ((point.array() >= (center_ + lower_limits_).array()).all() &&
+                    (point.array() <= (center_ + upper_limits_).array()).all());
         }
 
         [[nodiscard]] bool IsAtBoundary(const VectorN &point) const override
         {
             // Any inside position within tolerance of a boundary means our point is at a boundary
             const Eigen::Array<Scalar, Dimensions, 1> point_shifted_origin = (point - center_).array();
-            return ((lower_limits_.array() <= point_shifted_origin && point_shifted_origin <= (lower_limits_.array() + this->tol_).array()).any() 
-                   || ((upper_limits_.array() - this->tol_).array() <= point_shifted_origin && point_shifted_origin <= upper_limits_.array()).any()) 
+            return ((lower_limits_.array() <= point_shifted_origin && point_shifted_origin <= (lower_limits_.array() + Base::tol_).array()).any() 
+                   || ((upper_limits_.array() - Base::tol_).array() <= point_shifted_origin && point_shifted_origin <= upper_limits_.array()).any()) 
                    && Contains(point);
         }
 
@@ -61,21 +62,22 @@ namespace gtfo
 
         [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN &point) const override
         {
-            // Surface normals are nonempty only at the boundaries
-            if(!IsAtBoundary(point)){
-                return SurfaceNormals<VectorN>();
-            }
+            const VectorN point_shifted_origin = point - center_;
 
-            // Build Boolean array for where we are at boundaries
-            const VectorN combined_surface_vectors = (((this->center_ + this->upper_limits_) - point).cwiseAbs().array() <= this->tol_).template cast<Scalar>() -
-                                                     ((point - (this->center_ + this->lower_limits_)).cwiseAbs().array() <= this->tol_).template cast<Scalar>();
+            // Determine if the point is at a limit. Note that the point can be at both the upper and lower limit, if they are the same (within tolerance)
+            const Eigen::Matrix<bool, Dimensions, 1> at_or_above_upper_limit = (point_shifted_origin.array() >= (upper_limits_.array() - Base::tol_));
+            const Eigen::Matrix<bool, Dimensions, 1> at_or_below_lower_limit = (point_shifted_origin.array() <= (lower_limits_.array() + Base::tol_));
+
             SurfaceNormals<VectorN> surface_normals;
 
+            // For each coordinate that is at a limit, the corresponding surface normal is a +/- unit vector
             for (unsigned i = 0; i < Dimensions; ++i)
             {
-                if (std::abs(combined_surface_vectors[i]) > this->tol_)
-                {
-                    surface_normals.push_back(combined_surface_vectors[i] * VectorN::Unit(i));
+                if(at_or_above_upper_limit(i)){
+                    surface_normals.push_back(VectorN::Unit(i));
+                }
+                if(at_or_below_lower_limit(i)){
+                    surface_normals.push_back(VectorN::Unit(i) * -1.0);
                 }
             }
             return surface_normals;

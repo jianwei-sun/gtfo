@@ -34,9 +34,10 @@ namespace gtfo{
         using Base = PointMassBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>;
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-        PointMassSecondOrder()
-            : Base() 
+        PointMassSecondOrder(const VectorN& initial_position = VectorN::Zero())
+            : Base(initial_position) 
         {
+            
         }
 
         void SetParameters(const SecondOrderParameters<Scalar> &parameters) override

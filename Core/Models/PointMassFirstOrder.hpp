@@ -32,7 +32,11 @@ public:
     using Base = PointMassBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    PointMassFirstOrder() : Base() {}
+    PointMassFirstOrder(const VectorN& initial_position = VectorN::Zero()) 
+        : Base(initial_position) 
+    {
+        
+    }
 
     void SetParameters(const FirstOrderParameters<Scalar>& parameters) override{
         Base::parameters_ = parameters;
