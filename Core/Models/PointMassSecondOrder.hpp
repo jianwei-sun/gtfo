@@ -49,7 +49,7 @@ namespace gtfo{
         PointMassSecondOrder(const SecondOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
             : Base(parameters, initial_position)
         {
-            
+            SetStateTransitionMatrices(parameters);
         }
 
         // Propagate dynamics for a second order system but using softbounds if they exist

@@ -47,7 +47,7 @@ public:
     PointMassFirstOrder(const FirstOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
         : Base(parameters, initial_position)
     {
-        
+        SetStateTransitionMatrices(parameters);
     }
 
 private:

@@ -86,16 +86,16 @@ namespace gtfo
                 const Scalar ratio = soft_start_timer_ / soft_start_duration_;
                 if (ratio == 1)
                 {
-                    SetStateTransitionMatrices(parameters_);
+                    this->SetStateTransitionMatrices(parameters_);
                 }
                 else if (ratio == 0)
                 {
-                    SetStateTransitionMatrices(soft_start_parameters_);
+                    this->SetStateTransitionMatrices(soft_start_parameters_);
                 }
                 else
                 {
                     const Parameters intermediate_parameters = soft_start_parameters_ * (1 - ratio) + parameters_ * ratio;
-                    SetStateTransitionMatrices(intermediate_parameters);
+                    this->SetStateTransitionMatrices(intermediate_parameters);
                 }
             }
             soft_start_timer_ += parameters_.dt;
