@@ -24,6 +24,18 @@ struct FirstOrderParameters : ParametersBase<Scalar>{
     {
         assert(time_constant > 0.0 && dc_gain > 0.0);
     }
+
+    FirstOrderParameters operator+(const FirstOrderParameters& other){
+        return FirstOrderParameters(ParametersBase<Scalar>::dt, 
+            time_constant + other.time_constant, 
+            dc_gain + other.dc_gain);
+    }
+
+    FirstOrderParameters operator*(const Scalar& scalar){
+        return FirstOrderParameters(ParametersBase<Scalar>::dt, 
+            scalar * time_constant, 
+            scalar * dc_gain);
+    }
 };
 
 template<unsigned int Dimensions, typename Scalar = double>
@@ -32,15 +44,15 @@ public:
     using Base = PointMassBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    PointMassFirstOrder(const VectorN& initial_position = VectorN::Zero()) 
-        : Base(initial_position) 
+    PointMassFirstOrder(const FirstOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
+        : Base(parameters, initial_position)
     {
-        
+        SetStateTransitionMatrices(parameters);
     }
 
-    void SetParameters(const FirstOrderParameters<Scalar>& parameters) override{
-        Base::parameters_ = parameters;
-
+private:
+    void SetStateTransitionMatrices(const FirstOrderParameters<Scalar> &parameters) override
+    {
         const Scalar& dt = parameters.dt;
         const Scalar& dc_gain = parameters.dc_gain;
         const Scalar& time_constant = parameters.time_constant;

@@ -5,8 +5,7 @@
 // Verifies a velocity limit of zero works correctly
 TEST(VelocityLimitTest, ZeroLimit)
 {
-    gtfo::PointMassSecondOrder<2> system;
-    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    gtfo::PointMassSecondOrder<2> system((gtfo::SecondOrderParameters<double>()));
     system.SetVelocityLimit(0.0);
 
     for (size_t i = 0; i < 10; ++i)
@@ -26,8 +25,7 @@ TEST(VelocityLimitTest, NoLimit)
 {
     using Scalar = Eigen::Matrix<double, 1, 1>;
 
-    gtfo::PointMassSecondOrder<1> system;
-    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    gtfo::PointMassSecondOrder<1> system((gtfo::SecondOrderParameters<double>()));
 
     for (size_t i = 0; i < 3; ++i)
     {
@@ -48,8 +46,7 @@ TEST(VelocityLimitTest, ArbitraryLimit)
 {
     using Scalar = Eigen::Matrix<double, 1, 1>;
 
-    gtfo::PointMassSecondOrder<1> system;
-    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    gtfo::PointMassSecondOrder<1> system((gtfo::SecondOrderParameters<double>()));
     system.SetVelocityLimit(0.1);
 
     for (size_t i = 0; i < 3; ++i)

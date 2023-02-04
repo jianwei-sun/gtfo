@@ -25,6 +25,18 @@ namespace gtfo{
         {
             assert(mass > 0.0 && damping > 0.0);
         }
+
+        SecondOrderParameters operator+(const SecondOrderParameters& other){
+            return SecondOrderParameters(ParametersBase<Scalar>::dt, 
+                mass + other.mass, 
+                damping + other.damping);
+        }
+
+        SecondOrderParameters operator*(const Scalar& scalar){
+            return SecondOrderParameters(ParametersBase<Scalar>::dt, 
+                scalar * mass, 
+                scalar * damping);
+        }
     };
 
     template <unsigned int Dimensions, typename Scalar = double>
@@ -34,26 +46,10 @@ namespace gtfo{
         using Base = PointMassBase<Dimensions, SecondOrderParameters<Scalar>, Scalar>;
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-        PointMassSecondOrder(const VectorN& initial_position = VectorN::Zero())
-            : Base(initial_position) 
+        PointMassSecondOrder(const SecondOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
+            : Base(parameters, initial_position)
         {
-            
-        }
-
-        void SetParameters(const SecondOrderParameters<Scalar> &parameters) override
-        {
-            Base::parameters_ = parameters;
-
-            const Scalar &dt = parameters.dt;
-            const Scalar &mass = parameters.mass;
-            const Scalar &damping = parameters.damping;
-
-            // Update the discrete-time state transition matrices, which are computed using exact discretization
-            const Scalar exponent = std::exp(-damping / mass * dt);
-            Base::A_discrete_ << 1.0, (1.0 - exponent) * mass / damping, 
-                0.0, exponent;
-            Base::B_discrete_ << (damping * dt - (1.0 - exponent) * mass) / (damping * damping),
-                (1.0 - exponent) / damping;
+            SetStateTransitionMatrices(parameters);
         }
 
         // Propagate dynamics for a second order system but using softbounds if they exist
@@ -71,6 +67,20 @@ namespace gtfo{
             return err;
         }
 
+    private:
+        void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
+        {
+            const Scalar &dt = parameters.dt;
+            const Scalar &mass = parameters.mass;
+            const Scalar &damping = parameters.damping;
+
+            // Update the discrete-time state transition matrices, which are computed using exact discretization
+            const Scalar exponent = std::exp(-damping / mass * dt);
+            Base::A_discrete_ << 1.0, (1.0 - exponent) * mass / damping,
+                0.0, exponent;
+            Base::B_discrete_ << (damping * dt - (1.0 - exponent) * mass) / (damping * damping),
+                (1.0 - exponent) / damping;
+        }
     };
 
 } // namespace gtfo
