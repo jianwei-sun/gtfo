@@ -28,8 +28,9 @@ namespace gtfo
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
         using DynamicsModelBase = DynamicsBase<Dimensions, Scalar>;
 
-        PointMassBase(const VectorN& initial_position = VectorN::Zero())
+        PointMassBase(const Parameters &parameters, const VectorN &initial_position = VectorN::Zero())
             : DynamicsModelBase(initial_position),
+              parameters_(parameters),
               A_discrete_(Eigen::Matrix<Scalar, 2, 2>::Zero()),
               B_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
               acceleration_(VectorN::Zero()),
@@ -38,8 +39,6 @@ namespace gtfo
         {
 
         }
-
-        virtual void SetParameters(const Parameters &parameters) = 0;
 
         // Soft start can be configured by passing in a parameter set, which contains parameters that soft start begins
         // with; and a duration, which specifies how long soft start should last for. During the soft start duration, the
@@ -85,8 +84,19 @@ namespace gtfo
             // Update the soft start parameters
             if(0.0 < soft_start_duration_ && soft_start_timer_ <= soft_start_duration_){
                 const Scalar ratio = soft_start_timer_ / soft_start_duration_;
-                const Parameters intermediate_parameters = soft_start_parameters_ * (1 - ratio) + parameters_ * ratio;
-                SetParameters(intermediate_parameters);
+                if (ratio == 1)
+                {
+                    SetStateTransitionMatrices(parameters_);
+                }
+                else if (ratio == 0)
+                {
+                    SetStateTransitionMatrices(soft_start_parameters_);
+                }
+                else
+                {
+                    const Parameters intermediate_parameters = soft_start_parameters_ * (1 - ratio) + parameters_ * ratio;
+                    SetStateTransitionMatrices(intermediate_parameters);
+                }
             }
             soft_start_timer_ += parameters_.dt;
 
@@ -117,6 +127,8 @@ namespace gtfo
         }
 
     protected:
+        virtual void SetStateTransitionMatrices(const Parameters &parameters) = 0;
+
         Parameters parameters_;
         Parameters soft_start_parameters_;
 

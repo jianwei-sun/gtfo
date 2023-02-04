@@ -5,8 +5,7 @@
 // Verifies that a point mass with second order dynamics is correctly driven to the corner of the rectangle bound
 TEST(HardBoundsTest, SecondOrderSystem2DRectangle)
 {
-    gtfo::PointMassSecondOrder<2> system;
-    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    gtfo::PointMassSecondOrder<2> system(gtfo::SecondOrderParameters<double>());
     system.SetHardBound(gtfo::RectangleBound<2>(Eigen::Vector2d::Ones()));
 
     const Eigen::Vector2d force(1.0, 0.5);
@@ -28,8 +27,7 @@ TEST(HardBoundsTest, SecondOrderSystem2DRectangle)
 
 // Similar verification, but for a point mass with first order dynamics
 TEST(HardBoundsTest, FirstOrderSystem2DRectangle) {
-    gtfo::PointMassFirstOrder<2> system;
-    system.SetParameters(gtfo::FirstOrderParameters<double>());
+    gtfo::PointMassFirstOrder<2> system(gtfo::FirstOrderParameters<double>());
     system.SetHardBound(gtfo::RectangleBound<2>(Eigen::Vector2d::Ones()));
 
     // Because the first order system acts as a low pass filter, the steady state position will be equal to the force input

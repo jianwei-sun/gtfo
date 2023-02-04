@@ -157,8 +157,7 @@ TEST(RectangleBoundTest, GetSurfaceNormals3D) {
 // Misc. Tests
 //----------------------------------------------------------------------------------------------------
 TEST(RectangleBoundTest, NarrowBound) {
-    gtfo::PointMassSecondOrder<2> system;
-    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    gtfo::PointMassSecondOrder<2> system(gtfo::SecondOrderParameters<double>());
 
     // Create a bound that's just a vertical line. The point mass is completely restricted in the x direction
     const gtfo::RectangleBound<2> bound(Eigen::Vector2d(0.0, 1.0));

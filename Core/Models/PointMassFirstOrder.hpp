@@ -44,15 +44,15 @@ public:
     using Base = PointMassBase<Dimensions, FirstOrderParameters<Scalar>, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    PointMassFirstOrder(const VectorN& initial_position = VectorN::Zero()) 
-        : Base(initial_position) 
+    PointMassFirstOrder(const FirstOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
+        : Base(parameters, initial_position)
     {
         
     }
 
-    void SetParameters(const FirstOrderParameters<Scalar>& parameters) override{
-        Base::parameters_ = parameters;
-
+private:
+    void SetStateTransitionMatrices(const FirstOrderParameters<Scalar> &parameters) override
+    {
         const Scalar& dt = parameters.dt;
         const Scalar& dc_gain = parameters.dc_gain;
         const Scalar& time_constant = parameters.time_constant;

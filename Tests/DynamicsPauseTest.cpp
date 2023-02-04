@@ -5,8 +5,7 @@
 // Verifies that dynamics can be paused and that position and velocity are correct
 TEST(DynamicsPauseTest, SecondOrderSystem)
 {
-    gtfo::PointMassSecondOrder<3> system;
-    system.SetParameters(gtfo::SecondOrderParameters<double>());
+    gtfo::PointMassSecondOrder<3> system(gtfo::SecondOrderParameters<double>());
 
     const Eigen::Vector3d force(1.0, 0.0, -1.0);
 
@@ -47,8 +46,7 @@ TEST(DynamicsPauseTest, SecondOrderSystem)
 // Repeat the test for a first order system
 TEST(DynamicsPauseTest, FirstOrderSystem)
 {
-    gtfo::PointMassFirstOrder<3> system;
-    system.SetParameters(gtfo::FirstOrderParameters<double>());
+    gtfo::PointMassFirstOrder<3> system(gtfo::FirstOrderParameters<double>());
 
     const Eigen::Vector3d force(1.0, 0.0, -1.0);
 

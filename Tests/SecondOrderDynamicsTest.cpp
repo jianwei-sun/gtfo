@@ -7,17 +7,14 @@ TEST(SecondOrderDynamicsTest, MoveUpwards)
 {
     const unsigned dimensions = 3;
 
-    // Create the gtfo object given the type of model you want
-    gtfo::PointMassSecondOrder<dimensions, float> test_admittance_controller;
-
     // Declare Parameters of the model
     const float cycle_time_step = 2e-3f; // 2ms
     const float mass = 10.0f;
     const float damping = 15.0f;
     gtfo::SecondOrderParameters<float> test_parameters(cycle_time_step, mass, damping);
 
-    // Set those parameters for the model
-    test_admittance_controller.SetParameters(test_parameters);
+    // Create the gtfo object given the type of model you want
+    gtfo::PointMassSecondOrder<dimensions, float> test_admittance_controller(test_parameters);
 
     // Define fake force input for force sensor
     Eigen::Matrix<float, dimensions, 1> force_input;
