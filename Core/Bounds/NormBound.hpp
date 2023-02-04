@@ -9,10 +9,9 @@
 
 namespace gtfo {
 
-template <unsigned int Norm, unsigned int Dimensions, typename Scalar = double>
+template <unsigned int Dimensions, typename Scalar = double>
 class NormBound : public BoundBase<Dimensions, Scalar>{
 public:
-    static_assert(Norm >= 2, "Norm argument needs to be at least 2");
     using Base = BoundBase<Dimensions, Scalar>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
@@ -25,13 +24,13 @@ public:
     }
 
     [[nodiscard]] bool Contains(const VectorN& point) const override {
-        return (point - center_).template lpNorm<Norm>() <= radius_;
+        return (point - center_).norm() <= radius_;
     }
 
     [[nodiscard]] bool IsAtBoundary(const VectorN& point) const override {
         // Only tol distance inside the boundary is valid
-        const Scalar point_shifted_origin_norm = (point - center_).template lpNorm<Norm>();
-        return (radius_ - Base::tol_) <= point_shifted_origin_norm && point_shifted_origin_norm <= radius_;
+        const Scalar point_shifted_origin_norm = (point - center_).norm();
+        return (radius_ - this->tol_) <= point_shifted_origin_norm && point_shifted_origin_norm <= radius_;
     }
 
     [[nodiscard]] VectorN GetNearestPointWithinBound(const VectorN& point) const override {
@@ -41,12 +40,8 @@ public:
         }
         // Otherwise, clamp the norm to the radius
         const VectorN point_shifted_origin = point - center_;
-        const Scalar clamped_norm = std::min(point_shifted_origin.template lpNorm<Norm>(), radius_);
-        if constexpr(Norm == 2){
-            return clamped_norm * point_shifted_origin.normalized() + center_;
-        } else{
-            return clamped_norm / point_shifted_origin.template lpNorm<Norm>() * point_shifted_origin + center_;
-        }
+        const Scalar clamped_norm = std::min(point_shifted_origin.norm(), radius_);
+        return clamped_norm * point_shifted_origin.normalized() + center_;
     }
 
     [[nodiscard]] SurfaceNormals<VectorN> GetSurfaceNormals(const VectorN& point) const override {
@@ -66,20 +61,13 @@ public:
 
             return surface_normals;
         }
-        else if (point_shifted_origin.template lpNorm<Norm>() < (radius_ - Base::tol_))
+        else if (point_shifted_origin.norm() < (radius_ - Base::tol_))
         {
             return SurfaceNormals<VectorN>();
         }
 
         // 2-norm: https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
-        if constexpr(Norm == 2){
-            return SurfaceNormals<VectorN>(point_shifted_origin.normalized());
-        }
-        // p-norm (p >= 1): https://math.stackexchange.com/questions/1482494/derivative-of-the-l-p-norm
-        else {
-            const VectorN derivative = (point_shifted_origin.cwiseAbs() / point_shifted_origin.template lpNorm<Norm>()).array().pow(Norm - 1) * point_shifted_origin.array().sign();
-            return SurfaceNormals<VectorN>(derivative.normalized());
-        }
+        return SurfaceNormals<VectorN>(point_shifted_origin.normalized());
     }
 
 private:
