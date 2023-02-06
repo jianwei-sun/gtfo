@@ -26,9 +26,12 @@ public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
     using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
+    const static unsigned int Dimension = Dimensions; 
+
     DynamicsBase(const VectorN& initial_position = VectorN::Zero())
         :   position_(initial_position),
             velocity_(VectorN::Zero()),
+            acceleration_(VectorN::Zero()),
             dynamics_paused_(false),
             hard_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
@@ -137,20 +140,26 @@ public:
         return true;
     }
 
-    [[nodiscard]] inline const VectorN &GetPosition() const
+    [[nodiscard]] virtual inline const VectorN &GetPosition() const
     {
         return position_;
     }
 
-    [[nodiscard]] inline const VectorN &GetVelocity() const
+    [[nodiscard]] virtual inline const VectorN &GetVelocity() const
     {
         return velocity_;
+    }
+
+    [[nodiscard]] virtual inline const VectorN &GetAcceleration() const
+    {
+        return acceleration_;
     }
 
 protected:
     // Addition states can be added by subclasses, but they should handle their updating
     VectorN position_;
     VectorN velocity_;
+    VectorN acceleration_;
 
     bool dynamics_paused_;
 private:

@@ -33,7 +33,6 @@ namespace gtfo
               parameters_(parameters),
               A_discrete_(Eigen::Matrix<Scalar, 2, 2>::Zero()),
               B_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
-              acceleration_(VectorN::Zero()),
               soft_start_duration_(0.0),
               soft_start_timer_(0.0)
         {
@@ -77,7 +76,7 @@ namespace gtfo
             // instantaneous acceleration is -velocity / dt
             if(this->DynamicsArePaused()){
                 DynamicsModelBase::velocity_.setZero();
-                acceleration_.setZero();
+                DynamicsModelBase::acceleration_.setZero();
                 return err;
             }
 
@@ -115,15 +114,10 @@ namespace gtfo
             this->EnforceVelocityLimit();
 
             // Update acceleration for new state
-            acceleration_ = (DynamicsModelBase::velocity_ - state.row(1).transpose()) / parameters_.dt;
+            DynamicsModelBase::acceleration_ = (DynamicsModelBase::velocity_ - state.row(1).transpose()) / parameters_.dt;
 
             // Return error state to user. TODO: Consider converting to int for allowing other error states
             return err;
-        }
-
-        [[nodiscard]] inline const VectorN &GetAcceleration() const
-        {
-            return acceleration_;
         }
 
     protected:
@@ -136,8 +130,6 @@ namespace gtfo
         Eigen::Matrix<Scalar, 2, 1> B_discrete_;
 
     private:
-        VectorN acceleration_;
-
         Scalar soft_start_duration_;
         Scalar soft_start_timer_;
 
