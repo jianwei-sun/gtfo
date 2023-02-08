@@ -7,7 +7,7 @@ TEST(DynamicsVectorTest, SingleModel)
 {
     gtfo::SecondOrderParameters<double> parameters;
     gtfo::PointMassSecondOrder<2> system(parameters);
-    gtfo::DynamicsVector<double, 2> system_vector(system);
+    gtfo::DynamicsVector<gtfo::PointMassSecondOrder<2>> system_vector(system);
 
     const Eigen::Vector2d force(1.0, -0.5);
 
@@ -33,7 +33,11 @@ TEST(DynamicsVectorTest, MultipleModels)
     gtfo::PointMassSecondOrder<3> system_3d(parameters_2nd);
 
     // Construct a DynamicsVector by specifying the dimension of each model that goes in
-    gtfo::DynamicsVector<double, 1, 2, 3> system_vector(system_1d, system_2d, system_3d);
+    gtfo::DynamicsVector<
+        gtfo::PointMassSecondOrder<1>,
+        gtfo::PointMassFirstOrder<2>,
+        gtfo::PointMassSecondOrder<3>
+    > system_vector(system_1d, system_2d, system_3d);
 
     const VectorN force = (VectorN() << 1.0, -0.5, 2.0, -2.0, -1.0, 0.0).finished();
 
@@ -64,11 +68,20 @@ TEST(DynamicsVectorTest, NestedVectors)
     gtfo::SecondOrderParameters<double> parameters_2nd;
     gtfo::PointMassSecondOrder<1> system_1d(parameters_2nd);
     gtfo::PointMassFirstOrder<2> system_2d(parameters_1st);
-    gtfo::DynamicsVector<double, 1, 2> vector_system_3d(system_1d, system_2d);
+    gtfo::DynamicsVector<
+        gtfo::PointMassSecondOrder<1>,
+        gtfo::PointMassFirstOrder<2>
+    > vector_system_3d(system_1d, system_2d);
 
     // Nest that 3d DynamicsVector in a 6d DynamicsVector
     gtfo::PointMassSecondOrder<3> system_3d(parameters_2nd);
-    gtfo::DynamicsVector<double, 3, 3> vector_system_6d(vector_system_3d, system_3d);
+    gtfo::DynamicsVector<
+        gtfo::DynamicsVector<
+            gtfo::PointMassSecondOrder<1>,
+            gtfo::PointMassFirstOrder<2>
+        >,
+        gtfo::PointMassSecondOrder<3>
+    > vector_system_6d(vector_system_3d, system_3d);
 
     const VectorN force = (VectorN() << 1.0, -0.5, 2.0, -2.0, -1.0, 0.0).finished();
 
@@ -87,7 +100,7 @@ TEST(DynamicsVectorTest, NestedVectors)
     std::cout << position_1_and_2.transpose() << "\n" << vector_system_3d.GetPosition().transpose() << "\n";
 
 
-    // const VectorN position_3_and_3 = (VectorN() << vector_system_3d.GetPosition(), system_3d.GetPosition()).finished();
-    // EXPECT_TRUE(gtfo::IsEqual(position_3_and_3, vector_system_6d.GetPosition()));
-    // std::cout << position_3_and_3.transpose() << "\n" << vector_system_6d.GetPosition().transpose() << "\n";
+    const VectorN position_3_and_3 = (VectorN() << vector_system_3d.GetPosition(), system_3d.GetPosition()).finished();
+    EXPECT_TRUE(gtfo::IsEqual(position_3_and_3, vector_system_6d.GetPosition()));
+    std::cout << position_3_and_3.transpose() << "\n" << vector_system_6d.GetPosition().transpose() << "\n";
 }

@@ -27,6 +27,7 @@ public:
     using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
     const static unsigned int Dimension = Dimensions; 
+    using ScalarType = Scalar;
 
     DynamicsBase(const VectorN& initial_position = VectorN::Zero())
         :   position_(initial_position),

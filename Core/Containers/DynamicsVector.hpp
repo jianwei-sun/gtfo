@@ -19,50 +19,70 @@
 
 namespace gtfo{
 
-template <typename Scalar, unsigned int... Dimensions>
-class DynamicsVector : public DynamicsBase<(Dimensions + ...), Scalar>{
+template <typename... Models>
+class DynamicsVector : public DynamicsBase<(Models::Dimension + ...), typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType>{
 public:
-    using Base = DynamicsBase<(Dimensions + ...), Scalar>;
+    using Scalar = typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType;
+    using Base = DynamicsBase<(Models::Dimension + ...), Scalar>;
     using VectorN = typename Base::VectorN;
 
     // Constructs a DynamicsVector with the models passed in as arguments. Each model must inherit from DynamicsBase. 
-    // The sum of dimensions of the argument models must equal the dimension of DynamicsVector
-    template <typename... Models>
     DynamicsVector(const Models&... models)
         :   Base(),
-            models_(std::forward_as_tuple(std::make_shared<Models>(models)...))
+            models_(models...)
     {
-        static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Dimensions, Scalar>, Models>...>, "Input types must inherit from DynamicsBase");
+        static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Models::Dimension, Scalar>, Models>...>, "Input types must inherit from DynamicsBase");
 
         // Update the state variables of DynamicsVector. Use an index to keep track of where each model's
         // dimensions begin
         size_t index = 0;
         ([&]{
-            Base::position_.block<Dimensions, 1>(index, 0) = models.GetPosition();
-            Base::velocity_.block<Dimensions, 1>(index, 0) = models.GetVelocity();
-            Base::acceleration_.block<Dimensions, 1>(index, 0) = models.GetAcceleration();
-            index += Dimensions;
+            Base::position_.block<Models::Dimension, 1>(index, 0) = models.GetPosition();
+            Base::velocity_.block<Models::Dimension, 1>(index, 0) = models.GetVelocity();
+            Base::acceleration_.block<Models::Dimension, 1>(index, 0) = models.GetAcceleration();
+            index += Models::Dimension;
         }(), ...);
-        std::cout << "Constructed a DynamicsVector of dimension " << (Dimensions + ...) << "\n";
-    }
+        std::cout << "Constructed a DynamicsVector of dimension " << (Models::Dimension + ...) << "\n";
 
-    DynamicsVector(const DynamicsVector& other)
-        :   Base(other)
-    {
-        // models_ = std::make_shared
-    }
-
-    DynamicsVector(DynamicsVector&& other){
 
     }
 
-    DynamicsVector& operator=(const DynamicsVector& other){
+    // DynamicsVector(const DynamicsVector& other)
+    //     :   Base(other)
+    // {
+    //     std::cout << "called copy constructor\n";
+    //     std::apply([&](auto&&... model){
+    //         // ([&]{
+    //         //     std::make_shared(*model)
+    //         // }(), ...);
 
-    }
+    //         models_ = std::forward_as_tuple(std::make_shared<DynamicsBase<Dimensions, Scalar>>(*model)...);
+    //     }, other.models_);
+    // }
 
-    DynamicsVector& operator=(DynamicsVector&& other){
+    // DynamicsVector(DynamicsVector&& other){
+    //     std::cout << "called move constructor\n";
+    //     models_ = other.models_;
+    // }
 
-    }
+    // DynamicsVector& operator=(const DynamicsVector& other){
+    //     std::cout << "called copy assignment\n";
+    //     if(other == *this){
+    //         return *this;
+    //     }
+    //     std::apply([&](auto&&... model){
+    //         // ([&]{
+    //         //     std::make_shared(*model)
+    //         // }(), ...);
+
+    //         models_ = std::forward_as_tuple(std::make_shared<DynamicsBase<Dimensions, Scalar>>(*model)...);
+    //     }, other.models_);
+    // }
+
+    // DynamicsVector& operator=(DynamicsVector&& other){
+    //     std::cout << "called move assignment\n";
+    //     models_ = other.models_;
+    // }
 
     // Step allows stepping all the models in DynamicsVector as if the container is a single model. Step only
     // returns true if all models' Step functions return true
@@ -75,17 +95,17 @@ public:
 
             // First, step all the models with the appropriate coordinates of the inputs
             ([&]{
-                result &= model->Step(force_input.block<Dimensions, 1>(index, 0), physical_position.block<Dimensions, 1>(index, 0));
-                index += Dimensions;
+                result &= model.Step(force_input.block<Models::Dimension, 1>(index, 0), physical_position.block<Models::Dimension, 1>(index, 0));
+                index += Models::Dimension;
             }(), ...);
 
             // Then, update the state variables of DynamicsVector accordingly
             index = 0;
             ([&]{
-                Base::position_.block<Dimensions, 1>(index, 0) = model->GetPosition();
-                Base::velocity_.block<Dimensions, 1>(index, 0) = model->GetVelocity();
-                Base::acceleration_.block<Dimensions, 1>(index, 0) = model->GetAcceleration();
-                index += Dimensions;
+                Base::position_.block<Models::Dimension, 1>(index, 0) = model.GetPosition();
+                Base::velocity_.block<Models::Dimension, 1>(index, 0) = model.GetVelocity();
+                Base::acceleration_.block<Models::Dimension, 1>(index, 0) = model.GetAcceleration();
+                index += Models::Dimension;
             }(), ...);
         }, models_);
         
@@ -94,7 +114,7 @@ public:
 
     void PauseDynamics(const bool& pause) override{
         std::apply([&](auto&&... model){
-            (model->PauseDynamics(pause), ...);
+            (model.PauseDynamics(pause), ...);
         }, models_);
         Base::PauseDynamics(pause);
     }
@@ -107,8 +127,8 @@ public:
     // }
 
 private:
-    std::tuple<std::shared_ptr<DynamicsBase<Dimensions, Scalar>>...> models_;
-
+    // std::tuple<std::shared_ptr<DynamicsBase<Dimensions, Scalar>>...> models_;
+    std::tuple<Models...> models_;
 };
 
 }   // namespace gtfo

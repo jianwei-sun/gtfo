@@ -26,7 +26,7 @@ namespace gtfo
     {
     public:
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-        using DynamicsModelBase = DynamicsBase<Dimensions, Scalar>;
+        using DynamicsModelBase = DynamicsBase<Dimensions, Scalar>;        
 
         PointMassBase(const Parameters &parameters, const VectorN &initial_position = VectorN::Zero())
             : DynamicsModelBase(initial_position),
