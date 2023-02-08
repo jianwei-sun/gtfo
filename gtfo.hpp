@@ -10,9 +10,11 @@
 #include "Core/Utils/Comparisons.hpp"
 #include "Core/Utils/Containers.hpp"
 
-#include "Core/ModelArray.hpp"
 #include "Core/Models/PointMassFirstOrder.hpp"
 #include "Core/Models/PointMassSecondOrder.hpp"
 
 #include "Core/Bounds/NormBound.hpp"
 #include "Core/Bounds/RectangleBound.hpp"
+
+#include "Core/Containers/DynamicsVector.hpp"
+#include "Core/Containers/DynamicsSelector.hpp"
