@@ -36,8 +36,8 @@ TEST(DynamicsVectorTest, MultipleModels)
     gtfo::DynamicsVector<
         gtfo::PointMassSecondOrder<1>,
         gtfo::PointMassFirstOrder<2>,
-        gtfo::PointMassSecondOrder<3>
-    > system_vector(system_1d, system_2d, system_3d);
+        gtfo::PointMassSecondOrder<3>> 
+    system_vector(system_1d, system_2d, system_3d);
 
     const VectorN force = (VectorN() << 1.0, -0.5, 2.0, -2.0, -1.0, 0.0).finished();
 
@@ -70,18 +70,17 @@ TEST(DynamicsVectorTest, NestedVectors)
     gtfo::PointMassFirstOrder<2> system_2d(parameters_1st);
     gtfo::DynamicsVector<
         gtfo::PointMassSecondOrder<1>,
-        gtfo::PointMassFirstOrder<2>
-    > vector_system_3d(system_1d, system_2d);
+        gtfo::PointMassFirstOrder<2>> 
+    vector_system_3d(system_1d, system_2d);
 
     // Nest that 3d DynamicsVector in a 6d DynamicsVector
     gtfo::PointMassSecondOrder<3> system_3d(parameters_2nd);
     gtfo::DynamicsVector<
         gtfo::DynamicsVector<
             gtfo::PointMassSecondOrder<1>,
-            gtfo::PointMassFirstOrder<2>
-        >,
-        gtfo::PointMassSecondOrder<3>
-    > vector_system_6d(vector_system_3d, system_3d);
+            gtfo::PointMassFirstOrder<2>>,
+        gtfo::PointMassSecondOrder<3>> 
+    vector_system_6d(vector_system_3d, system_3d);
 
     const VectorN force = (VectorN() << 1.0, -0.5, 2.0, -2.0, -1.0, 0.0).finished();
 

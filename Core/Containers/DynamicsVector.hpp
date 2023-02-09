@@ -31,10 +31,10 @@ public:
         :   Base(),
             models_(models...)
     {
-        static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Models::Dimension, Scalar>, Models>...>, "Input types must inherit from DynamicsBase");
+        static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Models::Dimension, Scalar>, Models>...>, "Models must inherit from DynamicsBase");
+        static_assert(std::conjunction_v<std::is_same<Scalar, typename Models::ScalarType>...>, "Models must have the same Scalar type");
 
-        // Update the state variables of DynamicsVector. Use an index to keep track of where each model's
-        // dimensions begin
+        // Update the state variables of DynamicsVector. Use an index to keep track of where each model's dimensions begin
         size_t index = 0;
         ([&]{
             Base::position_.block<Models::Dimension, 1>(index, 0) = models.GetPosition();
@@ -47,42 +47,7 @@ public:
 
     }
 
-    // DynamicsVector(const DynamicsVector& other)
-    //     :   Base(other)
-    // {
-    //     std::cout << "called copy constructor\n";
-    //     std::apply([&](auto&&... model){
-    //         // ([&]{
-    //         //     std::make_shared(*model)
-    //         // }(), ...);
 
-    //         models_ = std::forward_as_tuple(std::make_shared<DynamicsBase<Dimensions, Scalar>>(*model)...);
-    //     }, other.models_);
-    // }
-
-    // DynamicsVector(DynamicsVector&& other){
-    //     std::cout << "called move constructor\n";
-    //     models_ = other.models_;
-    // }
-
-    // DynamicsVector& operator=(const DynamicsVector& other){
-    //     std::cout << "called copy assignment\n";
-    //     if(other == *this){
-    //         return *this;
-    //     }
-    //     std::apply([&](auto&&... model){
-    //         // ([&]{
-    //         //     std::make_shared(*model)
-    //         // }(), ...);
-
-    //         models_ = std::forward_as_tuple(std::make_shared<DynamicsBase<Dimensions, Scalar>>(*model)...);
-    //     }, other.models_);
-    // }
-
-    // DynamicsVector& operator=(DynamicsVector&& other){
-    //     std::cout << "called move assignment\n";
-    //     models_ = other.models_;
-    // }
 
     // Step allows stepping all the models in DynamicsVector as if the container is a single model. Step only
     // returns true if all models' Step functions return true
