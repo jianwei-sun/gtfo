@@ -83,7 +83,7 @@ private:
         if(I == index_){
             return &std::get<I>(models_);
         } else if constexpr(I + 1 < std::tuple_size_v<std::tuple<Models...>>){
-            return GetActiveModel<I + 1>(index_);
+            return GetActiveModel<I + 1>();
         } else{
             return nullptr;
         }

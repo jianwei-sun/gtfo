@@ -7,7 +7,6 @@
 // Standard libraries includes
 #include <memory>
 #include <type_traits>
-#include <iostream>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -44,6 +43,9 @@ public:
         
     }
 
+    // Sets the current model's state to that of the target model. Since the current model may have different
+    // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
+    // discontinuities in the state if the target state is out of bounds
     template <typename Model>
     void SyncSystemTo(const Model& model){
         static_assert(std::is_base_of_v<DynamicsBase, Model>, "Model must be a derived class of DynamicsBase");
@@ -156,17 +158,17 @@ public:
         return true;
     }
 
-    [[nodiscard]] virtual inline const VectorN &GetPosition() const
+    [[nodiscard]] inline const VectorN &GetPosition() const
     {
         return position_;
     }
 
-    [[nodiscard]] virtual inline const VectorN &GetVelocity() const
+    [[nodiscard]] inline const VectorN &GetVelocity() const
     {
         return velocity_;
     }
 
-    [[nodiscard]] virtual inline const VectorN &GetAcceleration() const
+    [[nodiscard]] inline const VectorN &GetAcceleration() const
     {
         return acceleration_;
     }
