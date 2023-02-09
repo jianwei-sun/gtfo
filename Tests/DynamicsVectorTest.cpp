@@ -20,6 +20,8 @@ TEST(DynamicsVectorTest, SingleModel)
     std::cout << system.GetPosition().transpose() << "\n" << system_vector.GetPosition().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), system_vector.GetVelocity()));
     EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), system_vector.GetAcceleration()));
+
+    EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), system_vector.GetModel<0>().GetPosition()));
 }
 
 TEST(DynamicsVectorTest, MultipleModels)
@@ -57,6 +59,10 @@ TEST(DynamicsVectorTest, MultipleModels)
     EXPECT_TRUE(gtfo::IsEqual(combined_position, system_vector.GetPosition()));
     EXPECT_TRUE(gtfo::IsEqual(combined_velocity, system_vector.GetVelocity()));
     EXPECT_TRUE(gtfo::IsEqual(combined_acceleration, system_vector.GetAcceleration()));
+
+    EXPECT_TRUE(gtfo::IsEqual(system_1d.GetPosition(), system_vector.GetModel<0>().GetPosition()));
+    EXPECT_TRUE(gtfo::IsEqual(system_2d.GetPosition(), system_vector.GetModel<1>().GetPosition()));
+    EXPECT_TRUE(gtfo::IsEqual(system_3d.GetPosition(), system_vector.GetModel<2>().GetPosition()));
 }
 
 TEST(DynamicsVectorTest, NestedVectors)
@@ -73,7 +79,7 @@ TEST(DynamicsVectorTest, NestedVectors)
         gtfo::PointMassFirstOrder<2>> 
     vector_system_3d(system_1d, system_2d);
 
-    // Nest that 3d DynamicsVector in a 6d DynamicsVector
+    // Nest a 3d DynamicsVector in a 6d DynamicsVector
     gtfo::PointMassSecondOrder<3> system_3d(parameters_2nd);
     gtfo::DynamicsVector<
         gtfo::DynamicsVector<
@@ -96,10 +102,12 @@ TEST(DynamicsVectorTest, NestedVectors)
     // Verify equality of all models and vectors
     const Eigen::Vector3d position_1_and_2 = (Eigen::Vector3d() << system_1d.GetPosition(), system_2d.GetPosition()).finished();
     EXPECT_TRUE(gtfo::IsEqual(position_1_and_2, vector_system_3d.GetPosition()));
-    std::cout << position_1_and_2.transpose() << "\n" << vector_system_3d.GetPosition().transpose() << "\n";
-
 
     const VectorN position_3_and_3 = (VectorN() << vector_system_3d.GetPosition(), system_3d.GetPosition()).finished();
     EXPECT_TRUE(gtfo::IsEqual(position_3_and_3, vector_system_6d.GetPosition()));
-    std::cout << position_3_and_3.transpose() << "\n" << vector_system_6d.GetPosition().transpose() << "\n";
+
+    EXPECT_TRUE(gtfo::IsEqual(system_1d.GetPosition(), vector_system_6d.GetModel<0>().GetModel<0>().GetPosition()));
+    EXPECT_TRUE(gtfo::IsEqual(system_2d.GetPosition(), vector_system_6d.GetModel<0>().GetModel<1>().GetPosition()));
+    EXPECT_TRUE(gtfo::IsEqual(system_3d.GetPosition(), vector_system_6d.GetModel<1>().GetPosition()));
+    EXPECT_TRUE(gtfo::IsEqual(vector_system_3d.GetPosition(), vector_system_6d.GetModel<0>().GetPosition()));
 }

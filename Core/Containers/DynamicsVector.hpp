@@ -13,7 +13,7 @@
 #include <type_traits>
 #include <memory>
 #include <tuple>
-#include <iostream>
+
 // Project-specific
 #include "../Models/DynamicsBase.hpp"
 
@@ -42,12 +42,7 @@ public:
             Base::acceleration_.block<Models::Dimension, 1>(index, 0) = models.GetAcceleration();
             index += Models::Dimension;
         }(), ...);
-        std::cout << "Constructed a DynamicsVector of dimension " << (Models::Dimension + ...) << "\n";
-
-
     }
-
-
 
     // Step allows stepping all the models in DynamicsVector as if the container is a single model. Step only
     // returns true if all models' Step functions return true
@@ -84,15 +79,17 @@ public:
         Base::PauseDynamics(pause);
     }
 
-    // Note that just like std::vector::operator[], indices are not checked against bounds. So, out of range
-    // access will result in undefined behavior. Furthermore, the function returns a reference to the pointer,
-    // so a static cast is necessary for accessing members in subclasses of DynamicsBase
-    // ModelPtr& operator[](const size_t& index){
-    //     return Container::operator[](index);
-    // }
+    template <size_t index>
+    typename std::tuple_element<index, std::tuple<Models...>>::type& GetModel(){
+        return std::get<index>(models_);
+    }
+
+    template <size_t index>
+    const typename std::tuple_element<index, std::tuple<Models...>>::type& GetModel() const{
+        return std::get<index>(models_);
+    }
 
 private:
-    // std::tuple<std::shared_ptr<DynamicsBase<Dimensions, Scalar>>...> models_;
     std::tuple<Models...> models_;
 };
 
