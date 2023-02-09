@@ -7,6 +7,7 @@
 // Standard libraries includes
 #include <memory>
 #include <type_traits>
+#include <iostream>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -41,6 +42,20 @@ public:
             velocity_bound_(new BoundBase<Dimensions, Scalar>())
     {
         
+    }
+
+    template <typename Model>
+    void SyncSystemTo(const Model& model){
+        static_assert(std::is_base_of_v<DynamicsBase, Model>, "Model must be a derived class of DynamicsBase");
+        static_assert(Dimensions == Model::Dimension, "Model dimension must equal current dimension");
+        static_assert(std::is_same_v<Scalar, typename Model::ScalarType>, "ScalarTypes must be equal");
+
+        position_ = model.position_;
+        velocity_ = model.velocity_;
+        this->EnforceHardBound();
+        this->EnforceVelocityLimit();
+        acceleration_ = model.acceleration_;
+        dynamics_paused_ = model.dynamics_paused_;
     }
 
     // Pure virtual function to be implemented by the subclass. The function should

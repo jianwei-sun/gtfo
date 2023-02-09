@@ -26,14 +26,14 @@ public:
     using Base = DynamicsBase<(Models::Dimension + ...), Scalar>;
     using VectorN = typename Base::VectorN;
 
+    static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Models::Dimension, Scalar>, Models>...>, "Models must inherit from DynamicsBase");
+    static_assert(std::conjunction_v<std::is_same<Scalar, typename Models::ScalarType>...>, "Models must have the same Scalar type");
+
     // Constructs a DynamicsVector with the models passed in as arguments. Each model must inherit from DynamicsBase. 
     DynamicsVector(const Models&... models)
         :   Base(),
             models_(models...)
-    {
-        static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Models::Dimension, Scalar>, Models>...>, "Models must inherit from DynamicsBase");
-        static_assert(std::conjunction_v<std::is_same<Scalar, typename Models::ScalarType>...>, "Models must have the same Scalar type");
-
+    {    
         // Update the state variables of DynamicsVector. Use an index to keep track of where each model's dimensions begin
         size_t index = 0;
         ([&]{

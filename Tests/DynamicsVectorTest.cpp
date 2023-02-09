@@ -17,7 +17,6 @@ TEST(DynamicsVectorTest, SingleModel)
     }
 
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), system_vector.GetPosition()));
-    std::cout << system.GetPosition().transpose() << "\n" << system_vector.GetPosition().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), system_vector.GetVelocity()));
     EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), system_vector.GetAcceleration()));
 
