@@ -74,6 +74,12 @@ public:
         return index_;
     }
 
+    // Allows retrieving only a constant reference to a model to prevent messing up model states
+    template <size_t I>
+    const typename std::tuple_element<I, std::tuple<Models...>>::type& GetModel(void) const{
+        return std::get<I>(models_);
+    }
+
 private:
     // Helper function for retrieving the currently active model at runtime, by indexing the tuple
     // using template recursion. Since all models inherit from the same base type under this class,
