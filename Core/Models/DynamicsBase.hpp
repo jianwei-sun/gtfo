@@ -46,12 +46,7 @@ public:
     // Sets the current model's state to that of the target model. Since the current model may have different
     // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
     // discontinuities in the state if the target state is out of bounds
-    template <typename Model>
-    void SyncSystemTo(const Model& model){
-        static_assert(std::is_base_of_v<DynamicsBase, Model>, "Model must be a derived class of DynamicsBase");
-        static_assert(Dimensions == Model::Dimension, "Model dimension must equal current dimension");
-        static_assert(std::is_same_v<Scalar, typename Model::ScalarType>, "ScalarTypes must be equal");
-
+    virtual void SyncSystemTo(const DynamicsBase& model){
         position_ = model.position_;
         velocity_ = model.velocity_;
         this->EnforceHardBound();
