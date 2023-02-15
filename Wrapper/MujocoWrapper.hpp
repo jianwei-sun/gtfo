@@ -91,9 +91,19 @@ public:
         return acceleration_;
     }
 
+    mjModel* Get_Model() {
+        return model_;
+    }
+    
+    mjData* Get_Data() {
+        return data_;
+    }
+
     ~MujocoWrapper(){
-        mj_deleteModel(model_);
+        // free model and data, deactivate
         mj_deleteData(data_);
+        mj_deleteModel(model_);
+        mj_deactivate();        //SHOULD THIS GO IN WRAPPER OR RENDERER???
     }
 
 private:
@@ -103,7 +113,6 @@ private:
     mjData* data_;
 
     const mjtNum timestep_;
-
 };
 
 } // namespace gtfo

@@ -40,6 +40,9 @@ set(mujoco_DIR ${PROJECT_SOURCE_DIR}/External/mujoco/bin)
 find_package(mujoco PATHS ${mujoco_DIR} REQUIRED)
 include_directories(${mujoco_INCLUDE_DIR})
 
+# GLFW 3.3
+include_directories(${PROJECT_SOURCE_DIR}/External/mujoco/build/_deps/glfw-src/include/GLFW)
+
 #----------------------------------------------------------------------------------------------------
 # Project subdirectories
 #----------------------------------------------------------------------------------------------------
