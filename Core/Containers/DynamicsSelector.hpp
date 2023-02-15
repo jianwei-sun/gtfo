@@ -32,7 +32,7 @@ public:
             index_(0)
     {
         // Match the current state to the first model
-        SyncSystemTo(std::get<0>(models_));
+        this->SyncSystemTo(std::get<0>(models_));
     }
 
     // Step ensures that only the dynamics of the selected model are propagated
@@ -42,7 +42,7 @@ public:
         
         // Then ensure DynamicsSelector's state matches that of the active model
         bool result = model->Step(force_input, physical_position);
-        SyncSystemTo(*model);
+        this->SyncSystemTo(*model);
         return result;
     }
 
@@ -61,7 +61,7 @@ public:
             Base* new_model = GetActiveModel();
 
             new_model->SyncSystemTo(*old_model);
-            SyncSystemTo(*new_model);
+            this->SyncSystemTo(*new_model);
 
             return true;
         } else{

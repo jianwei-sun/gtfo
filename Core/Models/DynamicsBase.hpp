@@ -64,7 +64,7 @@ public:
         dynamics_paused_ = pause;
     }
 
-    [[nodiscard]] inline bool DynamicsArePaused(void){
+    [[nodiscard]] inline bool DynamicsArePaused(void) const{
         return dynamics_paused_;
     }
 
