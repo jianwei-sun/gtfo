@@ -60,7 +60,7 @@ public:
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
         // Hold the current position if dynamics are paused
-        if(DynamicsArePaused()){
+        if(Base::DynamicsArePaused()){
             Base::velocity_.setZero();
             Base::acceleration_.setZero();
             return true;
