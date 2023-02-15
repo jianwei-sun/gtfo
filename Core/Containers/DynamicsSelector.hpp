@@ -55,7 +55,7 @@ public:
     // model's state is also updated to equal that of the previously selected model. However, the newly 
     // selected model's bounds are also checked, which may result in discontinuities in the state
     bool Select(const size_t& index){
-        if(index < std::tuple_size_v<std::tuple<Models...>>){
+        if(index != index_ && index < std::tuple_size_v<std::tuple<Models...>>){
             Base* old_model = GetActiveModel();
             index_ = index;
             Base* new_model = GetActiveModel();
