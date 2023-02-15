@@ -19,36 +19,34 @@ public:
     ConstantVelocityModel(const Scalar& dt, const Scalar& speed)
         :   Base(VectorN::Zero()),
             dt_(dt),
-            // time_(0.0),
             speed_(speed)
     {
         assert(speed_ > 0.0);
     }
 
     void SyncSystemTo(const Base& model) override{
-        Base::position_ = model.position_;
-        Base::velocity_ = model.velocity_;
+        Base::position_ = model.GetPosition();
+        Base::velocity_ = model.GetVelocity();
         this->EnforceHardBound();
-        Base::dynamics_paused_ = model.dynamics_paused_;
+        Base::dynamics_paused_ = model.DynamicsArePaused();
     }
 
     bool Step(const VectorN& input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
         // Hold the current position if dynamics are paused
-        if(DynamicsArePaused()){
+        if(Base::DynamicsArePaused()){
             Base::velocity_.setZero();
             return true;
         }
 
-        const VectorN directions = (input.array() > 0.0).Select(VectorN::Ones(), (input.array() < 0.0).Select(-VectorN::Ones(), VectorN::Zeros()));
-
+        const VectorN directions = input.array().sign();
         Base::position_ += (speed_ * dt_) * directions;
         Base::velocity_ = speed_ * directions;
         this->EnforceHardBound();
+        return true;
     }
 
 private:
     const Scalar dt_;
-    // Scalar time_;
     const Scalar speed_;
 };
 
