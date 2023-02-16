@@ -45,3 +45,32 @@ TEST(MujocoBasicModelsTest, RuleOfFive)
 
     EXPECT_TRUE(true);
 }
+
+// Verifies that pausing works
+TEST(MujocoBasicModelsTest, PauseDynamics)
+{
+    using VectorN = gtfo::MujocoWrapper<7>::VectorN;
+
+    const VectorN initial_position = VectorN::Constant(0.1);
+
+    gtfo::MujocoWrapper<7> mujoco_wrapper("arms.xml", 0.001, initial_position);
+
+    mujoco_wrapper.PauseDynamics(true);
+    for(unsigned i = 0; i < 1000; ++i){
+        mujoco_wrapper.Step(VectorN::Ones());
+    }
+
+    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetPosition(), initial_position));
+    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetVelocity(), VectorN::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetAcceleration(), VectorN::Zero()));
+
+    mujoco_wrapper.PauseDynamics(false);
+    for(unsigned i = 0; i < 1000; ++i){
+        mujoco_wrapper.Step(VectorN::Ones());
+    }
+
+    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetPosition(), VectorN::Zero()));
+    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetPosition(), initial_position));
+    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetVelocity(), VectorN::Zero()));
+    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetAcceleration(), VectorN::Zero()));
+}

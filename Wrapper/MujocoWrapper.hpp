@@ -22,8 +22,8 @@ public:
     using Base = DynamicsBase<Dimensions, mjtNum>;
     using VectorN = Eigen::Matrix<mjtNum, Dimensions, 1>;
 
-    MujocoWrapper(const std::string& model_file, const mjtNum& timestep)
-        :   Base(),
+    MujocoWrapper(const std::string& model_file, const mjtNum& timestep, const VectorN& initial_position = VectorN::Zero())
+        :   Base(initial_position),
             model_(nullptr),
             data_(nullptr)
     {
@@ -52,6 +52,7 @@ public:
         model_->opt.timestep = timestep;
 
         data_ = mj_makeData(model_);
+        VectorN::Map(data_->qpos) = Base::position_;
     }
 
     // Copy constructor
@@ -85,7 +86,7 @@ public:
         
         model_ = mj_copyModel(nullptr, other.model_);
         data_ = mj_copyData(nullptr, other.model_, other.data_);  
-         
+
         return *this;
     }
 
@@ -114,9 +115,27 @@ public:
         mj_deleteData(data_);
     }
 
+    void SyncSystemTo(const Base& model) override{
+        Base::SyncSystemTo(model);
+        VectorN::Map(data_->qpos) = Base::position_;
+        VectorN::Map(data_->qvel) = Base::velocity_;
+        VectorN::Map(data_->qacc) = Base::acceleration_;
+    }
+
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
         // Update the virtual position if a physical position is given
         const bool err = this->SyncVirtualPositionToPhysical(physical_position);
+
+        // Zero the time-dependent states and do not step if the dynamics are paused
+        if(this->DynamicsArePaused()){
+            Base::velocity_.setZero();
+            Base::acceleration_.setZero();
+            VectorN::Map(data_->qpos).setZero();
+            VectorN::Map(data_->qvel).setZero();
+            VectorN::Map(data_->qacc).setZero();
+            return err;
+        }
+
         VectorN::Map(data_->qpos) = Base::position_;
 
         // Compute all intermediate results dependent on the state, but not the control
@@ -133,6 +152,10 @@ public:
 
         // Finish computing results that depend on the control input
         mj_step2(model_, data_);
+
+        // Update the state variables after the second step
+        Base::position_ = VectorN::Map(data_->qpos);
+        Base::velocity_ = VectorN::Map(data_->qvel);
 
         // Restrict and set the position and velocity after the integration timestep
         this->EnforceHardBound();
