@@ -49,7 +49,7 @@ public:
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
         bool result = true;
 
-        std::apply([&](auto&&... model){
+        std::apply([&](Models&... model){
             // Index is used to keep track of where each model's dimensions begin in the concatenated VectorN
             size_t index = 0;
 
