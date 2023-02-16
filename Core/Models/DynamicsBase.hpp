@@ -7,6 +7,7 @@
 // Standard libraries includes
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -41,6 +42,18 @@ public:
             velocity_bound_(new BoundBase<Dimensions, Scalar>())
     {
         
+    }
+
+    friend void swap(DynamicsBase& first, DynamicsBase& second){
+        std::swap(first.position_, second.position_);
+        std::swap(first.velocity_, second.velocity_);
+        std::swap(first.acceleration_, second.acceleration_);
+        std::swap(first.dynamics_paused_, second.dynamics_paused_);
+        std::swap(first.hard_bound_, second.hard_bound_);
+        std::swap(first.soft_bound_, second.soft_bound_);
+        std::swap(first.soft_bound_spring_constant_, second.soft_bound_spring_constant_);
+        std::swap(first.soft_bound_damping_constant_, second.soft_bound_damping_constant_);
+        std::swap(first.velocity_bound_, second.velocity_bound_);
     }
 
     // Sets the current model's state to that of the target model. Since the current model may have different

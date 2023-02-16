@@ -21,3 +21,26 @@ TEST(MujocoBasicModelsTest, LoadArmsModel)
     std::cout << "Final acceleration: " << mujoco_wrapper.GetAcceleration().transpose() << "\n";
     EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetAcceleration(), VectorN::Zero()));
 }
+
+// Verifies rule-of-5 for MujocoWrapper
+TEST(MujocoBasicModelsTest, RuleOfFive)
+{
+    using Wrapper = gtfo::MujocoWrapper<7>;
+
+    // Regular constructor
+    Wrapper w1("arms.xml", 0.001);
+
+    // Copy constructor
+    Wrapper w2(w1);
+
+    // Move constructor
+    Wrapper w3 = std::move(w1);
+
+    // Assignment operator
+    w2 = w1;
+
+    // Move assignment operator
+    w3 = std::move(w1);
+
+    EXPECT_TRUE(false);
+}
