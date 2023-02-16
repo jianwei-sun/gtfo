@@ -22,7 +22,7 @@ TEST(MujocoBasicModelsTest, LoadArmsModel)
     EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetAcceleration(), VectorN::Zero()));
 }
 
-// Verifies rule-of-5 for MujocoWrapper
+// Verifies rule-of-5 for MujocoWrapper and that there are no segfaults
 TEST(MujocoBasicModelsTest, RuleOfFive)
 {
     using Wrapper = gtfo::MujocoWrapper<7>;
@@ -34,7 +34,8 @@ TEST(MujocoBasicModelsTest, RuleOfFive)
     Wrapper w2(w1);
 
     // Move constructor
-    Wrapper w3 = std::move(w1);
+    Wrapper w3_temp("arms.xml", 0.001);
+    Wrapper w3 = std::move(w3_temp);
 
     // Assignment operator
     w2 = w1;
@@ -42,5 +43,5 @@ TEST(MujocoBasicModelsTest, RuleOfFive)
     // Move assignment operator
     w3 = std::move(w1);
 
-    EXPECT_TRUE(false);
+    EXPECT_TRUE(true);
 }

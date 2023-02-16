@@ -7,8 +7,6 @@
 // Standard libraries includes
 #include <string>
 #include <array>
-#include <utility>
-#include <iostream>
 
 // Third-party dependencies
 #include <mujoco/mujoco.h>
@@ -54,53 +52,66 @@ public:
         model_->opt.timestep = timestep;
 
         data_ = mj_makeData(model_);
-
-        std::cout << "Constructor called\n";
-    }
-
-    // Enables the copy-and-swap idiom
-    friend void swap(MujocoWrapper& first, MujocoWrapper& second) noexcept{
-        using std::swap;
-        swap(static_cast<Base&>(first), static_cast<Base&>(second));
-        swap(first.model_, second.model_);
-        swap(first.data_, second.data_);
-
-        std::cout << "    Swap called\n";
     }
 
     // Copy constructor
     MujocoWrapper(const MujocoWrapper& other)
-        :   Base(other),
-            model_(nullptr),
-            data_(nullptr)
+        :   Base(other)
     {
-        mj_copyModel(model_, other.model_);
-        mj_copyData(data_, other.model_, other.data_);
-        std::cout << "Copy constructor called\n";
+        model_ = mj_copyModel(nullptr, other.model_);
+        data_ = mj_copyData(nullptr, other.model_, other.data_);
     }
 
     // Move constructor
     MujocoWrapper(MujocoWrapper&& other) noexcept
-        :   Base(),
-            model_(nullptr),
-            data_(nullptr)
+        :   Base(other)
     {
-        swap(*this, other);
-        std::cout << "Move constructor called\n";
+        model_ = other.model_;
+        data_ = other.data_;
+
+        other.model_ = nullptr;
+        other.data_ = nullptr;
     }
 
     // Assignment operator
-    MujocoWrapper& operator=(MujocoWrapper other){
-        swap(*this, other); 
+    MujocoWrapper& operator=(const MujocoWrapper& other){
+        // Check against self-assignment
+        if(this == &other){
+            return *this;
+        }
+
+        mj_deleteModel(model_);
+        mj_deleteData(data_);
+        
+        model_ = mj_copyModel(nullptr, other.model_);
+        data_ = mj_copyData(nullptr, other.model_, other.data_);  
+         
         return *this;
-        std::cout << "Assignment operator called\n";
+    }
+
+    // Move assignment operator
+    MujocoWrapper& operator=(MujocoWrapper&& other) noexcept{
+        // Check against self-assignment
+        if(this == &other){
+            return *this;
+        }
+
+        mj_deleteModel(model_);
+        mj_deleteData(data_);
+
+        model_ = other.model_;
+        data_ = other.data_;
+
+        other.model_ = nullptr;
+        other.data_ = nullptr;
+
+        return *this;
     }
 
     // Destructor
     ~MujocoWrapper(){
         mj_deleteModel(model_);
         mj_deleteData(data_);
-        std::cout << "Destructor called\n";
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
