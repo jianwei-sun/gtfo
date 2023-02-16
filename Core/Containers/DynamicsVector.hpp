@@ -37,9 +37,9 @@ public:
         // Update the state variables of DynamicsVector. Use an index to keep track of where each model's dimensions begin
         size_t index = 0;
         ([&]{
-            Base::position_.block<Models::Dimension, 1>(index, 0) = models.GetPosition();
-            Base::velocity_.block<Models::Dimension, 1>(index, 0) = models.GetVelocity();
-            Base::acceleration_.block<Models::Dimension, 1>(index, 0) = models.GetAcceleration();
+            Base::position_.template block<Models::Dimension, 1>(index, 0) = models.GetPosition();
+            Base::velocity_.template block<Models::Dimension, 1>(index, 0) = models.GetVelocity();
+            Base::acceleration_.template block<Models::Dimension, 1>(index, 0) = models.GetAcceleration();
             index += Models::Dimension;
         }(), ...);
     }
@@ -55,16 +55,16 @@ public:
 
             // First, step all the models with the appropriate coordinates of the inputs
             ([&]{
-                result &= model.Step(force_input.block<Models::Dimension, 1>(index, 0), physical_position.block<Models::Dimension, 1>(index, 0));
+                result &= model.Step(force_input.template block<Models::Dimension, 1>(index, 0), physical_position.template block<Models::Dimension, 1>(index, 0));
                 index += Models::Dimension;
             }(), ...);
 
             // Then, update the state variables of DynamicsVector accordingly
             index = 0;
             ([&]{
-                Base::position_.block<Models::Dimension, 1>(index, 0) = model.GetPosition();
-                Base::velocity_.block<Models::Dimension, 1>(index, 0) = model.GetVelocity();
-                Base::acceleration_.block<Models::Dimension, 1>(index, 0) = model.GetAcceleration();
+                Base::position_.template block<Models::Dimension, 1>(index, 0) = model.GetPosition();
+                Base::velocity_.template block<Models::Dimension, 1>(index, 0) = model.GetVelocity();
+                Base::acceleration_.template block<Models::Dimension, 1>(index, 0) = model.GetAcceleration();
                 index += Models::Dimension;
             }(), ...);
         }, models_);
