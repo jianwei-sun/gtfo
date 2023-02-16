@@ -26,9 +26,13 @@ public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
     using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
 
+    const static unsigned int Dimension = Dimensions; 
+    using ScalarType = Scalar;
+
     DynamicsBase(const VectorN& initial_position = VectorN::Zero())
         :   position_(initial_position),
             velocity_(VectorN::Zero()),
+            acceleration_(VectorN::Zero()),
             dynamics_paused_(false),
             hard_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
@@ -37,6 +41,18 @@ public:
             velocity_bound_(new BoundBase<Dimensions, Scalar>())
     {
         
+    }
+
+    // Sets the current model's state to that of the target model. Since the current model may have different
+    // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
+    // discontinuities in the state if the target state is out of bounds
+    virtual void SyncSystemTo(const DynamicsBase& model){
+        position_ = model.position_;
+        velocity_ = model.velocity_;
+        this->EnforceHardBound();
+        this->EnforceVelocityLimit();
+        acceleration_ = model.acceleration_;
+        dynamics_paused_ = model.dynamics_paused_;
     }
 
     // Pure virtual function to be implemented by the subclass. The function should
@@ -48,7 +64,7 @@ public:
         dynamics_paused_ = pause;
     }
 
-    [[nodiscard]] inline bool DynamicsArePaused(void){
+    [[nodiscard]] inline bool DynamicsArePaused(void) const{
         return dynamics_paused_;
     }
 
@@ -147,10 +163,16 @@ public:
         return velocity_;
     }
 
+    [[nodiscard]] inline const VectorN &GetAcceleration() const
+    {
+        return acceleration_;
+    }
+
 protected:
     // Addition states can be added by subclasses, but they should handle their updating
     VectorN position_;
     VectorN velocity_;
+    VectorN acceleration_;
 
     bool dynamics_paused_;
 private:
