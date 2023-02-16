@@ -12,6 +12,7 @@
 
 #include "Core/Models/PointMassFirstOrder.hpp"
 #include "Core/Models/PointMassSecondOrder.hpp"
+#include "Core/Models/HomingModel.hpp"
 
 #include "Core/Bounds/NormBound.hpp"
 #include "Core/Bounds/RectangleBound.hpp"
