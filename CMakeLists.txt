@@ -35,6 +35,11 @@ set(INSTALL_PATH ${CMAKE_INSTALL_PREFIX}/bin)
 # Eigen 3.4.0
 include_directories(${PROJECT_SOURCE_DIR}/External/eigen)
 
+# MuJoCo 2.3.1
+set(mujoco_DIR ${PROJECT_SOURCE_DIR}/External/mujoco/bin)
+find_package(mujoco PATHS ${mujoco_DIR} REQUIRED)
+include_directories(${mujoco_INCLUDE_DIR})
+
 #----------------------------------------------------------------------------------------------------
 # Project subdirectories
 #----------------------------------------------------------------------------------------------------

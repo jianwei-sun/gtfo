@@ -38,7 +38,19 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}
     GTest::gtest_main
+    mujoco::mujoco
 )
+
+# Copy the MuJoCo runtime, which is only on Windows
+if(WIN32)
+    file(INSTALL ${mujoco_DIR}/../../../bin/mujoco.dll
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    )
+endif()
+
+# Copy the MuJoCo models to the test directory
+file(GLOB MUJOCO_MODELS ${CMAKE_SOURCE_DIR}/Wrapper/Models/*.xml)
+file(INSTALL ${MUJOCO_MODELS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Automatically find all tests under the Google Test framework
 gtest_discover_tests(${PROJECT_NAME})

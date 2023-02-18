@@ -5,9 +5,19 @@
 Written by the Bionics Lab at UCLA. This library is currently under development!
 
 ## Initializing Submodules
-This project includes `Eigen` version `3.4` as a git submodule. To populate this dependency, run the following command the first time:
+This project includes `Eigen` and `MuJoCo` as git submodules. To populate these dependencies, run the following command the first time:
 ```
 git submodule update --init --recursive
+```
+
+## Building Third-party Libraries
+As `Eigen` is a header-only, only `MuJoCo` needs to be built before using. In the `External/mujoco` directory:
+```
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=../bin
+cmake --build . -j4
+cmake --install .
 ```
 
 ## Building Tests

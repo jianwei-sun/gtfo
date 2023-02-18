@@ -7,6 +7,7 @@
 // Standard libraries includes
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 // Third-party dependencies
 #include <Eigen/Dense>

@@ -1,0 +1,49 @@
+<mujoco model="Arms">
+    <asset>    
+        <texture name="grid" type="2d" builtin="checker" width="256" height="256" rgb1=".1 .2 .3" rgb2=".2 .3 .4"/>
+        <material name="grid" texture="grid" texrepeat="2 2" texuniform="true" reflectance=".2"/>
+      </asset>
+
+    <default>
+        <geom type="capsule"/>
+        <joint type="hinge" limited="true"/>
+    </default>
+
+    <worldbody>
+        <geom name="Floor" pos="0 0 -1.3" size="0 0 .05" type="plane" material="grid" condim="3"/>
+        <light name="Spotlight" mode="fixed" pos="0 0 10" castshadow="false"/>
+
+        <!-- Right upper arm -->
+        <body name="right_upper_arm">
+            <joint name="right_shoulder_abduction_adduction" axis="0 -1 0" range="0 90"/>
+            <joint name="right_shoulder_flexion_extension" axis="1 0 0" range="-10 90"/>
+            <joint name="right_shoulder_internal_external_rotation" axis="0 0 1" range="-15 70"/>
+            <geom name="right_upper_arm" size="0.04 0.15" pos="0 0 -0.15" mass="3.0"/>
+
+            <!-- Right lower arm -->
+            <body name="right_lower_arm" pos="0 0 -0.30">
+                <joint name="right_elbow_flexion_extension" axis="1 0 0" range="0 105"/>
+                <geom name="right_lower_arm" size="0.031 0.14" pos="0 0 -0.14" mass="2.0"/>
+
+                <!-- Right hand -->
+                <body name="right_hand" pos="0 0 -0.28">
+                    <joint name="right_forearm_pronation_supination" axis="0 0 1" range="-40 70"/>
+                    <joint name="right_wrist_extension_flexion" axis="0 -1 0" range="-30 45"/>
+                    <joint name="right_wrist_radial_ulnar_deviation" axis="1 0 0" range="-30 30"/> 
+                    <geom name="right_hand" type="ellipsoid" size="0.02 0.05 0.09" pos="0 0 -0.09" mass="0.6"/>
+                </body>
+            </body>
+        </body>
+
+    </worldbody>
+
+    <actuator>
+        <motor name="right_shoulder_abduction_adduction"        joint="right_shoulder_abduction_adduction"/>
+        <motor name="right_shoulder_flexion_extension"          joint="right_shoulder_flexion_extension"/>
+        <motor name="right_shoulder_internal_external_rotation" joint="right_shoulder_internal_external_rotation"/>
+        <motor name="right_elbow_flexion_extension"             joint="right_elbow_flexion_extension"/>
+        <motor name="right_forearm_pronation_supination"        joint="right_forearm_pronation_supination"/>
+        <motor name="right_wrist_extension_flexion"             joint="right_wrist_extension_flexion"/>
+        <motor name="right_wrist_radial_ulnar_deviation"        joint="right_wrist_radial_ulnar_deviation"/>
+    </actuator>
+</mujoco>
