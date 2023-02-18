@@ -7,6 +7,7 @@
 
 // Project-specific
 #include "DynamicsBase.hpp"
+#include "../Utils/Comparisons.hpp"
 
 namespace gtfo{
 
@@ -31,16 +32,15 @@ public:
         Base::dynamics_paused_ = model.DynamicsArePaused();
     }
 
-    bool Step(const VectorN& input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
-        // Hold the current position if dynamics are paused
-        if(Base::DynamicsArePaused()){
+    bool Step(const VectorN& direction, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        // Hold the current position if dynamics are paused or the input is zero
+        if(Base::DynamicsArePaused() || IsEqual(direction, VectorN::Zero())){
             Base::velocity_.setZero();
             return true;
         }
 
-        const VectorN directions = input.array().sign();
-        Base::position_ += (speed_ * dt_) * directions;
-        Base::velocity_ = speed_ * directions;
+        Base::position_ += (speed_ * dt_) * direction.normalized();
+        Base::velocity_ = speed_ * direction.normalized();
         this->EnforceHardBound();
         return true;
     }
