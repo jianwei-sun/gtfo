@@ -5,27 +5,27 @@
 // Verifies that a model can be loaded and run
 TEST(MujocoBasicModelsTest, LoadArmsModel)
 {
-    using VectorN = gtfo::MujocoWrapper<7>::VectorN;
-    gtfo::MujocoWrapper<7> mujoco_wrapper("arms.xml", 0.001);
+    using VectorN = gtfo::MujocoModel<7>::VectorN;
+    gtfo::MujocoModel<7> system("arms.xml", 0.001);
 
     for(unsigned i = 0; i < 1000; ++i){
-        mujoco_wrapper.Step(VectorN::Zero());
+        system.Step(VectorN::Zero());
     }
 
-    std::cout << "Final position: " << mujoco_wrapper.GetPosition().transpose() << "\n";
-    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetPosition(), VectorN::Zero()));
+    std::cout << "Final position: " << system.GetPosition().transpose() << "\n";
+    EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), VectorN::Zero()));
 
-    std::cout << "Final velocity: " << mujoco_wrapper.GetVelocity().transpose() << "\n";
-    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetVelocity(), VectorN::Zero()));
+    std::cout << "Final velocity: " << system.GetVelocity().transpose() << "\n";
+    EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), VectorN::Zero()));
 
-    std::cout << "Final acceleration: " << mujoco_wrapper.GetAcceleration().transpose() << "\n";
-    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetAcceleration(), VectorN::Zero()));
+    std::cout << "Final acceleration: " << system.GetAcceleration().transpose() << "\n";
+    EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), VectorN::Zero()));
 }
 
-// Verifies rule-of-5 for MujocoWrapper and that there are no segfaults
+// Verifies rule-of-5 for MujocoModel and that there are no segfaults
 TEST(MujocoBasicModelsTest, RuleOfFive)
 {
-    using Wrapper = gtfo::MujocoWrapper<7>;
+    using Wrapper = gtfo::MujocoModel<7>;
 
     // Regular constructor
     Wrapper w1("arms.xml", 0.001);
@@ -49,28 +49,48 @@ TEST(MujocoBasicModelsTest, RuleOfFive)
 // Verifies that pausing works
 TEST(MujocoBasicModelsTest, PauseDynamics)
 {
-    using VectorN = gtfo::MujocoWrapper<7>::VectorN;
+    using VectorN = gtfo::MujocoModel<7>::VectorN;
 
     const VectorN initial_position = VectorN::Constant(0.1);
 
-    gtfo::MujocoWrapper<7> mujoco_wrapper("arms.xml", 0.001, initial_position);
+    gtfo::MujocoModel<7> system("arms.xml", 0.001, initial_position);
 
-    mujoco_wrapper.PauseDynamics(true);
+    system.PauseDynamics(true);
     for(unsigned i = 0; i < 1000; ++i){
-        mujoco_wrapper.Step(VectorN::Ones());
+        system.Step(VectorN::Ones());
     }
 
-    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetPosition(), initial_position));
-    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetVelocity(), VectorN::Zero()));
-    EXPECT_TRUE(gtfo::IsEqual(mujoco_wrapper.GetAcceleration(), VectorN::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), initial_position));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), VectorN::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), VectorN::Zero()));
 
-    mujoco_wrapper.PauseDynamics(false);
+    system.PauseDynamics(false);
     for(unsigned i = 0; i < 1000; ++i){
-        mujoco_wrapper.Step(VectorN::Ones());
+        system.Step(VectorN::Ones());
     }
 
-    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetPosition(), VectorN::Zero()));
-    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetPosition(), initial_position));
-    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetVelocity(), VectorN::Zero()));
-    EXPECT_FALSE(gtfo::IsEqual(mujoco_wrapper.GetAcceleration(), VectorN::Zero()));
+    EXPECT_FALSE(gtfo::IsEqual(system.GetPosition(), VectorN::Zero()));
+    EXPECT_FALSE(gtfo::IsEqual(system.GetPosition(), initial_position));
+    EXPECT_FALSE(gtfo::IsEqual(system.GetVelocity(), VectorN::Zero()));
+    EXPECT_FALSE(gtfo::IsEqual(system.GetAcceleration(), VectorN::Zero()));
+}
+
+// Verify hard bound works with Mujoco model
+TEST(MujocoBasicModelsTest, HardBoundTest)
+{
+    using VectorN = gtfo::MujocoModel<7>::VectorN;
+
+    const VectorN initial_position = VectorN::Constant(0.1);
+
+    gtfo::MujocoModel<7> system("arms.xml", 0.001, initial_position);
+    system.SetHardBound(gtfo::RectangleBound<7>(VectorN::Constant(0.1)));
+
+    system.PauseDynamics(true);
+    for(unsigned i = 0; i < 1000; ++i){
+        system.Step(VectorN::Constant(1.0));
+    }
+
+    EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), VectorN::Constant(0.1)));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), VectorN::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), VectorN::Zero()));
 }

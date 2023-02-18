@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------
-// File: MujocoWrapper.hpp
+// File: MujocoModel.hpp
 // Desc: wrapper class for interfacing with MuJoCo
 //----------------------------------------------------------------------------------------------------
 #pragma once
@@ -12,17 +12,17 @@
 #include <mujoco/mujoco.h>
 
 // Project-specific
-#include "../Core/Models/DynamicsBase.hpp"
+#include "../DynamicsBase.hpp"
 
 namespace gtfo{
 
 template<unsigned int Dimensions>
-class MujocoWrapper : public DynamicsBase<Dimensions, mjtNum>{
+class MujocoModel : public DynamicsBase<Dimensions, mjtNum>{
 public:
     using Base = DynamicsBase<Dimensions, mjtNum>;
     using VectorN = Eigen::Matrix<mjtNum, Dimensions, 1>;
 
-    MujocoWrapper(const std::string& model_file, const mjtNum& timestep, const VectorN& initial_position = VectorN::Zero())
+    MujocoModel(const std::string& model_file, const mjtNum& timestep, const VectorN& initial_position = VectorN::Zero())
         :   Base(initial_position),
             model_(nullptr),
             data_(nullptr)
@@ -56,7 +56,7 @@ public:
     }
 
     // Copy constructor
-    MujocoWrapper(const MujocoWrapper& other)
+    MujocoModel(const MujocoModel& other)
         :   Base(other)
     {
         model_ = mj_copyModel(nullptr, other.model_);
@@ -64,7 +64,7 @@ public:
     }
 
     // Move constructor
-    MujocoWrapper(MujocoWrapper&& other) noexcept
+    MujocoModel(MujocoModel&& other) noexcept
         :   Base(other)
     {
         model_ = other.model_;
@@ -75,7 +75,7 @@ public:
     }
 
     // Assignment operator
-    MujocoWrapper& operator=(const MujocoWrapper& other){
+    MujocoModel& operator=(const MujocoModel& other){
         // Check against self-assignment
         if(this == &other){
             return *this;
@@ -91,7 +91,7 @@ public:
     }
 
     // Move assignment operator
-    MujocoWrapper& operator=(MujocoWrapper&& other) noexcept{
+    MujocoModel& operator=(MujocoModel&& other) noexcept{
         // Check against self-assignment
         if(this == &other){
             return *this;
@@ -110,7 +110,7 @@ public:
     }
 
     // Destructor
-    ~MujocoWrapper(){
+    ~MujocoModel(){
         mj_deleteModel(model_);
         mj_deleteData(data_);
     }
