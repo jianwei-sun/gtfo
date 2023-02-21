@@ -72,8 +72,21 @@ public:
         return result;
     }
 
+    // Applies a lambda that accepts a model and index to each model in the tuple.
+    // For example: [&](auto& model, const size_t& i){...}
+    template <typename Lambda>
+    void Apply(const Lambda& lambda){
+        std::apply([&](Models&... models){
+            size_t model_index = 0;
+            ([&]{
+                lambda(models, model_index);
+                model_index++;
+            }(), ...);
+        }, models_);
+    }
+
     void PauseDynamics(const bool& pause) override{
-        std::apply([&](auto&&... model){
+        std::apply([&](Models&... model){
             (model.PauseDynamics(pause), ...);
         }, models_);
         Base::PauseDynamics(pause);
