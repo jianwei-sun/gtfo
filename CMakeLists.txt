@@ -41,7 +41,10 @@ find_package(mujoco PATHS ${mujoco_DIR} REQUIRED)
 include_directories(${mujoco_INCLUDE_DIR})
 
 # GLFW 3.3
-include_directories(${PROJECT_SOURCE_DIR}/External/mujoco/build/_deps/glfw-src/include/GLFW)
+add_library(glfw ${PROJECT_SOURCE_DIR}/External/mujoco/build/_deps/glfw-src)
+target_link_libraries(glfw gtfo)
+# find_package(OpenGL REQUIRED)
+# target_link_libraries(gtfo OpenGL::GL)
 
 #----------------------------------------------------------------------------------------------------
 # Project subdirectories

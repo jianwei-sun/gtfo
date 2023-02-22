@@ -91,11 +91,11 @@ public:
         return acceleration_;
     }
 
-    mjModel* Get_Model() {
+    const mjModel* Get_Model() {
         return model_;
     }
     
-    mjData* Get_Data() {
+     mjData* Get_Data() { //removed a const from here
         return data_;
     }
 

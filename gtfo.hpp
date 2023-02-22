@@ -20,3 +20,4 @@
 #include "Core/Bounds/RectangleBound.hpp"
 
 #include "Wrapper/MujocoWrapper.hpp"
+#include "Wrapper/MujocoRenderer.hpp"
