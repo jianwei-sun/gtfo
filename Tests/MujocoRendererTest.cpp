@@ -11,6 +11,7 @@ TEST(MujocoRendererTest, SmokeTest)
 
     for(unsigned i = 0; i < 1000; ++i){
         mujoco_wrapper.Step(VectorN::Zero());
+        mujoco_renderer.render();
     }
 
     

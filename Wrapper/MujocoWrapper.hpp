@@ -95,7 +95,7 @@ public:
         return model_;
     }
     
-     mjData* Get_Data() { //removed a const from here
+    const mjData* Get_Data() {
         return data_;
     }
 

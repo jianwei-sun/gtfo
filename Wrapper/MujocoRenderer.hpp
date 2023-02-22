@@ -4,6 +4,7 @@
 #include <string>
 #include <array>
 #include <thread>
+#include <mutex>
 
 // Third-party dependencies
 #include <mujoco/mujoco.h>
@@ -23,7 +24,9 @@ class MujocoRenderer{
 public:
 void render() {
     // update scene and render
+    wrapper_lock_.lock();
     mjv_updateScene(wrapper_.Get_Model(), wrapper_.Get_Data(), &opt_, &pert_, &cam_, mjCAT_ALL, &scn_);
+    wrapper_lock_.unlock();
     mjr_render(viewport_, &scn_, &con_);
 
     // swap OpenGL buffers (blocking call due to v-sync)
@@ -77,9 +80,10 @@ private:
     mjvPerturb pert_;                    // perturbation object
     mjvOption opt_;                      // visualization options
 
-     MujocoWrapper<Dimensions>& wrapper_; //removed const
+     MujocoWrapper<Dimensions>& wrapper_; //not const because mjv_updateScene changes this
 
     std::thread rendering_thread_;
+    std::mutex wrapper_lock_;
 };
 
 } //namespace gtfo
