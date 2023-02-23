@@ -110,3 +110,37 @@ TEST(DynamicsVectorTest, NestedVectors)
     EXPECT_TRUE(gtfo::IsEqual(system_3d.GetPosition(), vector_system_6d.GetModel<1>().GetPosition()));
     EXPECT_TRUE(gtfo::IsEqual(vector_system_3d.GetPosition(), vector_system_6d.GetModel<0>().GetPosition()));
 }
+
+TEST(DynamicsVectorTest, Apply)
+{
+    using VectorN = Eigen::Matrix<double, 6, 1>;
+
+    gtfo::SecondOrderParameters<double> parameters_2nd;
+    gtfo::PointMassSecondOrder<2> system_2d(parameters_2nd);
+
+    // Construct a DynamicsVector by specifying the dimension of each model that goes in
+    gtfo::DynamicsVector<
+        gtfo::PointMassSecondOrder<2>,
+        gtfo::PointMassSecondOrder<2>,
+        gtfo::PointMassSecondOrder<2>> 
+    system_vector(system_2d, system_2d, system_2d);
+
+    const VectorN force = (VectorN() << 1.0, -0.5, 2.0, -2.0, -1.0, 0.0).finished();
+
+    // Since the models are copied, step both DynamicsVector and the original models
+    for(unsigned i = 0; i < 5; ++i){
+        system_vector.Step(force);
+    }
+
+    // Store the position of each model
+    std::array<Eigen::Vector2d, 3> positions;
+
+    // Auto is used since each of the model types may be different
+    system_vector.Apply([&](auto& model, const size_t& i){
+        positions[i] = model.GetPosition();
+    });
+
+    EXPECT_TRUE(gtfo::IsEqual(positions[0], system_vector.GetPosition().head<2>()));
+    EXPECT_TRUE(gtfo::IsEqual(positions[1], system_vector.GetPosition().block<2,1>(2,0)));
+    EXPECT_TRUE(gtfo::IsEqual(positions[2], system_vector.GetPosition().tail<2>()));
+}
