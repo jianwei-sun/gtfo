@@ -56,6 +56,14 @@ public:
     // is selected
     void SyncSystemTo(const Base& model) override{
         ResetHoming(model.GetPosition());
+        Base::PauseDynamics(model.DynamicsArePaused());
+    }
+
+    void PauseDynamics(const bool& pause) override{
+        if(!pause){
+            ResetHoming(Base::position_);
+        }
+        Base::PauseDynamics(pause);
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
@@ -66,13 +74,13 @@ public:
             return true;
         }
 
+        // Time update
+        time_ += dt_;
+
         // If duration_ is invalidly small, or homing hasn't been reset yet, then do not move
         if(duration_ < GTFO_EQUALITY_COMPARISON_TOLERANCE){
             return false;
         }
-
-        // Time update
-        time_ += dt_;
 
         // In first 10% of homing
         if(time_ < 0.1 * duration_){
@@ -114,7 +122,7 @@ public:
 
     Scalar GetProgress(void) const{
         if(duration_ < GTFO_EQUALITY_COMPARISON_TOLERANCE){
-            return 0.0;
+            return static_cast<Scalar>(time_ >= duration_);
         } else{
             return time_ / duration_;
         }

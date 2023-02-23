@@ -76,7 +76,12 @@ public:
         return index_;
     }
 
-    // Allows retrieving only a constant reference to a model to prevent messing up model states
+    // Getter methods for models
+    template <size_t I>
+    typename std::tuple_element<I, std::tuple<Models...>>::type& GetModel(void) {
+        return std::get<I>(models_);
+    }
+
     template <size_t I>
     const typename std::tuple_element<I, std::tuple<Models...>>::type& GetModel(void) const{
         return std::get<I>(models_);
