@@ -49,7 +49,7 @@ if(WIN32)
 endif()
 
 # Copy the MuJoCo models to the test directory
-file(GLOB MUJOCO_MODELS ${CMAKE_SOURCE_DIR}/Wrapper/Models/*.xml)
+file(GLOB MUJOCO_MODELS ${CMAKE_SOURCE_DIR}/Core/Models/Mujoco/Samples/*.xml)
 file(INSTALL ${MUJOCO_MODELS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Automatically find all tests under the Google Test framework
