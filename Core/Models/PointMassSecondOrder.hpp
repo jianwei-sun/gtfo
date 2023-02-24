@@ -76,10 +76,10 @@ namespace gtfo{
 
             // Update the discrete-time state transition matrices, which are computed using exact discretization
             const Scalar exponent = std::exp(-damping / mass * dt);
-            Base::A_discrete_ << 1.0, (1.0 - exponent) * mass / damping,
-                0.0, exponent;
-            Base::B_discrete_ << (damping * dt - (1.0 - exponent) * mass) / (damping * damping),
-                (1.0 - exponent) / damping;
+            Base::A_discrete_ << static_cast<Scalar>(1.0), (static_cast<Scalar>(1.0) - exponent) * mass / damping,
+                static_cast<Scalar>(0.0), exponent;
+            Base::B_discrete_ << (damping * dt - (static_cast<Scalar>(1.0) - exponent) * mass) / (damping * damping),
+                (static_cast<Scalar>(1.0) - exponent) / damping;
         }
     };
 
