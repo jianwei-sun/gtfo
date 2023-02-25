@@ -16,13 +16,14 @@
 
 namespace gtfo{
 
-template<unsigned int Dimensions>
-class MujocoModel : public DynamicsBase<Dimensions, mjtNum>{
+template<unsigned int Dimensions, typename Scalar = double>
+class MujocoModel : public DynamicsBase<Dimensions, Scalar>{
 public:
-    using Base = DynamicsBase<Dimensions, mjtNum>;
-    using VectorN = Eigen::Matrix<mjtNum, Dimensions, 1>;
+    using Base = DynamicsBase<Dimensions, Scalar>;
+    using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
+    using MujocoVectorN = Eigen::Matrix<mjtNum, Dimensions, 1>;
 
-    MujocoModel(const std::string& model_file, const mjtNum& timestep, const VectorN& initial_position = VectorN::Zero())
+    MujocoModel(const std::string& model_file, const Scalar& timestep, const VectorN& initial_position = VectorN::Zero())
         :   Base(initial_position),
             model_(nullptr),
             data_(nullptr)
@@ -52,7 +53,7 @@ public:
         model_->opt.timestep = timestep;
 
         data_ = mj_makeData(model_);
-        VectorN::Map(data_->qpos) = Base::position_;
+        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
     }
 
     // Copy constructor
@@ -117,9 +118,9 @@ public:
 
     void SyncSystemTo(const Base& model) override{
         Base::SyncSystemTo(model);
-        VectorN::Map(data_->qpos) = Base::position_;
-        VectorN::Map(data_->qvel) = Base::velocity_;
-        VectorN::Map(data_->qacc) = Base::acceleration_;
+        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
+        MujocoVectorN::Map(data_->qvel) = Base::velocity_.template cast<mjtNum>();
+        MujocoVectorN::Map(data_->qacc) = Base::acceleration_.template cast<mjtNum>();
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
@@ -130,37 +131,37 @@ public:
         if(this->DynamicsArePaused()){
             Base::velocity_.setZero();
             Base::acceleration_.setZero();
-            VectorN::Map(data_->qpos).setZero();
-            VectorN::Map(data_->qvel).setZero();
-            VectorN::Map(data_->qacc).setZero();
+            MujocoVectorN::Map(data_->qpos).setZero();
+            MujocoVectorN::Map(data_->qvel).setZero();
+            MujocoVectorN::Map(data_->qacc).setZero();
             return err;
         }
 
-        VectorN::Map(data_->qpos) = Base::position_;
+        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
 
         // Compute all intermediate results dependent on the state, but not the control
         // Note that by using mj_step1 and mj_step2, the integrator must be the default Euler
         mj_step1(model_, data_);
 
         // Update the state variables
-        Base::position_ = VectorN::Map(data_->qpos);
-        Base::velocity_ = VectorN::Map(data_->qvel);
-        const VectorN previous_velocity = VectorN::Map(data_->qvel);
+        Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
+        Base::velocity_ = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
+        const VectorN previous_velocity = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
 
         // Apply the control
-        VectorN::Map(data_->ctrl) = force_input + this->EnforceSoftBound();
+        MujocoVectorN::Map(data_->ctrl) = (force_input + this->EnforceSoftBound()).template cast<mjtNum>();
 
         // Finish computing results that depend on the control input
         mj_step2(model_, data_);
 
         // Update the state variables after the second step
-        Base::position_ = VectorN::Map(data_->qpos);
-        Base::velocity_ = VectorN::Map(data_->qvel);
+        Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
+        Base::velocity_ = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
 
         // Restrict and set the position and velocity after the integration timestep
         this->EnforceHardBound();
-        VectorN::Map(data_->qpos) = Base::position_;
-        VectorN::Map(data_->qvel) = Base::velocity_;
+        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
+        MujocoVectorN::Map(data_->qvel) = Base::velocity_.template cast<mjtNum>();
 
         // Update the acceleration with a backward difference
         Base::acceleration_ = (Base::velocity_ - previous_velocity) / model_->opt.timestep;

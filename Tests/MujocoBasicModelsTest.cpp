@@ -2,6 +2,21 @@
 
 #include "../gtfo.hpp"
 
+// Verifies that MujocoModel can be built
+TEST(MujocoBasicModelsTest, DataTypes)
+{
+    gtfo::MujocoModel<7, double> system_double("arms.xml", 0.001);
+    gtfo::MujocoModel<7, float> system_float("arms.xml", 0.001f);
+
+    for(unsigned i = 0; i < 10; ++i){
+        system_double.Step(Eigen::Matrix<double, 7, 1>::Zero());
+        system_float.Step(Eigen::Matrix<float, 7, 1>::Zero());
+    }
+
+    EXPECT_TRUE(gtfo::IsEqual(system_double.GetPosition(), Eigen::Matrix<double, 7, 1>::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(system_float.GetPosition(), Eigen::Matrix<float, 7, 1>::Zero()));
+}
+
 // Verifies that a model can be loaded and run
 TEST(MujocoBasicModelsTest, LoadArmsModel)
 {
