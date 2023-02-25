@@ -144,9 +144,9 @@ public:
         mj_step1(model_, data_);
 
         // Update the state variables
-        Base::position_ = MujocoVectorN::Map(data_->qpos).cast<Scalar>();
-        Base::velocity_ = MujocoVectorN::Map(data_->qvel).cast<Scalar>();
-        const VectorN previous_velocity = MujocoVectorN::Map(data_->qvel).cast<Scalar>();
+        Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
+        Base::velocity_ = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
+        const VectorN previous_velocity = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
 
         // Apply the control
         MujocoVectorN::Map(data_->ctrl) = (force_input + this->EnforceSoftBound()).template cast<mjtNum>();
@@ -155,13 +155,13 @@ public:
         mj_step2(model_, data_);
 
         // Update the state variables after the second step
-        Base::position_ = MujocoVectorN::Map(data_->qpos).cast<Scalar>();
-        Base::velocity_ = MujocoVectorN::Map(data_->qvel).cast<Scalar>();
+        Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
+        Base::velocity_ = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
 
         // Restrict and set the position and velocity after the integration timestep
         this->EnforceHardBound();
-        MujocoVectorN::Map(data_->qpos) = Base::position_.cast<mjtNum>();
-        MujocoVectorN::Map(data_->qvel) = Base::velocity_.cast<mjtNum>();
+        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
+        MujocoVectorN::Map(data_->qvel) = Base::velocity_.template cast<mjtNum>();
 
         // Update the acceleration with a backward difference
         Base::acceleration_ = (Base::velocity_ - previous_velocity) / model_->opt.timestep;
