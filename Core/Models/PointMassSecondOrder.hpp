@@ -81,6 +81,11 @@ namespace gtfo{
             Base::B_discrete_ << (damping * dt - (static_cast<Scalar>(1.0) - exponent) * mass) / (damping * damping),
                 (static_cast<Scalar>(1.0) - exponent) / damping;
         }
+
+        // Calculate the acceleration using the continuous equations with the current velocity
+        void UpdateAcceleration(const VectorN& force_input, const VectorN& previous_velocity) override{
+            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + force_input / Base::parameters_.mass;
+        }
     };
 
 } // namespace gtfo

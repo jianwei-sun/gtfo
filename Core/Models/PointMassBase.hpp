@@ -105,16 +105,14 @@ namespace gtfo
             // Step the dynamics to determine our next state
             const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
             
-            // Update position and velocity
+            // Update states
             DynamicsModelBase::position_ = new_state.row(0);
             DynamicsModelBase::velocity_ = new_state.row(1);
+            this->UpdateAcceleration(force_input, state.row(1));
 
-            // Ensure the position and velocity bounds are satisfied
+            // Ensure the hard bounds are satisfied
             this->EnforceHardBound();
             this->EnforceVelocityLimit();
-
-            // Update acceleration for new state
-            DynamicsModelBase::acceleration_ = (DynamicsModelBase::velocity_ - state.row(1).transpose()) / parameters_.dt;
 
             // Return error state to user. TODO: Consider converting to int for allowing other error states
             return err;
@@ -122,6 +120,10 @@ namespace gtfo
 
     protected:
         virtual void SetStateTransitionMatrices(const Parameters &parameters) = 0;
+
+        virtual void UpdateAcceleration(const VectorN& force_input, const VectorN& previous_velocity){
+            DynamicsModelBase::acceleration_ = (DynamicsModelBase::velocity_ - previous_velocity) / parameters_.dt;
+        }
 
         Parameters parameters_;
         Parameters soft_start_parameters_;
@@ -132,7 +134,6 @@ namespace gtfo
     private:
         Scalar soft_start_duration_;
         Scalar soft_start_timer_;
-
     };
 
 } // namespace gtfo

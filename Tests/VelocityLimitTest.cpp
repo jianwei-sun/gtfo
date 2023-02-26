@@ -38,7 +38,7 @@ TEST(VelocityLimitTest, NoLimit)
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Scalar((1 - inv_exp) * (inv_exp * (1 + inv_exp) + 1))));
 
     std::cout << "Final acceleration: " << system.GetAcceleration().transpose() << "\n";
-    EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Scalar((1 - inv_exp) * (1 - (1 + inv_exp) * (1 - inv_exp)))));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetAcceleration(), Scalar(-(1 - inv_exp) * (inv_exp * (1 + inv_exp) + 1) + 1)));
 }
 
 // Verifies that a limited velocity works correctly
