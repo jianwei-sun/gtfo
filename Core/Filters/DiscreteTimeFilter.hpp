@@ -51,6 +51,10 @@ public:
         assert(fabs(denominator[0] - 1.0) <= std::numeric_limits<Scalar>::epsilon());
         numerator_ = numerator;
         denominator_ = denominator;
+
+        for(size_t i = 0; i < (std::max)(NumeratorDimension, DenominatorDimension); ++i){
+            delayed_states_[i].setZero();
+        }
     }
 
     VectorN Step(const VectorN& input){
