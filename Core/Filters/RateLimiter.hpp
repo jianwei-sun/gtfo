@@ -1,6 +1,10 @@
 //----------------------------------------------------------------------------------------------------
 // File: RateLimiter.hpp
-// Desc: Header file for a rate-limiter filter for use in physical human-robot interaction
+// Desc: Header file for a rate-limiter filter for use in physical human-robot interaction based on
+//       J. Sun, P. W. Ferguson and J. Rosen, "Suppressing Delay-Induced Oscillations in 
+//       Physical Human-Robot Interaction with an Upper-Limb Exoskeleton using Rate-Limiting," 
+//       2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), 2022, 
+//       pp. 6695-6701, doi: 10.1109/IROS47612.2022.9981943.
 //----------------------------------------------------------------------------------------------------
 #pragma once
 

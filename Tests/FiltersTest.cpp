@@ -5,7 +5,7 @@
 // Verifies that a low pass filter works as expected
 TEST(FiltersTest, LowPassFilter)
 {
-    // 100 Hz with 25 Hz cutoff
+    // 4th Order low-pass filter with 100 Hz sampling and 25 Hz cutoff
     gtfo::ButterworthLowPassFilter<1, 4> filter(100.0, 25.0);
     std::array<double, 10> output;
 
