@@ -24,3 +24,4 @@
 
 #include "Core/Filters/DiscreteTimeFilter.hpp"
 #include "Core/Filters/ButterworthLowPassFilter.hpp"
+#include "Core/Filters/RateLimiter.hpp"

@@ -32,3 +32,28 @@ TEST(FiltersTest, LowPassFilter)
         EXPECT_NEAR(output[i], expected_output[i], 1e-15);
     }
 }
+
+// Verifies that a rate limiter works as expected
+TEST(FiltersTest, RateLimiter)
+{
+    gtfo::RateLimiter<2> rate_limiter(1.0, 1.0);
+    Eigen::Vector2d output = Eigen::Vector2d::Zero();
+
+    for(unsigned i = 1; i <= 5; ++i){
+        output = rate_limiter.Step(Eigen::Vector2d(static_cast<double>(i), 10.0));
+        EXPECT_NEAR(output[0], static_cast<double>(i), 1e-15);
+        EXPECT_NEAR(output[0], output[1], 1e-15);
+    }
+
+    for(unsigned i = 1; i <= 5; ++i){
+        output = rate_limiter.Step(Eigen::Vector2d(5.0, 10.0));
+        EXPECT_NEAR(output[0], 5.0, 1e-15);
+        EXPECT_NEAR(output[1], static_cast<double>(i + 5), 1e-15);
+    }
+
+    for(unsigned i = 0; i < 5; ++i){
+        output = rate_limiter.Step(Eigen::Vector2d(5.0, 10.0));
+        EXPECT_NEAR(output[0], 5.0, 1e-15);
+        EXPECT_NEAR(output[1], 10.0, 1e-15);
+    }
+}
