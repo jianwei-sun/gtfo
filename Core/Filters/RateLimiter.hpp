@@ -23,18 +23,22 @@ public:
     
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
-    RateLimiter(const Scalar& sampling_frequency, const Scalar& max_rate, const VectorN& initial_state = VectorN::Zero())
-        :   max_difference_(max_rate / sampling_frequency),
-            state_(initial_state) {}
+    RateLimiter(const Scalar& sampling_frequency, const VectorN& max_rates, const VectorN& initial_state = VectorN::Zero())
+        :   max_differences_(max_rates / sampling_frequency),
+            state_(initial_state) 
+    {
+        assert(sampling_frequency > 0.0);
+        assert((max_rates.array() >= 0.0).all());
+    }
 
     VectorN Step(const VectorN& input){
         // Limit the maximum difference between the input and state
-        state_ += (input - state_).cwiseMax(-max_difference_).cwiseMin(max_difference_);
+        state_ += (input - state_).cwiseMax(-max_differences_).cwiseMin(max_differences_);
         return state_;
     }
 
 private:
-    const Scalar max_difference_;
+    const VectorN max_differences_;
     VectorN state_;
 };
 

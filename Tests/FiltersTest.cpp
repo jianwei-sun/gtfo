@@ -36,7 +36,7 @@ TEST(FiltersTest, LowPassFilter)
 // Verifies that a rate limiter works as expected
 TEST(FiltersTest, RateLimiter)
 {
-    gtfo::RateLimiter<2> rate_limiter(1.0, 1.0);
+    gtfo::RateLimiter<2> rate_limiter(1.0, Eigen::Vector2d::Ones());
     Eigen::Vector2d output = Eigen::Vector2d::Zero();
 
     for(unsigned i = 1; i <= 5; ++i){
