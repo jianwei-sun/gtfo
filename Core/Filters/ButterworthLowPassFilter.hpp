@@ -10,7 +10,7 @@
 #include <cstdlib>
 
 // Third party library includes
-#include "liir.hpp"
+#include "../../External/exstrom-laboratories/liir.hpp"
 
 // Project-specific includes
 #include "DiscreteTimeFilter.hpp"

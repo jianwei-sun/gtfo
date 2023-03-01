@@ -40,9 +40,6 @@ set(mujoco_DIR ${PROJECT_SOURCE_DIR}/External/mujoco/bin)
 find_package(mujoco PATHS ${mujoco_DIR} REQUIRED)
 include_directories(${mujoco_INCLUDE_DIR})
 
-# Extrom Laboratories
-include_directories(${PROJECT_SOURCE_DIR}/External/exstrom-laboratories)
-
 #----------------------------------------------------------------------------------------------------
 # Project subdirectories
 #----------------------------------------------------------------------------------------------------
