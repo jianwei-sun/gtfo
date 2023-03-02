@@ -79,13 +79,18 @@ public:
         assert(hard_bound_->Contains(position_));
     }
 
-    // Hard bound logic modifies the position_ and velocity_ member variables. This function
-    // should be called after the position and velocity have been updated by Step
+    // Hard bound logic modifies position_, velocity_, and acceleration_. This function
+    // should be called after the variables have been updated by Step
     virtual void EnforceHardBound(void){
         position_ = hard_bound_->GetNearestPointWithinBound(position_);
         const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
         if(surface_normals.HasPositiveDotProductWith(velocity_)){
             surface_normals.RemoveComponentIn(velocity_);
+
+            // Also remove acceleration components that try to make velocity point out the bound
+            if(surface_normals.HasPositiveDotProductWith(acceleration_)){
+                surface_normals.RemoveComponentIn(acceleration_);
+            }
         }
     }
 
@@ -134,9 +139,14 @@ public:
         velocity_bound_ = std::make_shared<NormBound<Dimensions, Scalar>>(limit);
     }
 
-    // Modifies the current velocity to the closest point within the velocity bound
+    // Modifies the current velocity to the closest point within the velocity bound, and prevent
+    // accelerations that try to exceed the velocity bound
     virtual void EnforceVelocityLimit(void){
         velocity_ = velocity_bound_->GetNearestPointWithinBound(velocity_);
+        const auto surface_normals = velocity_bound_->GetSurfaceNormals(velocity_);
+        if(surface_normals.HasPositiveDotProductWith(acceleration_)){
+            surface_normals.RemoveComponentIn(acceleration_);
+        }
     }
 
     // Sets the virtual position to the physical one if the physical input is in hard bounds.
