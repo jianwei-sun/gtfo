@@ -19,5 +19,4 @@
 #include "Core/Bounds/NormBound.hpp"
 #include "Core/Bounds/RectangleBound.hpp"
 
-#include "Core/Containers/DynamicsVector.hpp"
-#include "Core/Containers/DynamicsSelector.hpp"
+#include "Wrapper/MujocoWrapper.hpp"
