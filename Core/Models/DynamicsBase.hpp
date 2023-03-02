@@ -101,7 +101,6 @@ public:
             "Soft bound must derive from BoundBase"
         );
         soft_bound_ = std::make_shared<BoundType>(bound);
-        assert(soft_bound_->Contains(position_));
         soft_bound_spring_constant_ = spring_constant;
         soft_bound_damping_constant_ = damping_constant;
     }
