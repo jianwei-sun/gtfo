@@ -37,12 +37,15 @@ void render() {
 }
 
 void rendering_loop(int loop_count) {
+    //rendering_indefinitely = true: keep running
     for (int i = 0; i < count; i++) {
         render();
+        //ADD SLEEP HERE
     }
 }
+//MAKE ANOTHER FN THAT WOULD SET IT TO FALSE AND STOP THE THREAD
 
-MujocoRenderer(MujocoWrapper<Dimensions>& wrap, int loop_count) //removed const
+MujocoRenderer(MujocoWrapper<Dimensions>& wrap, int loop_count, ) //removed const
         :   window_(glfwCreateWindow(800, 600, "Demo", NULL, NULL)),
             wrapper_(wrap),
             rendering_thread_{}//,
