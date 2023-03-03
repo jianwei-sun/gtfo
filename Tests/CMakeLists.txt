@@ -39,6 +39,7 @@ target_link_libraries(
     ${PROJECT_NAME}
     GTest::gtest_main
     mujoco::mujoco
+    ${CMAKE_SOURCE_DIR}/External/glfw-3.3.8.bin.MACOS/lib-x86_64/libglfw3.a
 )
 
 # Copy the MuJoCo runtime, which is only on Windows

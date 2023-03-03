@@ -36,7 +36,13 @@ void render() {
     glfwPollEvents();
 }
 
-MujocoRenderer(MujocoWrapper<Dimensions>& wrap) //removed const
+void rendering_loop(int loop_count) {
+    for (int i = 0; i < count; i++) {
+        render();
+    }
+}
+
+MujocoRenderer(MujocoWrapper<Dimensions>& wrap, int loop_count) //removed const
         :   window_(glfwCreateWindow(800, 600, "Demo", NULL, NULL)),
             wrapper_(wrap),
             rendering_thread_{}//,
@@ -57,7 +63,7 @@ MujocoRenderer(MujocoWrapper<Dimensions>& wrap) //removed const
         viewport_ = {0, 0, 0, 0};
         glfwGetFramebufferSize(window_, &viewport_.width, &viewport_.height);
 
-        rendering_thread_ = std::thread{&MujocoRenderer::render, this};
+        rendering_thread_ = std::thread{&MujocoRenderer::render, rendering_loop(loop_count)};
 
     }
 

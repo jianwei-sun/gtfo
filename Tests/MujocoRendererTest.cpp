@@ -7,11 +7,10 @@ TEST(MujocoRendererTest, SmokeTest)
     using VectorN = gtfo::MujocoWrapper<7>::VectorN;
     gtfo::MujocoWrapper<7> mujoco_wrapper("arms.xml", 0.001);
 
-    gtfo::MujocoRenderer mujoco_renderer(mujoco_wrapper);
+    gtfo::MujocoRenderer mujoco_renderer(mujoco_wrapper, 1000);
 
     for(unsigned i = 0; i < 1000; ++i){
         mujoco_wrapper.Step(VectorN::Zero());
-        mujoco_renderer.render();
     }
 
     
