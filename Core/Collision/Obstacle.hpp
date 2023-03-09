@@ -26,6 +26,10 @@ public:
     {
 
     }
+
+    void UpdateVertices(const std::vector<Vector3>& vertices) override{
+        // Empty, since an obstacle is fixed.
+    }
 };
 
 }   // namespace collision

@@ -28,7 +28,7 @@ public:
         
     }
 
-    void UpdateVertices(const std::vector<Vector3>& vertices){
+    void UpdateVertices(const std::vector<Vector3>& vertices) override{
         assert(vertices.size() == number_of_vertices_);
         Entity<Scalar>::vertices_ = vertices;
         Entity<Scalar>::UpdateSegments();

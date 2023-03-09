@@ -33,9 +33,9 @@ public:
         static_assert(std::conjunction_v<std::is_base_of<Entity<Scalar>, T>...>, "Scene arguments must inherit from Entity");
         ([&]{
             if(entity.IsFixed()){
-                fixed_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
+                fixed_entities_.push_back(std::make_shared<T>(entity));
             } else{
-                free_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
+                free_entities_.push_back(std::make_shared<T>(entity));
             }
         }(), ...);
     }
@@ -48,11 +48,13 @@ public:
         free_to_free_tol_ = free_to_free_tol;
     }
 
-    void AddEntity(const Entity<Scalar>& entity){
+    template<typename T>
+    void AddEntity(const T& entity){
+        static_assert(std::is_base_of_v<Entity<Scalar>, T>, "Entities must inherit from Entity");
         if(entity.IsFixed()){
-            fixed_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
+            fixed_entities_.push_back(std::make_shared<T>(entity));
         } else{
-            free_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
+            free_entities_.push_back(std::make_shared<T>(entity));
         }
     }
 
@@ -78,8 +80,16 @@ public:
         }
     }
 
-    std::vector<Segment<Scalar>> GetCollisions(const size_t& free_entities_index){
+    EntityPtr GetFreeEntity(const size_t& free_entities_index) const{
+        return free_entities_.at(free_entities_index);
+    }
+
+    std::vector<Segment<Scalar>> GetCollisions(const size_t& free_entities_index) const{
         return free_entities_.at(free_entities_index)->GetCollisions();
+    }
+
+    void UpdateVertices(const size_t& free_entities_index, const std::vector<Vector3>& vertices){
+        free_entities_.at(free_entities_index)->UpdateVertices(vertices);
     }
 
 private:

@@ -34,6 +34,8 @@ public:
         return fixed_;
     }
 
+    virtual void UpdateVertices(const std::vector<Vector3>& vertices) = 0;
+
     void UpdateSegments(void){
         segments_.clear();
 
