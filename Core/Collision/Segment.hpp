@@ -76,23 +76,23 @@ public:
         const Scalar self_along_separation = segment_self.dot(separation);
         const Scalar other_along_separation = segment_other.dot(separation);
         const Scalar self_along_other = segment_self.dot(segment_other);
-        const Scalar self_length = this->Length();
-        const Scalar other_length = other.Length();
+        const Scalar self_along_self = segment_self.dot(segment_self);
+        const Scalar other_along_other = segment_other.dot(segment_other);
         
-        const Scalar determinant = self_length * other_length - self_along_other * self_along_other;
+        const Scalar determinant = self_along_self * other_along_other - self_along_other * self_along_other;
 
         Scalar ratio_along_self = 0.0;
         Scalar ratio_along_other = 0.0;
 
-        if(determinant < GTFO_EQUALITY_COMPARISON_TOLERANCE * self_length * other_length){
-            ratio_along_self = Eigen::Matrix<Scalar, 1, 1>(self_along_separation / self_length).cwiseMax(0.0).cwiseMin(1.0).value();
+        if(determinant < GTFO_EQUALITY_COMPARISON_TOLERANCE * self_along_self * other_along_other){
+            ratio_along_self = Eigen::Matrix<Scalar, 1, 1>(self_along_separation / self_along_self).cwiseMax(0.0).cwiseMin(1.0).value();
         } else{
-            ratio_along_self = Eigen::Matrix<Scalar, 1, 1>((self_along_separation * other_length - other_along_separation * self_along_other) / determinant).cwiseMax(0.0).cwiseMin(1.0).value();
-            ratio_along_other = Eigen::Matrix<Scalar, 1, 1>((self_along_separation * self_along_other - other_along_separation * self_length) / determinant).cwiseMax(0.0).cwiseMin(1.0).value();
+            ratio_along_self = Eigen::Matrix<Scalar, 1, 1>((self_along_separation * other_along_other - other_along_separation * self_along_other) / determinant).cwiseMax(0.0).cwiseMin(1.0).value();
+            ratio_along_other = Eigen::Matrix<Scalar, 1, 1>((self_along_separation * self_along_other - other_along_separation * self_along_self) / determinant).cwiseMax(0.0).cwiseMin(1.0).value();
         }
 
-        const Scalar scaled_distance_along_self = Eigen::Matrix<Scalar, 1, 1>((ratio_along_self * self_along_other + self_along_separation) / self_length).cwiseMax(0.0).cwiseMin(1.0).value();
-        const Scalar scaled_distance_along_other = Eigen::Matrix<Scalar, 1, 1>((ratio_along_other * self_along_other - other_along_separation) / other_length).cwiseMax(0.0).cwiseMin(1.0).value();
+        const Scalar scaled_distance_along_self = Eigen::Matrix<Scalar, 1, 1>((ratio_along_self * self_along_other + self_along_separation) / self_along_self).cwiseMax(0.0).cwiseMin(1.0).value();
+        const Scalar scaled_distance_along_other = Eigen::Matrix<Scalar, 1, 1>((ratio_along_other * self_along_other - other_along_separation) / other_along_other).cwiseMax(0.0).cwiseMin(1.0).value();
 
         return Segment(start_ + scaled_distance_along_self * segment_self, other.start_ + scaled_distance_along_other * segment_other);
     }
