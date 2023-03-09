@@ -21,10 +21,12 @@ class Entity{
 public:
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
 
-    Entity(const std::vector<Vector3>& vertices)
+    Entity(const std::vector<Vector3>& vertices, const bool& fixed)
         :   vertices_(vertices),
-            fixed_(true)
+            fixed_(fixed)
     {
+        // Ensure at least one vertex exists
+        assert(vertices_.size() >= 1);
         UpdateSegments();
     }
 
@@ -60,6 +62,10 @@ public:
                 }
             }
         }
+    }
+
+    std::vector<Segment<Scalar>> GetCollisions(void) const{
+        return collisions_;
     }
 
 protected:

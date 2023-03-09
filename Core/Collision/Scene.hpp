@@ -35,12 +35,12 @@ public:
             if(entity.IsFixed()){
                 fixed_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
             } else{
-                free_entities_.emplace_back(entity);
+                free_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
             }
         }(), ...);
     }
 
-    void SetCollisionThresholds(const Scalar& free_to_fixed_tol, const Scalar& free_to_free_tol){
+    void SetCollisionDetectionThresholds(const Scalar& free_to_fixed_tol, const Scalar& free_to_free_tol){
         assert(free_to_fixed_tol > 0.0);
         assert(free_to_free_tol > 0.0);
 
@@ -52,7 +52,7 @@ public:
         if(entity.IsFixed()){
             fixed_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
         } else{
-            free_entities_.emplace_back(entity);
+            free_entities_.push_back(std::make_shared<Entity<Scalar>>(entity));
         }
     }
 
@@ -65,7 +65,7 @@ public:
 
             // Check collisions with all fixed entities
             for(const EntityPtr& fixed_entity : fixed_entities_){
-                free_entity.ComputeCollisions(fixed_entity, free_to_fixed_tol_);
+                free_entity->ComputeCollisions(*fixed_entity, free_to_fixed_tol_);
             }
 
             // Check collisions with other free entities
@@ -73,9 +73,13 @@ public:
                 if(free_entity == other_free_entity){
                     continue;
                 }
-                free_entity.ComputeCollisions(other_free_entity, free_to_free_tol_);
+                free_entity->ComputeCollisions(*other_free_entity, free_to_free_tol_);
             }
         }
+    }
+
+    std::vector<Segment<Scalar>> GetCollisions(const size_t& free_entities_index){
+        return free_entities_.at(free_entities_index)->GetCollisions();
     }
 
 private:

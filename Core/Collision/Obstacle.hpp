@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------------------
-// File: Manipulator.hpp
-// Desc: class representing a physical manipulator
+// File: Obstacle.hpp
+// Desc: class representing a physical obstacle
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
@@ -17,25 +17,15 @@ namespace gtfo{
 namespace collision{
 
 template<typename Scalar = double>
-class Manipulator : public Entity<Scalar>{
+class Obstacle : public Entity<Scalar>{
 public:
     using Vector3 = typename Entity<Scalar>::Vector3;
 
-    Manipulator(const std::vector<Vector3>& vertices)
-        :   Entity<Scalar>(vertices, false),
-            number_of_vertices_(vertices.size())
+    Obstacle(const std::vector<Vector3>& vertices)
+        :   Entity<Scalar>(vertices, true)
     {
-        
-    }
 
-    void UpdateVertices(const std::vector<Vector3>& vertices){
-        assert(vertices.size() == number_of_vertices_);
-        Entity<Scalar>::vertices_ = vertices;
-        Entity<Scalar>::UpdateSegments();
     }
-
-private:
-    const size_t number_of_vertices_;
 };
 
 }   // namespace collision
