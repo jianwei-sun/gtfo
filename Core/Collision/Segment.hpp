@@ -50,8 +50,10 @@ public:
         }
 
         // Point to line
-        // Found by projecting the point onto the line containing the segment
-        // and checking if it falls within the segment
+        //    Found by projecting the point onto the line containing the segment
+        //    and checking if it falls within the segment
+        //    https://stackoverflow.com/a/1501725
+        // TODO: fix length squared
         if(this->IsPoint() && !other.IsPoint()){
             const Vector3& point = start_;
             const Scalar ratio = Eigen::Matrix<Scalar, 1, 1>((point - other.start_).dot(other.end_ - other.start_) / other.Length()).cwiseMax(0.0).cwiseMin(1.0).value();
@@ -66,8 +68,7 @@ public:
         }
 
         // Line to line
-        // Otherwise follow this concise answer on stackoverflow:
-        // https://stackoverflow.com/a/67102941/7338620
+        //     https://stackoverflow.com/a/67102941/7338620
         const Vector3 segment_self = end_ - start_;
         const Vector3 segment_other = other.end_ - other.start_;
         const Vector3 separation = other.start_ - start_;
@@ -85,7 +86,23 @@ public:
         Scalar ratio_along_other = 0.0;
 
         if(determinant < GTFO_EQUALITY_COMPARISON_TOLERANCE * self_along_self * other_along_other){
-            ratio_along_self = Eigen::Matrix<Scalar, 1, 1>(self_along_separation / self_along_self).cwiseMax(0.0).cwiseMin(1.0).value();
+            // ratio_along_self = Eigen::Matrix<Scalar, 1, 1>(self_along_separation / self_along_self).cwiseMax(0.0).cwiseMin(1.0).value();
+            // TODO: When the segments are parallel, return the answer as the midpoints between the overlapped regions
+            
+            const Scalar a = (other.start_ - start_).dot(segment_self) / self_along_self;
+            const Scalar b = (other.end_ - start_).dot(segment_self) / self_along_self;
+
+            ratio_along_self = (std::max(std::min(a, b), 0.0) + 
+            std::min(std::max(a, b), 1.0)) / 2.0;
+
+            const Scalar c = (start_ - other.start_).dot(segment_other) / other_along_other;
+            const Scalar d = (end_ - other.start_).dot(segment_other) / other_along_other;
+
+            ratio_along_other = (std::max(std::min(c, d), 0.0) + 
+            std::min(std::max(c, d), 1.0)) / 2.0;
+
+
+            return Segment(start_ + ratio_along_self * segment_self, other.start_ + ratio_along_other * segment_other);
         } else{
             ratio_along_self = Eigen::Matrix<Scalar, 1, 1>((self_along_separation * other_along_other - other_along_separation * self_along_other) / determinant).cwiseMax(0.0).cwiseMin(1.0).value();
             ratio_along_other = Eigen::Matrix<Scalar, 1, 1>((self_along_separation * self_along_other - other_along_separation * self_along_self) / determinant).cwiseMax(0.0).cwiseMin(1.0).value();
