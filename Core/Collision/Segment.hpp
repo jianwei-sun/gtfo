@@ -56,15 +56,15 @@ public:
         // TODO: fix length squared
         if(this->IsPoint() && !other.IsPoint()){
             const Vector3& point = start_;
-            const Scalar ratio = Eigen::Matrix<Scalar, 1, 1>((point - other.start_).dot(other.end_ - other.start_) / other.Length()).cwiseMax(0.0).cwiseMin(1.0).value();
-            return Segment(start_, other.start_ + ratio * (other.end_ - other.start_));
+            const Scalar ratio = other.RatioOfPoint(point, true);
+            return Segment(start_, other.PointAtRatio(ratio));
         }
 
         // Line to point
         if(!this->IsPoint() && other.IsPoint()){
             const Vector3& point = other.start_;
-            const Scalar ratio = Eigen::Matrix<Scalar, 1, 1>((point - start_).dot(end_ - start_) / this->Length()).cwiseMax(0.0).cwiseMin(1.0).value();
-            return Segment(start_ + ratio * (end_ - start_), point);
+            const Scalar ratio = this->RatioOfPoint(point, true);
+            return Segment(this->PointAtRatio(ratio), point);
         }
 
         // Line to line
@@ -115,6 +115,20 @@ public:
     }
 
 private:
+    Scalar RatioOfPoint(const Vector3& point, const bool& clamp = false) const{
+        const Vector3 segment_vector = end_ - start_;
+        const Scalar ratio = segment_vector.dot(point) / segment_vector.dot(segment_vector);
+        if(clamp){
+            return Eigen::Matrix<Scalar, 1, 1>(ratio).cwiseMax(0.0).cwiseMin(1.0).value();
+        } else{
+            return ratio;
+        }
+    }
+
+    Vector3 PointAtRatio(const Scalar& ratio) const{
+        return start_ + ratio * (end_ - start_);
+    }
+
     Vector3 start_, end_;
 };
 
