@@ -68,6 +68,39 @@ public:
         }
 
         // Line to line
+
+        // First check if the segments are parallel
+        const Vector3 self_vector = end_ - start_;
+        const Vector3 other_vector = other.end_ - other.start_;
+        const Vector3 between_vector = other.start_ - start_;
+
+        if(IsEqual(self_vector.cross(other_vector), Vector3::Zero())){
+            // Find the midpoint of the overlapping sections
+            const Scalar other_start_ratio = this->RatioOfPoint(other.start_);
+            const Scalar other_end_ratio = this->RatioOfPoint(other.end_);
+
+            const Scalar other_relative_start_ratio = std::min(other_start_ratio, other_end_ratio);
+            const Scalar other_relative_end_ratio = std::max(other_end_ratio, other_end_ratio);
+
+            const Scalar overlap_start_ratio = std::max(other_relative_start_ratio, 0.0);
+            const Scalar overlap_end_ratio = std::min(other_relative_end_ratio, 1.0);
+
+            const Vector3 point_at_overlap_midpoint = this->PointAtRatio((overlap_start_ratio + overlap_end_ratio) / 2.0);
+
+            return Segment(point_at_overlap_midpoint, other.PointAtRatio(other.RatioOfPoint(point_at_overlap_midpoint)));
+        }
+
+        // If not parallel, verify intersection
+        const Vector3 normalized_cross = self_vector.normalized().cross(other_vector.normalized());
+        const Scalar self_ratio = (Eigen::Matrix<Scalar, 3, 3>() << between_vector, other_vector.normalized(), normalized_cross).finished().determinant() / normalized_cross.dot(normalized_cross);
+        const Scalar other_ratio = (Eigen::Matrix<Scalar, 3, 3>() << between_vector, self_vector.normalized(), normalized_cross).finished().determinant() / normalized_cross.dot(normalized_cross);
+
+        const Scalar self_ratio_clamped = Eigen::Matrix<Scalar, 1, 1>(self_ratio).cwiseMax(0.0).cwiseMin(1.0).value() * self_vector.norm();
+        const Scalar other_ratio_clamped = Eigen::Matrix<Scalar, 1, 1>(other_ratio).cwiseMax(0.0).cwiseMin(1.0).value() * other_vector.norm();
+
+        return Segment(this->PointAtRatio(self_ratio_clamped), other.PointAtRatio(other_ratio_clamped));
+
+
         //     https://stackoverflow.com/a/67102941/7338620
         const Vector3 segment_self = end_ - start_;
         const Vector3 segment_other = other.end_ - other.start_;
