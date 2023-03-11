@@ -108,4 +108,15 @@ TEST(CollisionsTest, SegmentToSegment)
     segment = scene1.GetCollisions(0)[0];
     EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(0.5, 0.5, 0.0)));
     EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(0.5, 0.5, -1.0)));
+
+    // Now make the manipulator intersect with the obstacle
+    scene1.GetFreeEntity(0)->UpdateVertices({
+        Eigen::Vector3d(1.0, 0.0, -1.0),
+        Eigen::Vector3d(1.0, 2.0, -1.0)
+    });
+    scene1.ComputeCollisions();
+    EXPECT_EQ(scene1.GetCollisions(0).size(), 1);
+    segment = scene1.GetCollisions(0)[0];
+    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(1.0, 0.5, -1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(1.0, 0.5, -1.0)));
 }
