@@ -454,7 +454,7 @@ inline double *ccof_bwbs( int n, double f1f, double f2f )
 
 inline double sf_bwlp( int n, double fcf )
 {
-    int m, k;         // loop variables
+    int k;            // loop variables
     double omega;     // M_PI * fcf
     double fomega;    // function of omega
     double parg0;     // zeroth pole angle
@@ -464,7 +464,6 @@ inline double sf_bwlp( int n, double fcf )
     fomega = sin(omega);
     parg0 = M_PI / (double)(2*n);
 
-    m = n / 2;
     sf = 1.0;
     for( k = 0; k < n/2; ++k )
         sf *= 1.0 + fomega * sin((double)(2*k+1)*parg0);
@@ -486,7 +485,7 @@ inline double sf_bwlp( int n, double fcf )
 
 inline double sf_bwhp( int n, double fcf )
 {
-    int m, k;         // loop variables
+    int k;            // loop variables
     double omega;     // M_PI * fcf
     double fomega;    // function of omega
     double parg0;     // zeroth pole angle
@@ -496,7 +495,6 @@ inline double sf_bwhp( int n, double fcf )
     fomega = sin(omega);
     parg0 = M_PI / (double)(2*n);
 
-    m = n / 2;
     sf = 1.0;
     for( k = 0; k < n/2; ++k )
         sf *= 1.0 + fomega * sin((double)(2*k+1)*parg0);
