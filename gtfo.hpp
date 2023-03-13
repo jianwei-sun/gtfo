@@ -21,3 +21,7 @@
 
 #include "Core/Containers/DynamicsVector.hpp"
 #include "Core/Containers/DynamicsSelector.hpp"
+
+#include "Core/Filters/DiscreteTimeFilter.hpp"
+#include "Core/Filters/ButterworthLowPassFilter.hpp"
+#include "Core/Filters/RateLimiter.hpp"
