@@ -83,8 +83,8 @@ public:
             const Scalar other_end_ratio = this->RatioOfPoint(other.end_);
 
             // Get the start and end ratios of the overlapping region, regardless of the orientation of other
-            const Scalar overlap_start_ratio = std::max(std::min(other_start_ratio, other_end_ratio), 0.0);
-            const Scalar overlap_end_ratio = std::min(std::max(other_start_ratio, other_end_ratio), 1.0);
+            const Scalar overlap_start_ratio = std::max(std::min(other_start_ratio, other_end_ratio), static_cast<Scalar>(0.0));
+            const Scalar overlap_end_ratio = std::min(std::max(other_start_ratio, other_end_ratio), static_cast<Scalar>(1.0));
 
             // Get the midpoint of the overlapped region
             const Vector3 point_at_overlap_midpoint = this->PointAtRatio((overlap_start_ratio + overlap_end_ratio) / 2.0);
