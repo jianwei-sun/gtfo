@@ -25,3 +25,8 @@
 #include "Core/Filters/DiscreteTimeFilter.hpp"
 #include "Core/Filters/ButterworthLowPassFilter.hpp"
 #include "Core/Filters/RateLimiter.hpp"
+
+#include "Core/Collision/Segment.hpp"
+#include "Core/Collision/Manipulator.hpp"
+#include "Core/Collision/Obstacle.hpp"
+#include "Core/Collision/Scene.hpp"
