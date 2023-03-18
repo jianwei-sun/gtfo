@@ -55,7 +55,7 @@ public:
         collisions_.clear();
     }
 
-    void ComputeCollisions(const Entity& other, const Scalar& tol){
+    virtual void ComputeCollisions(const Entity& other, const Scalar& tol){
         for(const Segment<Scalar>& segment_self : segments_){
             for(const Segment<Scalar>& segment_other : other.segments_){
                 const Segment<Scalar> potential_collision_vector = segment_self.MinDistanceVectorTo(segment_other);

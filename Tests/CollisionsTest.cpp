@@ -3,7 +3,7 @@
 
 TEST(CollisionsTest, PointToPoint)
 {
-    gtfo::collision::Manipulator manipulator(std::vector<Eigen::Vector3d>{
+    gtfo::collision::Manipulator<6> manipulator(std::vector<Eigen::Vector3d>{
         Eigen::Vector3d(1.0, 2.0, 3.0)
     });
     gtfo::collision::Obstacle obstacle(std::vector<Eigen::Vector3d>{
@@ -27,7 +27,7 @@ TEST(CollisionsTest, PointToPoint)
 
 TEST(CollisionsTest, SegmentToPoint)
 {
-    gtfo::collision::Manipulator manipulator(std::vector<Eigen::Vector3d>{
+    gtfo::collision::Manipulator<6> manipulator(std::vector<Eigen::Vector3d>{
         Eigen::Vector3d::Zero(), 
         Eigen::Vector3d(0.0, 1.0, 0.0)
     });
@@ -70,7 +70,7 @@ TEST(CollisionsTest, SegmentToPoint)
 
 TEST(CollisionsTest, SegmentToSegment)
 {
-    gtfo::collision::Manipulator manipulator(std::vector<Eigen::Vector3d>{
+    gtfo::collision::Manipulator<6> manipulator(std::vector<Eigen::Vector3d>{
         Eigen::Vector3d::Zero(), 
         Eigen::Vector3d(0.0, 1.0, 0.0)
     });

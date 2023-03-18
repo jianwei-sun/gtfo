@@ -32,6 +32,7 @@ file(GLOB_RECURSE TEST_FILES
 add_executable(
     ${PROJECT_NAME}
     ${TEST_FILES}
+    ${CMAKE_SOURCE_DIR}/External/osqp-cpp/src/osqp++.cc
 )
 
 target_link_libraries(

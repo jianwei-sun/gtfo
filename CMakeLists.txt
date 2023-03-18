@@ -29,6 +29,15 @@ find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 # MuJoCo 2.3.1
 find_package(mujoco 2.3.1 REQUIRED)
 
+# osqp 0.6.2
+include_directories(${PROJECT_SOURCE_DIR}/External/osqp/include)
+
+# osqp-cpp
+include_directories(${PROJECT_SOURCE_DIR}/External/osqp-cpp/include)
+
+# abseil-cpp
+include_directories(${PROJECT_SOURCE_DIR}/External/abseil-cpp)
+
 #----------------------------------------------------------------------------------------------------
 # Project subdirectories
 #----------------------------------------------------------------------------------------------------
