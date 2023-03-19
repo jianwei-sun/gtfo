@@ -30,13 +30,14 @@ find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(mujoco 2.3.1 REQUIRED)
 
 # osqp 0.6.2
-include_directories(${PROJECT_SOURCE_DIR}/External/osqp/include)
+set(osqp_DIR ${PROJECT_SOURCE_DIR}/External/osqp/build)
+find_package(osqp PATHS ${osqp_DIR} REQUIRED)
 
 # osqp-cpp
 include_directories(${PROJECT_SOURCE_DIR}/External/osqp-cpp/include)
 
 # abseil-cpp
-include_directories(${PROJECT_SOURCE_DIR}/External/abseil-cpp)
+add_subdirectory(${PROJECT_SOURCE_DIR}/External/abseil-cpp)
 
 #----------------------------------------------------------------------------------------------------
 # Project subdirectories

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "../gtfo.hpp"
 
-TEST(CollisionsTest, PointToPoint)
+TEST(CollisionDetectionTest, PointToPoint)
 {
     gtfo::collision::Manipulator<6> manipulator(std::vector<Eigen::Vector3d>{
         Eigen::Vector3d(1.0, 2.0, 3.0)
@@ -25,7 +25,7 @@ TEST(CollisionsTest, PointToPoint)
     EXPECT_TRUE(gtfo::IsEqual(collisions[0].End(), Eigen::Vector3d::Zero()));
 }
 
-TEST(CollisionsTest, SegmentToPoint)
+TEST(CollisionDetectionTest, SegmentToPoint)
 {
     gtfo::collision::Manipulator<6> manipulator(std::vector<Eigen::Vector3d>{
         Eigen::Vector3d::Zero(), 
@@ -68,7 +68,7 @@ TEST(CollisionsTest, SegmentToPoint)
     EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(1.0, 10.0, 0.0)));
 }
 
-TEST(CollisionsTest, SegmentToSegment)
+TEST(CollisionDetectionTest, SegmentToSegment)
 {
     gtfo::collision::Manipulator<6> manipulator(std::vector<Eigen::Vector3d>{
         Eigen::Vector3d::Zero(), 
