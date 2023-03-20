@@ -1,8 +1,7 @@
 #----------------------------------------------------------------------------------------------------
 # File: Tests/CMakeLists.txt
-# Date: 12/03/2022
 # Desc: CMakeList for test files
-# Usage: Each time a new test file is added, simply run `cmake --build . -j4` in the build directory again.
+# Usage: Each time a new test file is added, simply run `cmake --build .` in the build directory again.
 #        Tests can be executed by running `ctest` in the build directory
 #        Specific tests can be executed by running `ctest -R YourTestName`
 #----------------------------------------------------------------------------------------------------
@@ -38,6 +37,7 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}
     GTest::gtest_main
+    Eigen3::Eigen
     mujoco::mujoco
 )
 
