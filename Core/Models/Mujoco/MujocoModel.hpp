@@ -7,6 +7,7 @@
 // Standard libraries includes
 #include <string>
 #include <array>
+#include <mutex>
 
 // Third-party dependencies
 #include <mujoco/mujoco.h>
@@ -124,6 +125,7 @@ public:
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        // wrapper_lock_.lock();
         // Update the virtual position if a physical position is given
         const bool err = this->SyncVirtualPositionToPhysical(physical_position);
 
@@ -141,7 +143,9 @@ public:
 
         // Compute all intermediate results dependent on the state, but not the control
         // Note that by using mj_step1 and mj_step2, the integrator must be the default Euler
+        // wrapper_lock_.lock();
         mj_step1(model_, data_);
+        // wrapper_lock_.unlock();
 
         // Update the state variables
         Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
@@ -152,7 +156,9 @@ public:
         MujocoVectorN::Map(data_->ctrl) = (force_input + this->EnforceSoftBound()).template cast<mjtNum>();
 
         // Finish computing results that depend on the control input
+        // wrapper_lock_.lock();
         mj_step2(model_, data_);
+        // wrapper_lock_.unlock();
 
         // Update the state variables after the second step
         Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
@@ -166,12 +172,26 @@ public:
         // Update the acceleration with a backward difference
         Base::acceleration_ = (Base::velocity_ - previous_velocity) / model_->opt.timestep;
 
+        // wrapper_lock_.unlock();
         return err;
     }
+
+    const mjModel* Get_Model() {
+        return model_;
+    }
+
+    mjData* Get_Data() {
+        return data_;
+    }
+
+    // std::mutex Get_Lock() {
+    //     return wrapper_lock_;
+    // }
 
 private:
     mjModel* model_;
     mjData* data_;
+    // std::mutex wrapper_lock_;
 };
 
 } // namespace gtfo

@@ -39,7 +39,10 @@ target_link_libraries(
     ${PROJECT_NAME}
     GTest::gtest_main
     mujoco::mujoco
-    ${CMAKE_SOURCE_DIR}/External/glfw-3.3.8.bin.MACOS/lib-x86_64/libglfw3.a
+    ${CMAKE_SOURCE_DIR}/External/glfw-3.3.8/build/src/libglfw3.a
+    "-framework Cocoa"
+    "-framework opengl"
+    "-framework IOKit"
 )
 
 # Copy the MuJoCo runtime, which is only on Windows

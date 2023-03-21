@@ -5,8 +5,8 @@
 // Verifies that a model can be loaded and run
 TEST(MujocoBasicModelsTest, LoadArmsModel)
 {
-    using VectorN = gtfo::MujocoWrapper<7>::VectorN;
-    gtfo::MujocoWrapper<7> mujoco_wrapper("arms.xml", 0.001);
+    using VectorN = gtfo::MujocoModel<7>::VectorN;
+    gtfo::MujocoModel<7> mujoco_wrapper("arms.xml", 0.001);
 
     for(unsigned i = 0; i < 1000; ++i){
         mujoco_wrapper.Step(VectorN::Zero());

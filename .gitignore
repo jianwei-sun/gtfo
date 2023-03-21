@@ -34,3 +34,7 @@
 # Build directories
 build
 External/eigen
+
+External/glfw-3.3.8
+
+.vscode

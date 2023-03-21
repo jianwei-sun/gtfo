@@ -41,7 +41,7 @@ find_package(mujoco PATHS ${mujoco_DIR} REQUIRED)
 include_directories(${mujoco_INCLUDE_DIR})
 
 # GLFW 3.3
-include_directories(${PROJECT_SOURCE_DIR}/External/glfw-3.3.8.bin.MACOS/include)
+include_directories(${PROJECT_SOURCE_DIR}/External/glfw-3.3.8/include)
 
 #----------------------------------------------------------------------------------------------------
 # Project subdirectories
