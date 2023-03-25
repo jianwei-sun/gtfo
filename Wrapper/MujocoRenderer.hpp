@@ -20,12 +20,66 @@
 
 #define _GLIBCXX_USE_NANOSLEEP //for the thread sleep function
 
-
 namespace gtfo {
 
 template<unsigned int Dimensions>
 class MujocoRenderer{
 public:
+
+// mouse move callback
+void mouse_move(GLFWwindow* window, double xpos, double ypos)
+{
+    // no buttons down: nothing to do
+    if( !button_left_ && !button_middle_ && !button_right_ )
+        return;
+
+    // compute mouse displacement, save
+    double dx = xpos - lastx_;
+    double dy = ypos - lasty_;
+    lastx_ = xpos;
+    lasty_ = ypos;
+
+    // get current window size
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+
+    // get shift key state
+    bool mod_shift = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)==GLFW_PRESS ||
+                      glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT)==GLFW_PRESS);
+
+    // determine action based on mouse button
+    mjtMouse action;
+    if( button_right_ )
+        action = mod_shift ? mjMOUSE_MOVE_H : mjMOUSE_MOVE_V;
+    else if( button_left_ )
+        action = mod_shift ? mjMOUSE_ROTATE_H : mjMOUSE_ROTATE_V;
+    else
+        action = mjMOUSE_ZOOM;
+
+    // move camera
+    mjv_moveCamera(wrapper_.Get_Model(), action, dx/height, dy/height, &scn_, &cam_);
+}
+
+// mouse button callback
+// the function doesn't actually modify any of the last 3 parameters- would only need them if we used the callback
+void mouse_button(GLFWwindow* window/*, int button, int act, int mods*/)
+{
+    // update button state
+    button_left_ =   (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS);
+    button_middle_ = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE)==GLFW_PRESS);
+    button_right_ =  (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS);
+
+    // update mouse position
+    glfwGetCursorPos(window, &lastx_, &lasty_);
+}
+
+// scroll callback
+void scroll(GLFWwindow* window, double xoffset, double yoffset)
+{
+    // emulate vertical mouse motion = 5% of window height
+    mjv_moveCamera(wrapper_.Get_Model(), mjMOUSE_ZOOM, 0, -0.05*yoffset, &scn_, &cam_);
+}
+
 void render() {
     // wrapper_.Get_Lock().lock();
 
@@ -42,70 +96,13 @@ void render() {
 
     // process pending GUI events, call GLFW callbacks
     glfwPollEvents();
-}
 
-// keyboard callback
-void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
-{
-    // backspace: reset simulation
-    if( act==GLFW_PRESS && key==GLFW_KEY_BACKSPACE )
-    {
-        mj_resetData(wrapper_.Get_Model(), wrapper_.Get_Data());
-        mj_forward(wrapper_.Get_Model(), wrapper_.Get_Data());
-    }
-}
-
-// mouse move callback
-void mouse_move(GLFWwindow* window, double xpos, double ypos)
-{
-    // no buttons down: nothing to do
-    if( !button_left && !button_middle && !button_right )
-        return;
-
-    // compute mouse displacement, save
-    double dx = xpos - lastx;
-    double dy = ypos - lasty;
-    lastx = xpos;
-    lasty = ypos;
-
-    // get current window size
-    int width, height;
-    glfwGetWindowSize(window, &width, &height);
-
-    // get shift key state
-    bool mod_shift = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)==GLFW_PRESS ||
-                      glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT)==GLFW_PRESS);
-
-    // determine action based on mouse button
-    mjtMouse action;
-    if( button_right )
-        action = mod_shift ? mjMOUSE_MOVE_H : mjMOUSE_MOVE_V;
-    else if( button_left )
-        action = mod_shift ? mjMOUSE_ROTATE_H : mjMOUSE_ROTATE_V;
-    else
-        action = mjMOUSE_ZOOM;
-
-    // move camera
-    mjv_moveCamera(wrapper_.Get_Model(), action, dx/height, dy/height, &scn_, &cam_);
-}
-
-// mouse button callback
-void mouse_button(GLFWwindow* window, int button, int act, int mods)
-{
-    // update button state
-    button_left =   (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS);
-    button_middle = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE)==GLFW_PRESS);
-    button_right =  (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS);
-
-    // update mouse position
-    glfwGetCursorPos(window, &lastx, &lasty);
-}
-
-// scroll callback
-void scroll(GLFWwindow* window, double xoffset, double yoffset)
-{
-    // emulate vertical mouse motion = 5% of window height
-    mjv_moveCamera(wrapper_.Get_Model(), mjMOUSE_ZOOM, 0, -0.05*yoffset, &scn_, &cam_);
+    // install GLFW mouse and keyboard callbacks
+    double xpos, ypos;
+    glfwGetCursorPos(window_, &xpos, &ypos);
+    mouse_move(window_, xpos, ypos);
+    mouse_button(window_);
+    scroll(window_, xpos, ypos);
 }
 
 void keep_rendering(void) {
@@ -130,12 +127,6 @@ void keep_rendering(void) {
     mjv_defaultScene(&scn_);
     mjv_makeScene(wrapper_.Get_Model(), &scn_, 1000);                     // space for 1000 objects
     mjr_makeContext(wrapper_.Get_Model(), &con_, mjFONTSCALE_100);        // model-specific context
-    
-    // install GLFW mouse and keyboard callbacks
-    glfwSetKeyCallback(window_, keyboard);
-    glfwSetCursorPosCallback(window_, mouse_move);
-    glfwSetMouseButtonCallback(window_, mouse_button);
-    glfwSetScrollCallback(window_, scroll);
 
     while(should_render_) {
         render();
@@ -164,11 +155,9 @@ void set_should_render(bool status) {
 }
 
 private:
-    mjrRect viewport_; 
-    mjvScene scn_;
+    mjrRect viewport_;
     mjrContext con_;
     GLFWwindow* window_;
-    mjvCamera cam_;                      //abstract camera
     mjvPerturb pert_;                    // perturbation object
     mjvOption opt_;                      // visualization options
 
@@ -179,11 +168,14 @@ private:
     bool should_render_ = true;
 
     // mouse interaction
-    bool button_left = false;
-    bool button_middle = false;
-    bool button_right =  false;
-    double lastx = 0;
-    double lasty = 0;
+    bool button_left_ = false;
+    bool button_middle_ = false;
+    bool button_right_ =  false;
+    double lastx_ = 0;
+    double lasty_ = 0;
+
+    mjvScene scn_;
+    mjvCamera cam_;                      //abstract camera
 };
 
 } //namespace gtfo

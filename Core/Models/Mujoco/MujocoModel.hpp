@@ -176,7 +176,7 @@ public:
         return err;
     }
 
-    const mjModel* Get_Model() {
+    mjModel* Get_Model() {
         return model_;
     }
 
