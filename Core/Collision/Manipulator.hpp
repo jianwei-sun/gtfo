@@ -70,7 +70,7 @@ public:
 
     // To enable collision avoidance, a partial jacobian (first three rows) which can be evaluated at any arbitrary point
     // is needed
-    void EnableCollisionAvoidance(const std::function<Eigen::Matrix<Scalar, 3, Eigen::Dynamic>(const Vector3&)>& partial_jacobian_getter){
+    void EnableCollisionAvoidance(const std::function<Eigen::Matrix<Scalar, 3, Eigen::Dynamic>(const size_t&, const Vector3&)>& partial_jacobian_getter){
         partial_jacobian_getter_ = partial_jacobian_getter;
     }
 
@@ -98,9 +98,9 @@ public:
 
             for(unsigned i = 0; i < num_collisions; ++i){
                 // Formulate the collision avoidance as a linear constraint on velocity
-                const Segment<Scalar>& collision = Entity<Scalar>::collisions_[i];
-                const Eigen::Matrix<Scalar, 3, Eigen::Dynamic> partial_jacobian = partial_jacobian_getter_(collision.Start());
-                const Eigen::Matrix<Scalar, 1, Eigen::Dynamic> constraint_row = collision.End().transpose() * partial_jacobian;
+                const Collision<Scalar>& collision = Entity<Scalar>::collisions_[i];
+                const Eigen::Matrix<Scalar, 3, Eigen::Dynamic> partial_jacobian = partial_jacobian_getter_(collision.segment_index_, collision.location_);
+                const Eigen::Matrix<Scalar, 1, Eigen::Dynamic> constraint_row = collision.direction_.transpose() * partial_jacobian;
 
                 // Copy the row into the constraint matrix
                 for(Eigen::Index j{0}; j < constraint_row.cols(); ++j){
@@ -137,7 +137,7 @@ private:
     const size_t number_of_vertices_;
 
     // A callback for computing the first three rows of the Jacobian along any arbitrary point
-    std::function<Eigen::Matrix<Scalar, 3, Eigen::Dynamic>(const Vector3&)> partial_jacobian_getter_;
+    std::function<Eigen::Matrix<Scalar, 3, Eigen::Dynamic>(const size_t&, const Vector3&)> partial_jacobian_getter_;
 
     // QP-solver member variables. Note that qp_instance_ just stores a copy of the instance set in qp_solver_
     osqp::OsqpInstance qp_instance_;

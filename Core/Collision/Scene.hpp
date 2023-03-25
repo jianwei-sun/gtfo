@@ -84,7 +84,7 @@ public:
         return free_entities_.at(free_entities_index);
     }
 
-    std::vector<Segment<Scalar>> GetCollisions(const size_t& free_entities_index) const{
+    std::vector<Collision<Scalar>> GetCollisions(const size_t& free_entities_index) const{
         return free_entities_.at(free_entities_index)->GetCollisions();
     }
 

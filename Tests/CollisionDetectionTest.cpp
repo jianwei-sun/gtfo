@@ -19,10 +19,10 @@ TEST(CollisionDetectionTest, PointToPoint)
 
     scene.SetCollisionDetectionThresholds(10.0, 10.0);
     scene.ComputeCollisions();
-    const std::vector<gtfo::collision::Segment<>> collisions = scene.GetCollisions(0);
+    const auto collisions = scene.GetCollisions(0);
     EXPECT_EQ(collisions.size(), 1);
-    EXPECT_TRUE(gtfo::IsEqual(collisions[0].Start(), Eigen::Vector3d(1.0, 2.0, 3.0)));
-    EXPECT_TRUE(gtfo::IsEqual(collisions[0].End(), Eigen::Vector3d::Zero()));
+    EXPECT_TRUE(gtfo::IsEqual(collisions[0].location_, Eigen::Vector3d(1.0, 2.0, 3.0)));
+    EXPECT_TRUE(gtfo::IsEqual(collisions[0].direction_, -Eigen::Vector3d(1.0, 2.0, 3.0)));
 }
 
 TEST(CollisionDetectionTest, SegmentToPoint)
@@ -40,9 +40,9 @@ TEST(CollisionDetectionTest, SegmentToPoint)
     scene1.SetCollisionDetectionThresholds(100.0, 100.0);
     scene1.ComputeCollisions();
     EXPECT_EQ(scene1.GetCollisions(0).size(), 1);
-    gtfo::collision::Segment<> segment = scene1.GetCollisions(0)[0];
-    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(0.0, 0.2, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(1.0, 0.2, 0.0)));
+    auto segment = scene1.GetCollisions(0)[0];
+    EXPECT_TRUE(gtfo::IsEqual(segment.location_, Eigen::Vector3d(0.0, 0.2, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.direction_, Eigen::Vector3d(1.0, 0.0, 0.0)));
 
     // Segment obstacle beyond the endpoint of segment
     gtfo::collision::Obstacle obstacle2(std::vector<Eigen::Vector3d>{
@@ -53,8 +53,8 @@ TEST(CollisionDetectionTest, SegmentToPoint)
     scene2.ComputeCollisions();
     EXPECT_EQ(scene2.GetCollisions(0).size(), 1);
     segment = scene2.GetCollisions(0)[0];
-    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(0.0, 1.0, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(1.0, 10.0, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.location_, Eigen::Vector3d(0.0, 1.0, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.direction_, Eigen::Vector3d(1.0, 9.0, 0.0)));
 
     // Move the manipulator to the obstacle
     scene2.UpdateVertices(0, std::vector<Eigen::Vector3d>{
@@ -64,8 +64,8 @@ TEST(CollisionDetectionTest, SegmentToPoint)
     scene2.ComputeCollisions();
     EXPECT_EQ(scene2.GetCollisions(0).size(), 1);
     segment = scene2.GetCollisions(0)[0];
-    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(1.0, 10.0, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(1.0, 10.0, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.location_, Eigen::Vector3d(1.0, 10.0, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.direction_, Eigen::Vector3d(0.0, 0.0, 0.0)));
 }
 
 TEST(CollisionDetectionTest, SegmentToSegment)
@@ -83,9 +83,9 @@ TEST(CollisionDetectionTest, SegmentToSegment)
     scene1.SetCollisionDetectionThresholds(100.0, 100.0);
     scene1.ComputeCollisions();
     EXPECT_EQ(scene1.GetCollisions(0).size(), 1);
-    gtfo::collision::Segment<> segment = scene1.GetCollisions(0)[0];
-    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(0.0, 0.5, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(0.0, 0.5, -1.0)));
+    auto segment = scene1.GetCollisions(0)[0];
+    EXPECT_TRUE(gtfo::IsEqual(segment.location_, Eigen::Vector3d(0.0, 0.5, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.direction_, Eigen::Vector3d(0.0, 0.0, -1.0)));
 
     // Now move the manipulator over
     scene1.GetFreeEntity(0)->UpdateVertices({
@@ -95,8 +95,8 @@ TEST(CollisionDetectionTest, SegmentToSegment)
     scene1.ComputeCollisions();
     EXPECT_EQ(scene1.GetCollisions(0).size(), 1);
     segment = scene1.GetCollisions(0)[0];
-    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(2.0, 0.5, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(1.0, 0.5, -1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.location_, Eigen::Vector3d(2.0, 0.5, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.direction_, Eigen::Vector3d(-1.0, 0.0, -1.0)));
 
     // Now make the manipulator parallel 
     scene1.GetFreeEntity(0)->UpdateVertices({
@@ -106,8 +106,8 @@ TEST(CollisionDetectionTest, SegmentToSegment)
     scene1.ComputeCollisions();
     EXPECT_EQ(scene1.GetCollisions(0).size(), 1);
     segment = scene1.GetCollisions(0)[0];
-    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(0.5, 0.5, 0.0)));
-    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(0.5, 0.5, -1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.location_, Eigen::Vector3d(0.5, 0.5, 0.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.direction_, Eigen::Vector3d(0.0, 0.0, -1.0)));
 
     // Now make the manipulator intersect with the obstacle
     scene1.GetFreeEntity(0)->UpdateVertices({
@@ -117,6 +117,6 @@ TEST(CollisionDetectionTest, SegmentToSegment)
     scene1.ComputeCollisions();
     EXPECT_EQ(scene1.GetCollisions(0).size(), 1);
     segment = scene1.GetCollisions(0)[0];
-    EXPECT_TRUE(gtfo::IsEqual(segment.Start(), Eigen::Vector3d(1.0, 0.5, -1.0)));
-    EXPECT_TRUE(gtfo::IsEqual(segment.End(), Eigen::Vector3d(1.0, 0.5, -1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.location_, Eigen::Vector3d(1.0, 0.5, -1.0)));
+    EXPECT_TRUE(gtfo::IsEqual(segment.direction_, Eigen::Vector3d(0.0, 0.0, 0.0)));
 }

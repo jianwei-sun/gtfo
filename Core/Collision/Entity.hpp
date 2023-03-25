@@ -6,6 +6,7 @@
 
 // Standard libraries includes
 #include <vector>
+#include <utility>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -16,6 +17,21 @@
 namespace gtfo{
 namespace collision{
     
+template<typename Scalar = double>
+struct Collision{
+    using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
+
+    size_t segment_index_;
+    Vector3 location_;
+    Vector3 direction_;
+
+    Collision(const size_t& segment_index, const Vector3& location, const Vector3& direction)
+        :   segment_index_(segment_index),
+            location_(location),
+            direction_(direction)
+    {}
+};
+
 template<typename Scalar = double>
 class Entity{
 public:
@@ -56,24 +72,24 @@ public:
     }
 
     void ComputeCollisions(const Entity& other, const Scalar& tol){
-        for(const Segment<Scalar>& segment_self : segments_){
+        for(size_t i = 0; i < segments_.size(); ++i){
             for(const Segment<Scalar>& segment_other : other.segments_){
-                const Segment<Scalar> potential_collision_vector = segment_self.MinDistanceVectorTo(segment_other);
+                const Segment<Scalar> potential_collision_vector = segments_[i].MinDistanceVectorTo(segment_other);
                 if(potential_collision_vector.Length() <= tol){
-                    collisions_.push_back(potential_collision_vector);
+                    collisions_.emplace_back(i, potential_collision_vector.Start(), potential_collision_vector.End() - potential_collision_vector.Start());
                 }
             }
         }
     }
 
-    std::vector<Segment<Scalar>> GetCollisions(void) const{
+    std::vector<Collision<Scalar>> GetCollisions(void) const{
         return collisions_;
     }
 
 protected:
     std::vector<Vector3> vertices_;
     std::vector<Segment<Scalar>> segments_;
-    std::vector<Segment<Scalar>> collisions_;
+    std::vector<Collision<Scalar>> collisions_;
 
 private:
     const bool fixed_;
