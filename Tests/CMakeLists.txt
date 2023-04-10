@@ -32,29 +32,17 @@ file(GLOB_RECURSE TEST_FILES
 add_executable(
     ${PROJECT_NAME}
     ${TEST_FILES}
-    ${CMAKE_SOURCE_DIR}/External/osqp-cpp/src/osqp++.cc
 )
 
-target_link_libraries(
-    ${PROJECT_NAME}
-    GTest::gtest_main
-    Eigen3::Eigen
-    mujoco::mujoco
-    absl::base
-    absl::synchronization
-    absl::strings
-    absl::status
-    absl::statusor
-    absl::span
-    osqp::osqp
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        GTest::gtest_main
+        gtfo
 )
 
 # Copy the MuJoCo runtime, which is only on Windows
 if(WIN32)
     file(INSTALL ${mujoco_DIR}/../../../bin/mujoco.dll
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-    )
-    file(INSTALL ${osqp_DIR}/out/Debug/osqp.dll
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
     )
 endif()

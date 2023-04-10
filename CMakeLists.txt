@@ -20,6 +20,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Generate compile commands for clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
+# Build options
+option(GTFO_BUILD_TESTS "Build tests for GTFO" ON)
+
 #----------------------------------------------------------------------------------------------------
 # Third party libraries
 #----------------------------------------------------------------------------------------------------
@@ -30,17 +33,48 @@ find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(mujoco 2.3.1 REQUIRED)
 
 # osqp 0.6.2
-set(osqp_DIR ${PROJECT_SOURCE_DIR}/External/osqp/build)
-find_package(osqp PATHS ${osqp_DIR} REQUIRED)
-
-# osqp-cpp
-include_directories(${PROJECT_SOURCE_DIR}/External/osqp-cpp/include)
+if(WIN32)
+    find_package(osqp REQUIRED)
+else()
+    add_subdirectory(${PROJECT_SOURCE_DIR}/External/osqp)
+endif()
 
 # abseil-cpp
 add_subdirectory(${PROJECT_SOURCE_DIR}/External/abseil-cpp)
 
 #----------------------------------------------------------------------------------------------------
-# Project subdirectories
+# gtfo library
 #----------------------------------------------------------------------------------------------------
-enable_testing()
-add_subdirectory(Tests)
+add_library(${PROJECT_NAME} STATIC)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/External/osqp-cpp/src/osqp++.cc
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/External/osqp-cpp/include
+)
+
+target_link_libraries(${PROJECT_NAME} 
+    PUBLIC
+        Eigen3::Eigen
+        mujoco::mujoco
+        absl::base
+        absl::synchronization
+        absl::strings
+        absl::status
+        absl::statusor
+        absl::span
+        osqp::osqpstatic
+)
+
+#----------------------------------------------------------------------------------------------------
+# Testing
+#----------------------------------------------------------------------------------------------------
+if(GTFO_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(Tests)
+endif()

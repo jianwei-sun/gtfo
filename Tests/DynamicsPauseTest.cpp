@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-
-#include "../gtfo.hpp"
+#include "gtfo.hpp"
 
 // Verifies that dynamics can be paused and that position and velocity are correct
 TEST(DynamicsPauseTest, SecondOrderSystem)

@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-
-#include "../gtfo.hpp"
+#include "gtfo.hpp"
 
 // Verifies a velocity limit of zero works correctly
 TEST(VelocityLimitTest, ZeroLimit)

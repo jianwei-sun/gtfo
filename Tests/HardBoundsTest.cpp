@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-
-#include "../gtfo.hpp"
+#include "gtfo.hpp"
 
 // Verifies that a point mass with second order dynamics is correctly driven to the corner of the rectangle bound
 TEST(HardBoundsTest, SecondOrderSystem2DRectangle)

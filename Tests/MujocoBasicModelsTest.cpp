@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-
-#include "../gtfo.hpp"
+#include "gtfo.hpp"
 
 // Verifies that MujocoModel can be built
 TEST(MujocoBasicModelsTest, DataTypes)

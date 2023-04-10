@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../gtfo.hpp"
+#include "gtfo.hpp"
 
 TEST(CollisionDetectionTest, PointToPoint)
 {

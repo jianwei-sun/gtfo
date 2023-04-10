@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-
-#include "../gtfo.hpp"
+#include "gtfo.hpp"
 
 // Verifies that a low pass filter works as expected
 TEST(FiltersTest, LowPassFilter)
