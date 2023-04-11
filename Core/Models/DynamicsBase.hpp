@@ -34,6 +34,7 @@ public:
         :   position_(initial_position),
             velocity_(VectorN::Zero()),
             acceleration_(VectorN::Zero()),
+            force_(VectorN::Zero()),
             dynamics_paused_(false),
             hard_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
@@ -178,11 +179,17 @@ public:
         return acceleration_;
     }
 
+    [[nodiscard]] inline const VectorN &GetForce() const
+    {
+        return force_;
+    }
+
 protected:
     // Addition states can be added by subclasses, but they should handle their updating
     VectorN position_;
     VectorN velocity_;
     VectorN acceleration_;
+    VectorN force_;
 
     bool dynamics_paused_;
 private:
