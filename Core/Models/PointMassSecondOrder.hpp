@@ -47,7 +47,8 @@ namespace gtfo{
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
         PointMassSecondOrder(const SecondOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
-            : Base(parameters, initial_position)
+            : Base(parameters, initial_position),
+              restoring_force_(VectorN::Zero())
         {
             SetStateTransitionMatrices(parameters);
         }
@@ -59,12 +60,17 @@ namespace gtfo{
             const bool err = Base::SyncVirtualPositionToPhysical(physical_position);
 
             // If we are outside we need to enforce the softbound and use its restoring force to step without a physical position since we already synced it (if it was valid)
-            const VectorN soft_bound_restoring_force = this->EnforceSoftBound();
+            restoring_force_ = this->EnforceSoftBound();
 
             // Otherwise step without a restoring force and also without a physical position since we already synced it (if it was valid)
-            Base::Step(force_input + soft_bound_restoring_force);
+            Base::Step(force_input + restoring_force_);
 
             return err;
+        }
+
+        [[nodiscard]] inline const VectorN &GetRestoringForce() const
+        {
+            return restoring_force_;
         }
 
     private:
@@ -86,6 +92,8 @@ namespace gtfo{
         void UpdateAcceleration(const VectorN& force_input, const VectorN& previous_velocity) override{
             Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + force_input / Base::parameters_.mass;
         }
+
+        VectorN restoring_force_;
     };
 
 } // namespace gtfo
