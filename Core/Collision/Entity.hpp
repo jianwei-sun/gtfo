@@ -25,6 +25,12 @@ struct Collision{
     Vector3 location_;
     Vector3 direction_;
 
+    Collision()
+        :   segment_index_(0),
+            location_(Vector3::Zero()),
+            direction_(Vector3::Zero())
+    {}
+
     Collision(const size_t& segment_index, const Vector3& location, const Vector3& direction)
         :   segment_index_(segment_index),
             location_(location),
