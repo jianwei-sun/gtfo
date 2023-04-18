@@ -81,7 +81,7 @@ public:
         if(duration_ < GTFO_EQUALITY_COMPARISON_TOLERANCE){
             return false;
         }
-
+Base::old_position_ = Base::position_;
         // In first 10% of homing
         if(time_ < 0.1 * duration_){
             const Scalar acceleration = max_speed_ / (0.1 * duration_);

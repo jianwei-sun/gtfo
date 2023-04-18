@@ -106,6 +106,7 @@ namespace gtfo
             const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
             
             // Update states
+            DynamicsModelBase::old_position_ = DynamicsModelBase::position_;
             DynamicsModelBase::position_ = new_state.row(0);
             DynamicsModelBase::velocity_ = new_state.row(1);
             this->UpdateAcceleration(force_input, state.row(1));

@@ -51,6 +51,11 @@ public:
         Base::PauseDynamics(pause);
     }
 
+    void SetVelocity(const VectorN& velocity) override{
+        Base::SetVelocity(velocity);
+        GetActiveModel()->SetVelocity(velocity);
+    }
+
     // Selects a model using an index, and returns true if the index is within bounds. The newly selected
     // model's state is also updated to equal that of the previously selected model. However, the newly 
     // selected model's bounds are also checked, which may result in discontinuities in the state

@@ -39,36 +39,19 @@ else()
     add_subdirectory(${PROJECT_SOURCE_DIR}/External/osqp)
 endif()
 
-# abseil-cpp
-add_subdirectory(${PROJECT_SOURCE_DIR}/External/abseil-cpp)
-
 #----------------------------------------------------------------------------------------------------
 # gtfo library
 #----------------------------------------------------------------------------------------------------
-add_library(${PROJECT_NAME} STATIC)
+add_library(${PROJECT_NAME} INTERFACE)
 
-target_sources(${PROJECT_NAME}
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/External/osqp-cpp/src/osqp++.cc
+target_include_directories(${PROJECT_NAME} INTERFACE
+    ${PROJECT_SOURCE_DIR}/include
 )
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/External/osqp-cpp/include
-)
-
-target_link_libraries(${PROJECT_NAME} 
-    PUBLIC
-        Eigen3::Eigen
-        mujoco::mujoco
-        absl::base
-        absl::synchronization
-        absl::strings
-        absl::status
-        absl::statusor
-        absl::span
-        osqp::osqpstatic
+target_link_libraries(${PROJECT_NAME} INTERFACE
+    Eigen3::Eigen
+    mujoco::mujoco
+    osqp::osqpstatic
 )
 
 #----------------------------------------------------------------------------------------------------

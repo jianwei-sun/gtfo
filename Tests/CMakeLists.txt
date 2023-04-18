@@ -34,10 +34,9 @@ add_executable(
     ${TEST_FILES}
 )
 
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        GTest::gtest_main
-        gtfo
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    GTest::gtest_main
+    gtfo
 )
 
 # Copy the MuJoCo runtime, which is only on Windows

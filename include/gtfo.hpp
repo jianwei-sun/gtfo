@@ -6,6 +6,7 @@
 
 #include "../Core/Utils/Algorithms.hpp"
 #include "../Core/Utils/BooleanExpression.hpp"
+#include "../Core/Utils/ClosestVector.hpp"
 #include "../Core/Utils/Constants.hpp"
 #include "../Core/Utils/Comparisons.hpp"
 #include "../Core/Utils/Containers.hpp"

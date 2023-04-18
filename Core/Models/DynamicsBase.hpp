@@ -40,7 +40,8 @@ public:
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_spring_constant_(0.0),
             soft_bound_damping_constant_(0.0),
-            velocity_bound_(new BoundBase<Dimensions, Scalar>())
+            velocity_bound_(new BoundBase<Dimensions, Scalar>()),
+            old_position_(VectorN::Zero())
     {
         
     }
@@ -56,6 +57,7 @@ public:
         acceleration_ = model.acceleration_;
         dynamics_paused_ = model.dynamics_paused_;
         soft_bound_restoring_force_ = model.soft_bound_restoring_force_;
+        old_position_ = model.old_position_;
     }
 
     // Pure virtual function to be implemented by the subclass. The function should
@@ -176,6 +178,14 @@ public:
         return velocity_;
     }
 
+    virtual void SetVelocity(const VectorN& velocity){
+        if(!IsEqual(velocity, velocity_)){
+            const VectorN normal = (velocity_ - velocity).normalized();
+            velocity_ = velocity;
+            position_ = position_ - (position_ - old_position_).dot(normal) * normal;
+        }
+    }
+
     [[nodiscard]] inline const VectorN &GetAcceleration() const
     {
         return acceleration_;
@@ -198,6 +208,8 @@ private:
 
     // Same goes for velocity limit
     BoundPtr velocity_bound_;
+protected:
+    VectorN old_position_;
 };
 
 }

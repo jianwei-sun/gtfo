@@ -38,7 +38,7 @@ public:
             Base::velocity_.setZero();
             return true;
         }
-
+        Base::old_position_ = Base::position_;
         Base::position_ += (speed_ * dt_) * direction.normalized();
         Base::velocity_ = speed_ * direction.normalized();
         this->EnforceHardBound();

@@ -12,53 +12,35 @@
 
 // Third-party dependencies
 #include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <osqp++.h>
+// #include <Eigen/Sparse>
+// #include <osqp++.h>
+
+
 
 // Project-specific
-#include "Eigen/src/Core/util/Constants.h"
 #include "Entity.hpp"
+#include "../Utils/ClosestVector.hpp"
 
 namespace gtfo{
 namespace collision{
 
-template<unsigned int JointSpaceDimesion, typename Scalar = double>
+template<unsigned int JointSpaceDimension, unsigned int MaxCollisionsPerSegment, typename Scalar = double>
 class Manipulator : public Entity<Scalar>{
 public:
-    static_assert(JointSpaceDimesion >= 1, "JointSpaceDimension must be at least 1");
+    static_assert(JointSpaceDimension >= 1, "JointSpaceDimension must be at least 1");
+    static_assert(MaxCollisionsPerSegment >= 1, "MaxCollisionsPerSegment must be at least 1");
 
     using Vector3 = typename Entity<Scalar>::Vector3;
-    using JointVector = Eigen::Matrix<Scalar, JointSpaceDimesion, 1>;
+    using JointVector = Eigen::Matrix<Scalar, JointSpaceDimension, 1>;
+    using PartialJacobian = Eigen::Matrix<Scalar, 3, JointSpaceDimension, Eigen::RowMajor>;
 
     Manipulator(const std::vector<Vector3>& vertices)
         :   Entity<Scalar>(vertices, false),
             number_of_vertices_(vertices.size()),
-            partial_jacobian_getter_(nullptr)
-    {
-        // Sets the objective matrix
-        Eigen::SparseMatrix<Scalar> objective_matrix(JointSpaceDimesion, JointSpaceDimesion);
-        objective_matrix.setIdentity();
-        qp_instance_.objective_matrix = objective_matrix;
-
-        // The objective vector depends on the desired joint velocity
-        qp_instance_.objective_vector.resize(JointSpaceDimesion);
-        qp_instance_.objective_vector.setZero();
-
-        // The constraint matrix has as many rows as active collisions plus joint limits
-        Eigen::SparseMatrix<Scalar> constraint_matrix(JointSpaceDimesion, JointSpaceDimesion);
-        constraint_matrix.setIdentity();
-        qp_instance_.constraint_matrix = constraint_matrix;
-        
-        // For now there are no active collisions nor joint velocity limits
-        const Scalar kInfinity = std::numeric_limits<Scalar>::infinity();
-        qp_instance_.lower_bounds = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>::Constant(JointSpaceDimesion, 1, -kInfinity);
-        qp_instance_.upper_bounds = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>::Constant(JointSpaceDimesion, 1, kInfinity);
-
-        // Initialize the solver
-        qp_solver_ = std::make_shared<osqp::OsqpSolver>();
-        const auto status = qp_solver_->Init(qp_instance_, qp_settings_);
-        assert(status.ok());
-    }
+            partial_jacobian_updater_(nullptr),
+            partial_jacobian_(PartialJacobian::Zero()),
+            solver_(nullptr)
+    {}
 
     // Updates the locations of the collision points. Verifies that the number of vertices matches the number
     // of vertices given at construction
@@ -70,79 +52,45 @@ public:
 
     // To enable collision avoidance, a partial jacobian (first three rows) which can be evaluated at any arbitrary point
     // is needed
-    void EnableCollisionAvoidance(const std::function<Eigen::Matrix<Scalar, 3, Eigen::Dynamic>(const size_t&, const Vector3&)>& partial_jacobian_getter){
-        partial_jacobian_getter_ = partial_jacobian_getter;
+    void EnableCollisionAvoidance(const std::function<void(PartialJacobian&, const size_t&, const Vector3&)>& partial_jacobian_updater){
+        partial_jacobian_updater_ = partial_jacobian_updater;
     }
 
-    // Collision avoidance can also ensure that joint velocities do not exceed certain bounds
-    void EnableJointVelocityLimits(const JointVector& lower_bound, const JointVector& upper_bound){
-        assert((upper_bound.array() >= lower_bound.array()).all());
-        qp_instance_.lower_bounds.head<JointSpaceDimesion>() = lower_bound;
-        qp_instance_.upper_bounds.head<JointSpaceDimesion>() = upper_bound;
-        const auto status = qp_solver_->SetBounds(qp_instance_.lower_bounds, qp_instance_.upper_bounds);
-        assert(status.ok());
+    void SetSolver(ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment>* solver){
+        solver_ = solver;
     }
 
-    // Returns the closest joint-space velocity to desired_velocity while still respecting joint velocities
-    // and avoiding collisions. Note that all calls to ComputeCollisions should be completed before calling
-    // this function, if collision avoidance is enabled
+    // Returns the closest joint-space velocity to desired_velocity while still avoiding collisions. 
+    // Note that all calls to ComputeCollisions should be completed before calling this function, 
+    // if collision avoidance is enabled
     JointVector GetSafeJointSpaceVelocity(const JointVector& desired_velocity){
-        // If collision avoidance is enabled, update the constraint matrix and vectors to avoid velocities
+        // If collision avoidance is enabled, update the constraint matrix to avoid velocities
         // that move farther into the collision
-        if(partial_jacobian_getter_){
-            const size_t num_collisions = Entity<Scalar>::collisions_.size();
+        if(partial_jacobian_updater_ && solver_){
+            Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension>::Zero();
 
-            // Expand the constraint matrix
-            qp_instance_.constraint_matrix.resize(JointSpaceDimesion + num_collisions, JointSpaceDimesion);
-            qp_instance_.constraint_matrix.reserve(JointSpaceDimesion + num_collisions * JointSpaceDimesion);
-
-            for(unsigned i = 0; i < num_collisions; ++i){
-                // Formulate the collision avoidance as a linear constraint on velocity
+            for(unsigned i = 0; i < std::min<size_t>(Entity<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
                 const Collision<Scalar>& collision = Entity<Scalar>::collisions_[i];
-                const Eigen::Matrix<Scalar, 3, Eigen::Dynamic> partial_jacobian = partial_jacobian_getter_(collision.segment_index_, collision.location_);
-                const Eigen::Matrix<Scalar, 1, Eigen::Dynamic> constraint_row = collision.direction_.transpose() * partial_jacobian;
-
-                // Copy the row into the constraint matrix
-                for(Eigen::Index j{0}; j < constraint_row.cols(); ++j){
-                    qp_instance_.constraint_matrix.coeffRef(JointSpaceDimesion + i, j) = constraint_row.coeffRef(j);
-                }
+                partial_jacobian_updater_(partial_jacobian_, collision.segment_index_, collision.location_);
+                constraint_matrix.block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
             }
 
-            auto status = qp_solver_->UpdateConstraintMatrix(qp_instance_.constraint_matrix);
-
-            // Lower bounds that correspond to collision avoidance are just at negative infinity
-            qp_instance_.lower_bounds.resize(JointSpaceDimesion + num_collisions);
-            qp_instance_.lower_bounds.tail(num_collisions) = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>::Constant(num_collisions, 1, -std::numeric_limits<Scalar>::infinity());
-            
-            // Upper bounds corresponding to collision avoidance are at zero
-            qp_instance_.upper_bounds.resize(JointSpaceDimesion + num_collisions);
-            qp_instance_.lower_bounds.tail(num_collisions).setZero();
-
-            status = qp_solver_->SetBounds(qp_instance_.lower_bounds, qp_instance_.upper_bounds);
+            solver_->UpdateConstraintMatrix(constraint_matrix);
+            return solver_->SolveForVector(desired_velocity);
         }
 
-        // Regardess of whether collision avoidance is enabled, the desired_velocity appears in the QP as
-        // the negative of the objective vector
-        auto status = qp_solver_->SetObjectiveVector(-desired_velocity);
-
-        // Solve the QP and return a non-zero value if the optimal solution is found
-        if(qp_solver_->Solve() ==  osqp::OsqpExitCode::kOptimal){
-            return JointVector(qp_solver_->primal_solution());
-        } else{
-            return JointVector::Zero();
-        }
+        // If collision avoidance is not enabled, simply pass the desired_velocity through
+        return desired_velocity;
     }
 
 private:
     const size_t number_of_vertices_;
 
     // A callback for computing the first three rows of the Jacobian along any arbitrary point
-    std::function<Eigen::Matrix<Scalar, 3, Eigen::Dynamic>(const size_t&, const Vector3&)> partial_jacobian_getter_;
+    std::function<void(PartialJacobian&, const size_t&, const Vector3&)> partial_jacobian_updater_;
+    PartialJacobian partial_jacobian_;
 
-    // QP-solver member variables. Note that qp_instance_ just stores a copy of the instance set in qp_solver_
-    osqp::OsqpInstance qp_instance_;
-    std::shared_ptr<osqp::OsqpSolver> qp_solver_;
-    osqp::OsqpSettings qp_settings_;
+    ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment>* solver_;
 };
 
 }   // namespace collision

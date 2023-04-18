@@ -94,6 +94,17 @@ public:
         Base::PauseDynamics(pause);
     }
 
+    void SetVelocity(const VectorN& velocity) override{
+        Base::SetVelocity(velocity);
+        std::apply([&](Models&... models){
+            size_t index = 0;
+            ([&]{
+                models.SetVelocity(velocity.template block<Models::Dimension, 1>(index, 0));
+                index += Models::Dimension;
+            }(), ...);
+        }, models_);
+    }
+
     template <size_t index>
     typename std::tuple_element<index, std::tuple<Models...>>::type& GetModel(){
         return std::get<index>(models_);
