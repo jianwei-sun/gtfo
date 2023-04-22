@@ -12,10 +12,6 @@
 
 // Third-party dependencies
 #include <Eigen/Dense>
-// #include <Eigen/Sparse>
-// #include <osqp++.h>
-
-
 
 // Project-specific
 #include "Entity.hpp"
@@ -38,8 +34,7 @@ public:
         :   Entity<Scalar>(vertices, false),
             number_of_vertices_(vertices.size()),
             partial_jacobian_updater_(nullptr),
-            partial_jacobian_(PartialJacobian::Zero()),
-            solver_(nullptr)
+            partial_jacobian_(PartialJacobian::Zero())
     {}
 
     // Updates the locations of the collision points. Verifies that the number of vertices matches the number
@@ -56,17 +51,13 @@ public:
         partial_jacobian_updater_ = partial_jacobian_updater;
     }
 
-    void SetSolver(ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment>* solver){
-        solver_ = solver;
-    }
-
     // Returns the closest joint-space velocity to desired_velocity while still avoiding collisions. 
     // Note that all calls to ComputeCollisions should be completed before calling this function, 
     // if collision avoidance is enabled
     JointVector GetSafeJointSpaceVelocity(const JointVector& desired_velocity){
         // If collision avoidance is enabled, update the constraint matrix to avoid velocities
         // that move farther into the collision
-        if(partial_jacobian_updater_ && solver_){
+        if(partial_jacobian_updater_){
             Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension>::Zero();
 
             for(unsigned i = 0; i < std::min<size_t>(Entity<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
@@ -75,8 +66,8 @@ public:
                 constraint_matrix.block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
             }
 
-            solver_->UpdateConstraintMatrix(constraint_matrix);
-            return solver_->SolveForVector(desired_velocity);
+            solver_.UpdateConstraintMatrix(constraint_matrix);
+            return solver_.SolveForVector(desired_velocity);
         }
 
         // If collision avoidance is not enabled, simply pass the desired_velocity through
@@ -90,7 +81,7 @@ private:
     std::function<void(PartialJacobian&, const size_t&, const Vector3&)> partial_jacobian_updater_;
     PartialJacobian partial_jacobian_;
 
-    ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment>* solver_;
+    ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment> solver_;
 };
 
 }   // namespace collision
