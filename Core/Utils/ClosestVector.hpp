@@ -8,7 +8,7 @@
 #include <array>
 #include <algorithm>
 #include <numeric>
-#include <iostream>
+
 // Third-party dependencies
 #include <Eigen/Dense>
 #include <osqp.h>
@@ -30,11 +30,6 @@ public:
 
         // Set the objective matrix as the identity
         const c_int P_nnz = Dimension;
-        // Eigen::Matrix<c_float, P_nnz, 1> P_x = Eigen::Matrix<c_float, P_nnz, 1>::Constant(1.0);
-        // Eigen::Matrix<c_int, P_nnz, 1> P_i = Eigen::Matrix<c_int, P_nnz, 1>::LinSpaced(0, P_nnz - 1);
-        // Eigen::Matrix<c_int, P_nnz + 1, 1> P_p = Eigen::Matrix<c_int, P_nnz + 1, 1>::LinSpaced(0, P_nnz);
-        // data_->P = csc_matrix(data_->n, data_->n, P_nnz, P_x.data(), P_i.data(), P_p.data());
-
         data_->P = csc_spalloc(data_->n, data_->n, P_nnz, 1, 0);
         Eigen::Matrix<c_float, P_nnz, 1>::Map(data_->P->x) = Eigen::Matrix<c_float, P_nnz, 1>::Constant(1.0);
         Eigen::Matrix<c_int, P_nnz, 1>::Map(data_->P->i) = Eigen::Matrix<c_int, P_nnz, 1>::LinSpaced(0, P_nnz - 1);
@@ -42,27 +37,17 @@ public:
 
 
         // Set the objective vector
-        // Eigen::Matrix<c_float, Dimension, 1> q = Eigen::Matrix<c_float, Dimension, 1>::Zero();
-        // data_->q = q.data();
         data_->q = (c_float*)c_malloc(Dimension * sizeof(c_float));
         Eigen::Matrix<c_float, Dimension, 1>::Map(data_->q).setZero();
 
         // Set the constraint matrix
         const c_int A_nnz = NumConstraints * Dimension;
-        // Eigen::Matrix<c_float, A_nnz, 1> A_x = Eigen::Matrix<c_float, A_nnz, 1>::Zero();
-        // Eigen::Matrix<c_int, A_nnz, 1> A_i = Eigen::Matrix<c_int, NumConstraints, 1>::LinSpaced(0, NumConstraints - 1).colwise().replicate(Dimension);
-        // Eigen::Matrix<c_int, Dimension + 1, 1> A_p = Eigen::Matrix<c_int, Dimension + 1, 1>::LinSpaced(0, A_nnz);
-        // data_->A = csc_matrix(data_->m, data_->n, A_nnz, A_x.data(), A_i.data(), A_p.data());
         data_->A = csc_spalloc(data_->m, data_->n, A_nnz, 1, 0);
         Eigen::Matrix<c_float, A_nnz, 1>::Map(data_->A->x).setZero();
         Eigen::Matrix<c_int, A_nnz, 1>::Map(data_->A->i) = Eigen::Matrix<c_int, NumConstraints, 1>::LinSpaced(0, NumConstraints - 1).colwise().replicate(Dimension);
         Eigen::Matrix<c_int, Dimension + 1, 1>::Map(data_->A->p) = Eigen::Matrix<c_int, Dimension + 1, 1>::LinSpaced(0, A_nnz);
         
         // Set the lower and upper constraint vectors
-        // Eigen::Matrix<c_float, NumConstraints, 1> l = Eigen::Matrix<c_float, NumConstraints, 1>::Constant(-OSQP_INFTY);
-        // data_->l = l.data();
-        // Eigen::Matrix<c_float, NumConstraints, 1> u = Eigen::Matrix<c_float, NumConstraints, 1>::Zero();
-        // data_->u = u.data();
         data_->l = (c_float*)c_malloc(NumConstraints * sizeof(c_float));
         Eigen::Matrix<c_float, NumConstraints, 1>::Map(data_->l) = Eigen::Matrix<c_float, NumConstraints, 1>::Constant(-OSQP_INFTY);
         data_->u = (c_float*)c_malloc(NumConstraints * sizeof(c_float));
@@ -73,7 +58,6 @@ public:
 
         // Setup workspace
         osqp_setup(&work_, data_, settings_);
-        std::cout << "created closestvector" << std::endl;
     }
 
     ~ClosestVector(){
@@ -107,12 +91,10 @@ public:
 
         // The workspace is not copied over due to its complexity, but rather created as a new object
         osqp_setup(&work_, data_, settings_);
-        std::cout << "closestvector copy constructed" << std::endl;
     }
 
     // Swap function for implementing the copy-and-swap idiom
     friend void swap(ClosestVector& first, ClosestVector& second) noexcept{
-        std::cout << "swap called" << std::endl;
         using std::swap;
         swap(first.data_, second.data_);
         swap(first.settings_, second.settings_);
