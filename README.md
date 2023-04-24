@@ -5,7 +5,7 @@
 Written by the Bionics Lab at UCLA. This library is currently under development!
 
 ## Third-party Libraries
-This project requires `Eigen` version `3.4.0`, `MuJoCo` version `2.3.1`, and `OSQP` version `0.6.2` as dependencies. Ensure that they are already installed on your computer. In addition, `osqp-cpp` and `abseil-cpp` are internal dependencies, which can be populated using the command below:
+This project requires `Eigen` version `3.4.0`, `MuJoCo` version `2.3.1`, and `OSQP` version `0.6.2` as dependencies. Ensure that they are already installed on your computer. If not, they are available in the `External` subdirectory as git submodules after updating:
 ```
 git submodule update --init --recursive
 ```

@@ -26,6 +26,7 @@ public:
     }
 
     void SyncSystemTo(const Base& model) override{
+        Base::old_position_ = Base::position_;
         Base::position_ = model.GetPosition();
         Base::velocity_ = model.GetVelocity();
         this->EnforceHardBound();

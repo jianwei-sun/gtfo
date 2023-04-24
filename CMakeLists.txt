@@ -33,11 +33,7 @@ find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(mujoco 2.3.1 REQUIRED)
 
 # osqp 0.6.2
-if(WIN32)
-    find_package(osqp REQUIRED)
-else()
-    add_subdirectory(${PROJECT_SOURCE_DIR}/External/osqp)
-endif()
+find_package(osqp REQUIRED)
 
 #----------------------------------------------------------------------------------------------------
 # gtfo library

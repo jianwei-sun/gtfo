@@ -68,6 +68,9 @@ namespace gtfo
         // Propagate the dynamics forward by one time-step.  Returns false if fails to set a physical position
         virtual bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN)) override
         {
+            // Store the previous position
+            DynamicsModelBase::old_position_ = DynamicsModelBase::position_;
+            
             // If we were given a physical location we update our virtual position to match
             const bool err = DynamicsModelBase::SyncVirtualPositionToPhysical(physical_position);
 
@@ -104,9 +107,8 @@ namespace gtfo
 
             // Step the dynamics to determine our next state
             const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose();
-            
+
             // Update states
-            DynamicsModelBase::old_position_ = DynamicsModelBase::position_;
             DynamicsModelBase::position_ = new_state.row(0);
             DynamicsModelBase::velocity_ = new_state.row(1);
             this->UpdateAcceleration(force_input, state.row(1));

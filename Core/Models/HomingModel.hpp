@@ -47,6 +47,7 @@ public:
         second_bend_position_ = first_bend_position_ + (max_speed_ * 0.8 * duration_) * direction_;
 
         // Set the state to the starting state
+        Base::old_position_ = Base::position_;
         Base::position_ = starting_position_;
         Base::velocity_.setZero();
         Base::acceleration_.setZero();
@@ -81,7 +82,9 @@ public:
         if(duration_ < GTFO_EQUALITY_COMPARISON_TOLERANCE){
             return false;
         }
-Base::old_position_ = Base::position_;
+
+        Base::old_position_ = Base::position_;
+
         // In first 10% of homing
         if(time_ < 0.1 * duration_){
             const Scalar acceleration = max_speed_ / (0.1 * duration_);
