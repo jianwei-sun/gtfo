@@ -37,6 +37,8 @@ public:
 
     // Step ensures that only the dynamics of the selected model are propagated
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        Base::Step(force_input, physical_position);
+        
         // Update the active model
         Base* model = GetActiveModel();
         
@@ -51,9 +53,9 @@ public:
         Base::PauseDynamics(pause);
     }
 
-    void SetVelocity(const VectorN& velocity) override{
-        Base::SetVelocity(velocity);
-        GetActiveModel()->SetVelocity(velocity);
+    void SetPositionAndVelocity(const VectorN& position, const VectorN& velocity, const bool& bypass_checks = false) override{
+        Base::SetPositionAndVelocity(position, velocity, bypass_checks);
+        GetActiveModel()->SetPositionAndVelocity(position, velocity, bypass_checks);
     }
 
     // Selects a model using an index, and returns true if the index is within bounds. The newly selected

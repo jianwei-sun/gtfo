@@ -68,6 +68,7 @@ public:
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        Base::Step(force_input, physical_position);
         // Hold the current position if dynamics are paused
         if(Base::DynamicsArePaused()){
             Base::velocity_.setZero();
@@ -82,8 +83,6 @@ public:
         if(duration_ < GTFO_EQUALITY_COMPARISON_TOLERANCE){
             return false;
         }
-
-        Base::old_position_ = Base::position_;
 
         // In first 10% of homing
         if(time_ < 0.1 * duration_){

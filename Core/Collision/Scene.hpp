@@ -92,6 +92,13 @@ public:
         free_entities_.at(free_entities_index)->UpdateVertices(vertices);
     }
 
+    // Assumed that this function is called after ComputeCollisions has executed
+    void UpdateVirtualState(void){
+        for(EntityPtr& free_entity : free_entities_){
+            free_entity->UpdateVirtualState();
+        }
+    }
+
 private:
     std::vector<EntityPtr> fixed_entities_;
     std::vector<EntityPtr> free_entities_;

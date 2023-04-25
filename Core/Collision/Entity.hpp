@@ -92,6 +92,8 @@ public:
         return collisions_;
     }
 
+    virtual void UpdateVirtualState(void) = 0;
+
 protected:
     std::vector<Vector3> vertices_;
     std::vector<Segment<Scalar>> segments_;
