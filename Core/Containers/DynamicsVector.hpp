@@ -40,6 +40,7 @@ public:
             Base::position_.template block<Models::Dimension, 1>(index, 0) = models.GetPosition();
             Base::velocity_.template block<Models::Dimension, 1>(index, 0) = models.GetVelocity();
             Base::acceleration_.template block<Models::Dimension, 1>(index, 0) = models.GetAcceleration();
+            Base::soft_bound_restoring_force_.template block<Models::Dimension, 1>(index, 0) = models.GetSoftBoundRestoringForce();
             index += Models::Dimension;
         }(), ...);
     }
@@ -65,6 +66,7 @@ public:
                 Base::position_.template block<Models::Dimension, 1>(index, 0) = model.GetPosition();
                 Base::velocity_.template block<Models::Dimension, 1>(index, 0) = model.GetVelocity();
                 Base::acceleration_.template block<Models::Dimension, 1>(index, 0) = model.GetAcceleration();
+                Base::soft_bound_restoring_force_.template block<Models::Dimension, 1>(index, 0) = model.GetSoftBoundRestoringForce();
                 index += Models::Dimension;
             }(), ...);
         }, models_);
