@@ -102,6 +102,10 @@ public:
         return desired_velocity;
     }
 
+    void SetJointFixed(const size_t& joint, const bool& fixed){
+        solver_.SetDimensionFixed(joint, fixed);
+    }
+
 private:
     const size_t number_of_vertices_;
 
