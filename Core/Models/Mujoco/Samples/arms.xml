@@ -6,7 +6,7 @@
 
     <default>
         <geom type="capsule"/>
-        <joint type="hinge" limited="true"/>
+        <joint type="hinge" limited="true" group="1"/>
     </default>
 
     <worldbody>

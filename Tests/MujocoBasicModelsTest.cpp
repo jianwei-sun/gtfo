@@ -4,8 +4,8 @@
 // Verifies that MujocoModel can be built
 TEST(MujocoBasicModelsTest, DataTypes)
 {
-    gtfo::MujocoModel<7, double> system_double("arms.xml", 0.001);
-    gtfo::MujocoModel<7, float> system_float("arms.xml", 0.001f);
+    gtfo::MujocoModel<7, double> system_double("arms.xml", 1, 0.001);
+    gtfo::MujocoModel<7, float> system_float("arms.xml", 1, 0.001f);
 
     for(unsigned i = 0; i < 10; ++i){
         system_double.Step(Eigen::Matrix<double, 7, 1>::Zero());
@@ -20,7 +20,7 @@ TEST(MujocoBasicModelsTest, DataTypes)
 TEST(MujocoBasicModelsTest, LoadArmsModel)
 {
     using VectorN = gtfo::MujocoModel<7>::VectorN;
-    gtfo::MujocoModel<7> system("arms.xml", 0.001);
+    gtfo::MujocoModel<7> system("arms.xml", 1, 0.001);
 
     for(unsigned i = 0; i < 1000; ++i){
         system.Step(VectorN::Zero());
@@ -42,13 +42,13 @@ TEST(MujocoBasicModelsTest, RuleOfFive)
     using Wrapper = gtfo::MujocoModel<7>;
 
     // Regular constructor
-    Wrapper w1("arms.xml", 0.001);
+    Wrapper w1("arms.xml", 1, 0.001);
 
     // Copy constructor
     Wrapper w2(w1);
 
     // Move constructor
-    Wrapper w3_temp("arms.xml", 0.001);
+    Wrapper w3_temp("arms.xml", 1, 0.001);
     Wrapper w3 = std::move(w3_temp);
 
     // Assignment operator
@@ -67,7 +67,7 @@ TEST(MujocoBasicModelsTest, PauseDynamics)
 
     const VectorN initial_position = VectorN::Constant(0.1);
 
-    gtfo::MujocoModel<7> system("arms.xml", 0.001, initial_position);
+    gtfo::MujocoModel<7> system("arms.xml", 1, 0.001, initial_position);
 
     system.PauseDynamics(true);
     for(unsigned i = 0; i < 1000; ++i){
@@ -96,7 +96,7 @@ TEST(MujocoBasicModelsTest, HardBoundTest)
 
     const VectorN initial_position = VectorN::Constant(0.1);
 
-    gtfo::MujocoModel<7> system("arms.xml", 0.001, initial_position);
+    gtfo::MujocoModel<7> system("arms.xml", 1, 0.001, initial_position);
     system.SetHardBound(gtfo::RectangleBound<7>(VectorN::Constant(0.1)));
 
     system.PauseDynamics(true);
