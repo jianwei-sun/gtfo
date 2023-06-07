@@ -69,9 +69,7 @@ public:
         }
         const VirtualVector& position = model_ptr_->GetPosition();
         const VirtualVector& velocity = model_ptr_->GetVelocity();
-        const auto temp1 = virtual_to_joint_(velocity);
-        const auto temp2 = GetSafeJointSpaceVelocity(temp1);
-        const VirtualVector constrained_virtual_velocity = joint_to_virtual_(temp2);
+        const VirtualVector constrained_virtual_velocity = joint_to_virtual_(GetSafeJointSpaceVelocity(virtual_to_joint_(velocity)));
         if(!IsEqual(constrained_virtual_velocity, velocity)){
             const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
             model_ptr_->SetPositionAndVelocity(
@@ -93,7 +91,7 @@ public:
             for(unsigned i = 0; i < std::min<size_t>(Entity<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
                 const Collision<Scalar>& collision = Entity<Scalar>::collisions_[i];
                 partial_jacobian_updater_(partial_jacobian_, collision.segment_index_, collision.location_);
-                constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
+                constraint_matrix.block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
             }
 
             solver_.UpdateConstraintMatrix(constraint_matrix);

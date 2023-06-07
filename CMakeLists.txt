@@ -48,7 +48,6 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
     Eigen3::Eigen
     mujoco::mujoco
     osqp::osqpstatic
-    ${CMAKE_DL_LIBS}
 )
 
 #----------------------------------------------------------------------------------------------------
