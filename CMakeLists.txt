@@ -20,6 +20,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Generate compile commands for clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
+# Default is debug mode if no build type is set
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
+# Determine the type of configurator of the generator
+get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(isMultiConfig)
+    set(CONFIG_DEPENDENT_OUTPUT_DIR "${CMAKE_BUILD_TYPE}")
+else()
+    set(CONFIG_DEPENDENT_OUTPUT_DIR "")
+endif()
+
 # Build options
 option(GTFO_BUILD_TESTS "Build tests for GTFO" ON)
 
