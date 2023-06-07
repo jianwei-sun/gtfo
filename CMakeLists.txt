@@ -58,6 +58,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 )
 
 target_link_libraries(${PROJECT_NAME} INTERFACE
+    ${CMAKE_DL_LIBS}
     Eigen3::Eigen
     mujoco::mujoco
     osqp::osqpstatic

@@ -91,7 +91,7 @@ public:
             for(unsigned i = 0; i < std::min<size_t>(Entity<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
                 const Collision<Scalar>& collision = Entity<Scalar>::collisions_[i];
                 partial_jacobian_updater_(partial_jacobian_, collision.segment_index_, collision.location_);
-                constraint_matrix.block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
+                constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
             }
 
             solver_.UpdateConstraintMatrix(constraint_matrix);
