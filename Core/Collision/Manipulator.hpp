@@ -95,11 +95,10 @@ public:
             }
 
             solver_.UpdateConstraintMatrix(constraint_matrix);
-            return solver_.SolveForVector(desired_velocity);
         }
 
-        // If collision avoidance is not enabled, simply pass the desired_velocity through
-        return desired_velocity;
+        // If the jacobians are not available, then only solve with velocity constraints
+        return solver_.SolveForVector(desired_velocity);
     }
 
     void SetJointFixed(const size_t& joint, const bool& fixed){

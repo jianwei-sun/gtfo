@@ -142,6 +142,7 @@ public:
     // constraint_matrix before its values are used to update A
     void UpdateConstraintMatrix(const Eigen::Matrix<c_float, NumConstraints, Dimension>& constraint_matrix){
         osqp_update_A(work_, constraint_matrix.data(), non_identity_constraint_indices_.data(), NumConstraints * Dimension);
+        prea_copy_csc_mat(work_->data->A, data_->A); 
     }
     
     void SetDimensionFixed(const size_t& dimension, const bool& fixed){
@@ -153,13 +154,15 @@ public:
             upper_bound_[NumConstraints + dimension] = OSQP_INFTY;
         }
         osqp_update_bounds(work_, lower_bound_.data(), upper_bound_.data());
+        Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->l) = lower_bound_;
+        Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->u) = upper_bound_;
     }
 
     // If the constraint matrix is not updated before this function is called, then the problem is just an unconstrained QP
     VectorN SolveForVector(const VectorN& desired){
         // The cost vector is the negative of the desired vector
-        const VectorN cost_vector = -desired;
-        osqp_update_lin_cost(work_, cost_vector.data());
+        Eigen::Matrix<c_float, Dimension, 1>::Map(data_->q) = -desired;
+        osqp_update_lin_cost(work_, data_->q);
 
         // It seems that status is always 0, which doesn't match one of the expected return types,
         // so just return the solution
