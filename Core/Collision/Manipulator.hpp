@@ -70,11 +70,11 @@ public:
         const VirtualVector& position = model_ptr_->GetPosition();
         const VirtualVector& velocity = model_ptr_->GetVelocity();
         const VirtualVector constrained_virtual_velocity = joint_to_virtual_(GetSafeJointSpaceVelocity(virtual_to_joint_(velocity)));
-        if(!IsEqual(constrained_virtual_velocity, velocity)){
-            const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
+        if (!IsEqual(constrained_virtual_velocity, velocity))
+        {
             model_ptr_->SetPositionAndVelocity(
-                position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal, 
-                constrained_virtual_velocity, 
+                model_ptr_->GetOldPosition() + constrained_virtual_velocity * 0.002, // For testing lets assume 2ms control rate
+                constrained_virtual_velocity,
                 true);
         }
     }
