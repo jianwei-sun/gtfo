@@ -33,17 +33,15 @@ public:
         Base::dynamics_paused_ = model.DynamicsArePaused();
     }
 
-    bool Step(const VectorN& direction, const VectorN& physical_position = VectorN::Constant(NAN)) override{
-        Base::Step(direction, physical_position);
+    void PropagateDynamics(const VectorN& direction) override{
         // Hold the current position if dynamics are paused or the input is zero
-        if(Base::DynamicsArePaused() || IsEqual(direction, VectorN::Zero())){
+        if(IsEqual(direction, VectorN::Zero())){
             Base::velocity_.setZero();
-            return true;
+            return;
         }
         Base::position_ += (speed_ * dt_) * direction.normalized();
         Base::velocity_ = speed_ * direction.normalized();
-        this->EnforceHardBound();
-        return true;
+        Base::acceleration_.setZero();
     }
 
 private:

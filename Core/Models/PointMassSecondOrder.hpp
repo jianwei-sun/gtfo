@@ -53,18 +53,14 @@ namespace gtfo{
         }
 
         // Propagate dynamics for a second order system but using softbounds if they exist
-        bool Step(const VectorN &force_input, const VectorN &physical_position = VectorN::Constant(NAN)) override
+        void PropagateDynamics(const VectorN &force_input) override
         {
-            // If we were given a physical location we update our virtual position to match
-            const bool err = Base::SyncVirtualPositionToPhysical(physical_position);
-
-            // If we are outside we need to enforce the softbound and use its restoring force to step without a physical position since we already synced it (if it was valid)
+            // If we are outside we need to enforce the softbound and use its restoring force to step 
             const VectorN soft_bound_restoring_force = this->EnforceSoftBound();
-
-            // Otherwise step without a restoring force and also without a physical position since we already synced it (if it was valid)
-            Base::Step(force_input + soft_bound_restoring_force);
-
-            return err;
+            Base::PropagateDynamics(force_input + soft_bound_restoring_force);
+            
+            // Calculate the acceleration using the more accurate continuous equations with the current velocity
+            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + force_input / Base::parameters_.mass;
         }
 
     private:
@@ -80,11 +76,6 @@ namespace gtfo{
                 static_cast<Scalar>(0.0), exponent;
             Base::B_discrete_ << (damping * dt - (static_cast<Scalar>(1.0) - exponent) * mass) / (damping * damping),
                 (static_cast<Scalar>(1.0) - exponent) / damping;
-        }
-
-        // Calculate the acceleration using the continuous equations with the current velocity
-        void UpdateAcceleration(const VectorN& force_input, const VectorN& previous_velocity) override{
-            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + force_input / Base::parameters_.mass;
         }
     };
 
