@@ -35,10 +35,15 @@ public:
         this->SyncSystemTo(std::get<0>(models_));
     }
 
+    // PropagateDynamics is empty since each model already contains the relevant dynamics
+    void PropagateDynamics(const VectorN& force_input) override{
+        return;
+    }
+
     // Step ensures that only the dynamics of the selected model are propagated
-    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
-        Base::Step(force_input, physical_position);
-        
+    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{      
+        Base::old_position_ = Base::position_;
+          
         // Update the active model
         Base* model = GetActiveModel();
         
