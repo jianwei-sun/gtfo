@@ -45,10 +45,15 @@ public:
         }(), ...);
     }
 
+    // PropagateDynamics is empty since each model already contains the relevant dynamics
+    void PropagateDynamics(const VectorN& force_input) override{
+        return;
+    }
+
     // Step allows stepping all the models in DynamicsVector as if the container is a single model. Step only
     // returns true if all models' Step functions return true
-    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
-        Base::Step(force_input, physical_position);
+    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{       
+        Base::old_position_ = Base::position_;
         
         bool result = true;
 

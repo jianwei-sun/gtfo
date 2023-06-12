@@ -60,12 +60,10 @@ public:
     }
 
     // Virtual function to be implemented by the subclass. The function should
-    // update position and velocity using the inputs, and enforce bounds if necessary
-    // The function should also pause dynamics by referring to the dynamics_paused_ flag.
-    // The base function should also be called in order to set old_position_
+    // update the position, velocity, and acceleration states
     virtual void PropagateDynamics(const VectorN& force_input) = 0;
 
-    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
+    virtual bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
         old_position_ = position_;
 
         const bool err = SyncVirtualPositionToPhysical(physical_position);
@@ -79,7 +77,7 @@ public:
             return err;
         }
 
-        const VectorN modified_force = DynamicsModelBase::force_premodifier_ ? force_premodifier_(force_input, *this) : force_input;
+        const VectorN modified_force = force_premodifier_ ? force_premodifier_(force_input, *this) : force_input;
         this->PropagateDynamics(modified_force);
 
         // Ensure the hard bounds are satisfied
