@@ -61,27 +61,19 @@ public:
     }
 
     void PauseDynamics(const bool& pause) override{
-        if(!pause){
+        if(DynamicsArePaused() && !pause){
             ResetHoming(Base::position_);
         }
         Base::PauseDynamics(pause);
     }
 
-    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
-        Base::Step(force_input, physical_position);
-        // Hold the current position if dynamics are paused
-        if(Base::DynamicsArePaused()){
-            Base::velocity_.setZero();
-            Base::acceleration_.setZero();
-            return true;
-        }
-
+    void PropagateDynamics(const VectorN& force_input) override{
         // Time update
         time_ += dt_;
 
         // If duration_ is invalidly small, or homing hasn't been reset yet, then do not move
         if(duration_ < GTFO_EQUALITY_COMPARISON_TOLERANCE){
-            return false;
+            return;
         }
 
         // In first 10% of homing
@@ -118,8 +110,6 @@ public:
             Base::velocity_.setZero();
             Base::acceleration_.setZero();
         }
-
-        return true;
     }
 
     Scalar GetProgress(void) const{
