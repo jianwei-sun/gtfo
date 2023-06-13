@@ -55,9 +55,7 @@ namespace gtfo{
         // Propagate dynamics for a second order system but using softbounds if they exist
         void PropagateDynamics(const VectorN &force_input) override
         {
-            // If we are outside we need to enforce the softbound and use its restoring force to step 
-            Base::soft_bound_restoring_force_ = this->EnforceSoftBound();
-            Base::PropagateDynamics(force_input + Base::soft_bound_restoring_force_);
+            Base::PropagateDynamics(force_input);
             
             // Calculate the acceleration using the more accurate continuous equations with the current velocity
             Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + force_input / Base::parameters_.mass;

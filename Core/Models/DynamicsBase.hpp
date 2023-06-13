@@ -68,17 +68,19 @@ public:
 
         const bool err = SyncVirtualPositionToPhysical(physical_position);
 
-        // When the dynamics are paused, position can still be updated by the physical_position passed into Step.
-        // However, velocity is zeroed. Acceleration is also zeroed to prevent an impulse, even though the actual
-        // instantaneous acceleration is -velocity / dt
+        // When the dynamics are paused, position can still be updated by the physical_position passed into Step. However, velocity is zeroed. Acceleration is also zeroed to prevent an impulse, even though the actual instantaneous acceleration is -velocity / dt
         if(DynamicsArePaused()){
             velocity_.setZero();
             acceleration_.setZero();
             return err;
         }
 
+        // Any modifications to the input force happen first
         const VectorN modified_force = force_premodifier_ ? force_premodifier_(force_input, *this) : force_input;
-        this->PropagateDynamics(modified_force);
+
+        // Dynamics are propagated with the modified and soft bound restoring forces
+        soft_bound_restoring_force_ = this->EnforceSoftBound();
+        this->PropagateDynamics(modified_force + soft_bound_restoring_force_);
 
         // Ensure the hard bounds are satisfied
         this->EnforceHardBound();

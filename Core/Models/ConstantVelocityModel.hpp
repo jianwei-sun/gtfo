@@ -25,14 +25,6 @@ public:
         assert(speed_ > 0.0);
     }
 
-    void SyncSystemTo(const Base& model) override{
-        Base::old_position_ = Base::position_;
-        Base::position_ = model.GetPosition();
-        Base::velocity_ = model.GetVelocity();
-        this->EnforceHardBound();
-        Base::dynamics_paused_ = model.DynamicsArePaused();
-    }
-
     void PropagateDynamics(const VectorN& direction) override{
         // Hold the current position if dynamics are paused or the input is zero
         if(IsEqual(direction, VectorN::Zero())){
