@@ -59,7 +59,7 @@ namespace gtfo
         // Override the pause dynamics method so that the soft start timer can be reset
         void PauseDynamics(const bool& pause) override{
             // If dynamics are being unpaused, then restart the soft start timer
-            if(DynamicsArePaused() && !pause){
+            if(DynamicsModelBase::DynamicsArePaused() && !pause){
                 ResetSoftStartTimer();
             }
             DynamicsModelBase::PauseDynamics(pause);

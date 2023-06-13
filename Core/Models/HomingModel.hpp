@@ -61,7 +61,7 @@ public:
     }
 
     void PauseDynamics(const bool& pause) override{
-        if(DynamicsArePaused() && !pause){
+        if(Base::DynamicsArePaused() && !pause){
             ResetHoming(Base::position_);
         }
         Base::PauseDynamics(pause);
