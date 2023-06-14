@@ -29,3 +29,5 @@
 #include "../Core/Collision/Manipulator.hpp"
 #include "../Core/Collision/Obstacle.hpp"
 #include "../Core/Collision/Scene.hpp"
+
+#include "../Core/Constraints/ManifoldConstraints.hpp"
