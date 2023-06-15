@@ -1,6 +1,7 @@
 //----------------------------------------------------------------------------------------------------
 // File: ManifoldConstraints.hpp
-// Desc: Constrains state to user specified manifold by altering the inputs
+// Desc: Constrains state to user specified manifold by altering the inputs.
+//       Note that a vector relative degree of 2 is required
 //----------------------------------------------------------------------------------------------------
 
 #pragma once
@@ -13,13 +14,8 @@
 #include <unsupported/Eigen/KroneckerProduct>
 #include <Eigen/QR>
 
-
-// Project-specific
-
-
 namespace gtfo{
 template<unsigned int StateDimension, unsigned int ConstraintDimension, typename Scalar = double>
-
 class ManifoldConstraints{
 public:
     static_assert(StateDimension > 0, "State Dimension must be at least 1.");
@@ -27,6 +23,7 @@ public:
     static_assert(ConstraintDimension <= StateDimension, "Constraint dimension must be less than or equal to state dimension");
     static_assert(std::is_floating_point_v<Scalar>, "Template argument Scalar must be a floating-point type.");
 
+    // Vector types
     using VectorN = Eigen::Matrix<Scalar, StateDimension, 1>;
     using VectorK = Eigen::Matrix<Scalar, ConstraintDimension, 1>;
     using Vector2K = Eigen::Matrix<Scalar, 2*ConstraintDimension, 1>;
@@ -34,13 +31,22 @@ public:
     using MatrixNN = Eigen::Matrix<Scalar, StateDimension, StateDimension>;
     using MatrixNK = Eigen::Matrix<Scalar, StateDimension, ConstraintDimension>;
 
+    // Second-order dynamics
+    using StateFunctionBottomHalf = std::function<VectorN(const VectorN&, const VectorN&)>;
+    using InputFunctionBottomHalf = std::function<MatrixNN(const VectorN&, const VectorN&)>;
+
+    // Constraint function
     using ConstraintFunction = std::function<VectorK(const VectorN&)>;
     using ConstraintFunctionGradient = std::function<MatrixKN(const VectorN&)>;
     using ConstraintFunctionHessianSlice = std::function<MatrixNN(const VectorN&)>;
+
+    // Tranversal control
     using TransversalGain = Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension>;
 
     ManifoldConstraints()
-    :   constraint_function_(nullptr),
+    :   f_bottom_half_(nullptr),
+        g_bottom_half_(nullptr),
+        constraint_function_(nullptr),
         constraint_function_gradient_(nullptr),
         constraint_function_hessian_slices_{},
         transversal_gain_(TransversalGain::Zero())
@@ -48,28 +54,37 @@ public:
 
     // Calculate on each iteration after constraint function and gains have been set to create the new forces
     VectorN Step(const VectorN& force, const VectorN& position, const VectorN& velocity){
-        if (!constraint_function_){
+        // When callbacks are unset, Step just passes through forces
+        if (!constraint_function_ || !f_bottom_half_){
             return force;
         }
-        const MatrixKN constraint_function_gradient = constraint_function_gradient_(position);
-        const MatrixNN M_inv_ = MatrixNN::Identity();
-        const MatrixNN D_ = MatrixNN::Identity(); // TODO: change later
-        
-        const MatrixKN decoupling_matrix = constraint_function_gradient * M_inv_;
 
-        VectorK affine_term =  - decoupling_matrix * D_ * velocity;
-        for (unsigned int i=0; i<ConstraintDimension; ++i){
+        const MatrixKN constraint_function_gradient = constraint_function_gradient_(position);
+        
+        // Construct the Lie derivatives
+        const MatrixKN decoupling_matrix = constraint_function_gradient * g_bottom_half_(position, velocity);
+
+        VectorK affine_term = constraint_function_gradient * f_bottom_half_(position, velocity);
+        for (unsigned int i = 0; i < ConstraintDimension; ++i){
             affine_term[i] += velocity.transpose() * constraint_function_hessian_slices_[i](position) * velocity;
         }
 
-        const MatrixNK pinv_decoupling_matrix = decoupling_matrix.completeOrthogonalDecomposition().pseudoInverse();
-
-        // transversal state is in the form [h_i; Lfh_i], so we need to interleave the constraint function and its Lie derivative
+        // Form the transversal state and compute its stabilizing control. 
+        // Note transversal state is in the form [h_i; Lfh_i], so we need to interleave the constraint function and its Lie derivative
         const Eigen::Matrix<Scalar, 2, ConstraintDimension> transversal_state = (Eigen::Matrix<Scalar, 2, ConstraintDimension>() << constraint_function_(position).transpose(), (constraint_function_gradient * velocity).transpose()).finished();
 
         const VectorK transversal_control = -transversal_gain_ * Vector2K::Map(transversal_state.data());
 
+        // Assemble the total force by summing the tangential and tranversal components
+        const MatrixNK pinv_decoupling_matrix = decoupling_matrix.completeOrthogonalDecomposition().pseudoInverse();
+
         return (MatrixNN::Identity() - pinv_decoupling_matrix * decoupling_matrix) * force + pinv_decoupling_matrix * (transversal_control - affine_term);
+    }
+
+    // Require the user to set the second order dynamics. Since these manifold constraints are only for systems with vector relative degree 2, only the bottom half of f and g matter
+    void SetSecondOrderDynamics(const StateFunctionBottomHalf& f_bottom_half, const InputFunctionBottomHalf& g_bottom_half){
+        f_bottom_half_ = f_bottom_half;
+        g_bottom_half_ = g_bottom_half;
     }
 
     // Set constraint function, and first and second partial derivative. Because second partial is a tensor, we enter hessian slices instead
@@ -94,9 +109,16 @@ public:
     }
 
 private:
+    // Second-order dynamics
+    StateFunctionBottomHalf f_bottom_half_;
+    InputFunctionBottomHalf g_bottom_half_;
+
+    // Constraint function
     ConstraintFunction constraint_function_;
     ConstraintFunctionGradient constraint_function_gradient_;
     std::array<ConstraintFunctionHessianSlice, ConstraintDimension> constraint_function_hessian_slices_;
+
+    // Tranversal control
     TransversalGain transversal_gain_;
 };
 
