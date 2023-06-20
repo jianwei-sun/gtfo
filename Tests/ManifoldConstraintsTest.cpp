@@ -59,10 +59,28 @@ TEST(ManifoldConstraintsTest, SurfaceTest)
         }
     );
 
-    // TODO: SetConstraintFunction
+    // SetConstraintFunction
+    const std::function<Eigen::Vector2d(const Eigen::Vector4d&)> constraint_function[](const Eigen::Vector4d& position){
+        return (Eigen::Vector2d() << position[1], position[2]).finished();
+    }
 
-    // TODO: SetTransversalGain
+    // dh/dX = [0,1,0,0; 0, 0, 1, 0]
+    const std::function<Eigen::Matrix<double, 2, 4>(const Eigen::Vector4d&)> constraint_function_gradient[](const Eigen::Vector4d& position){
+        return (Eigen::Matrix<double, 2, 4>() << 0, 1, 0, 0, 0, 0, 1, 0).finished();
+    }
 
+    // d2h/dX2 = 0 for both slices
+    const std::function<Eigen::Matrix4d(const Eigen::Vector4d&)> constraint_function_hessian_slice_1[](const Eigen::Vector4d& position){
+        return Eigen::Matrix4d::Zero();
+    }
+    const std::array< std::function<Eigen::Matrix4d(const Eigen::Vector4d&)> , 2> constraint_function_hessian_slices = {constraint_function_hessian_slice_1, constraint_function_hessian_slice_1};
+    
+    // set constraint functions
+    manifold_constraints.SetConstraintFunction(constraint_function, constraint_function_gradient, constraint_function_hessian_slices)
+    
+    // SetTransversalGain
+    manifold_constraints.SetTranversalGain(Eigen::RowVector2d(0.1, 0.1));
+    
     // Associate the manifold constraints with the virtual system
     system.SetForcePremodifier([&](const Eigen::Vector4d& force, const gtfo::DynamicsBase<4>& system){
        return manifold_constraints.Step(force, system.GetPosition(), system.GetVelocity());
