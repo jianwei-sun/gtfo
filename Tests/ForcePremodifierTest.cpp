@@ -28,9 +28,9 @@ TEST(ForcePremodifierTest, Containers)
             (gtfo::SecondOrderParameters<double>()), (gtfo::FirstOrderParameters<double>())), 
         (gtfo::SecondOrderParameters<double>()));
 
-    // Make the first system just pass in the opposite of the force
-    system.GetModel<0>().GetModel<0>().SetForcePremodifier([](const Eigen::Vector2d& force, const gtfo::DynamicsBase<2>& system){
-       return -force; 
+    // Make the first system just pass in the opposite of the force in the first two coordinates
+    system.GetModel<0>().SetForcePremodifier([](const Eigen::Vector4d& force, const gtfo::DynamicsBase<4>& system){
+       return force.cwiseProduct(Eigen::Vector4d(-1.0, -1.0, 1.0, 1.0)).eval();
     });
 
     // Make the second system be a PD controller
@@ -44,6 +44,7 @@ TEST(ForcePremodifierTest, Containers)
     }
 
     // Ensure that the first second order model behaves correctly
+    std::cout << system.GetPosition().block<2,1>(0,0) << std::endl;
     EXPECT_TRUE((system.GetPosition().block<2,1>(0,0).array() < 0.0).all());
     EXPECT_TRUE((system.GetPosition().block<2,1>(2,0).array() > 0.0).all());
 
