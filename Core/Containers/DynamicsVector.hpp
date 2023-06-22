@@ -45,25 +45,15 @@ public:
         }(), ...);
     }
 
-    // PropagateDynamics is empty since each model already contains the relevant dynamics
+    // PropagateDynamics propagates the dynamics of each model and updates the vector state accordingly
     void PropagateDynamics(const VectorN& force_input) override{
-        return;
-    }
-
-    // Step allows stepping all the models in DynamicsVector as if the container is a single model. Step only
-    // returns true if all models' Step functions return true
-    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{       
-        Base::old_position_ = Base::position_;
-        
-        bool result = true;
-
         std::apply([&](Models&... model){
             // Index is used to keep track of where each model's dimensions begin in the concatenated VectorN
             size_t index = 0;
 
             // First, step all the models with the appropriate coordinates of the inputs
             ([&]{
-                result &= model.Step(force_input.template block<Models::Dimension, 1>(index, 0), physical_position.template block<Models::Dimension, 1>(index, 0));
+                model.PropagateDynamics(force_input.template block<Models::Dimension, 1>(index, 0));
                 index += Models::Dimension;
             }(), ...);
 
@@ -77,8 +67,6 @@ public:
                 index += Models::Dimension;
             }(), ...);
         }, models_);
-        
-        return result;
     }
 
     // Applies a lambda that accepts a model and index to each model in the tuple.
