@@ -18,6 +18,11 @@ TEST(ManifoldConstraintsTest, SurfaceTest)
     const gtfo::SecondOrderParameters<double> parameters_1(0.1, 0.5, 0.5);
     const gtfo::SecondOrderParameters<double> parameters_2(0.1, 5.0, 5.0);
 
+    const double wn = 5;
+    const double zeta = 1;
+    const Eigen::RowVector2d transversal_gain(wn*wn, 2*zeta*wn); // can be tuned
+    constexpr int trials = 1000;
+
     gtfo::DynamicsVector<
         gtfo::PointMassSecondOrder<2>,
         gtfo::PointMassSecondOrder<2>>
@@ -60,26 +65,26 @@ TEST(ManifoldConstraintsTest, SurfaceTest)
     );
 
     // SetConstraintFunction
-    const std::function<Eigen::Vector2d(const Eigen::Vector4d&)> constraint_function[](const Eigen::Vector4d& position){
+    const std::function<Eigen::Vector2d(const Eigen::Vector4d&)> constraint_function = [](const Eigen::Vector4d& position){
         return (Eigen::Vector2d() << position[1], position[2]).finished();
-    }
+    };
 
     // dh/dX = [0,1,0,0; 0, 0, 1, 0]
-    const std::function<Eigen::Matrix<double, 2, 4>(const Eigen::Vector4d&)> constraint_function_gradient[](const Eigen::Vector4d& position){
+    const std::function<Eigen::Matrix<double, 2, 4>(const Eigen::Vector4d&)> constraint_function_gradient = [](const Eigen::Vector4d& position){
         return (Eigen::Matrix<double, 2, 4>() << 0, 1, 0, 0, 0, 0, 1, 0).finished();
-    }
+    };
 
     // d2h/dX2 = 0 for both slices
-    const std::function<Eigen::Matrix4d(const Eigen::Vector4d&)> constraint_function_hessian_slice_1[](const Eigen::Vector4d& position){
+    const std::function<Eigen::Matrix4d(const Eigen::Vector4d&)> constraint_function_hessian_slice_1 = [](const Eigen::Vector4d& position){
         return Eigen::Matrix4d::Zero();
-    }
+    };
     const std::array< std::function<Eigen::Matrix4d(const Eigen::Vector4d&)> , 2> constraint_function_hessian_slices = {constraint_function_hessian_slice_1, constraint_function_hessian_slice_1};
     
     // set constraint functions
-    manifold_constraints.SetConstraintFunction(constraint_function, constraint_function_gradient, constraint_function_hessian_slices)
+    manifold_constraints.SetConstraintFunction(constraint_function, constraint_function_gradient, constraint_function_hessian_slices);
     
     // SetTransversalGain
-    manifold_constraints.SetTranversalGain(Eigen::RowVector2d(0.1, 0.1));
+    manifold_constraints.SetTransversalGain(transversal_gain);
     
     // Associate the manifold constraints with the virtual system
     system.SetForcePremodifier([&](const Eigen::Vector4d& force, const gtfo::DynamicsBase<4>& system){
@@ -87,10 +92,12 @@ TEST(ManifoldConstraintsTest, SurfaceTest)
     });
 
     // Step the systems again, which now includes the constraint manifold
-    for(unsigned i = 0; i < 10; ++i){
+    for(unsigned i = 0; i < trials; ++i){
         const Eigen::Vector4d input(1.0, -0.5, -1.0, 0.5);
         system.Step(input);
         system_unconstrained.Step(input);
+        auto position = system.GetPosition();
+        auto position_unconstrained = system_unconstrained.GetPosition();
     }
 
     // Verify that the constrained coordinates are 0
