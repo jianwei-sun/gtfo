@@ -134,9 +134,7 @@ TEST(ForcePremodifierTest, XYSurfaceConstraint)
     // Constraint is z=0, so step multiple iterations and then check if z has gotten close to zero
     for(unsigned i = 0; i < trials; ++i){
         system.Step(Eigen::Vector3d::Ones());
-        auto position = system.GetPosition();
     }
-    std::cout<<system.GetPosition().transpose()<<std::endl;
     EXPECT_TRUE(gtfo::IsEqual(VectorK(system.GetPosition()[2]), VectorK::Zero()));
 
     // System with no constraint for comparison:

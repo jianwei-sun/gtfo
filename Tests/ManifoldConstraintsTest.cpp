@@ -96,8 +96,6 @@ TEST(ManifoldConstraintsTest, SurfaceTest)
         const Eigen::Vector4d input(1.0, -0.5, -1.0, 0.5);
         system.Step(input);
         system_unconstrained.Step(input);
-        auto position = system.GetPosition();
-        auto position_unconstrained = system_unconstrained.GetPosition();
     }
 
     // Verify that the constrained coordinates are 0
@@ -111,4 +109,86 @@ TEST(ManifoldConstraintsTest, SurfaceTest)
     ));
 
     std::cout << system.GetPosition().transpose() << std::endl; 
+}
+
+TEST(ManifoldConstraintsTest, XYSurfaceConstraint)
+{
+    constexpr unsigned state_dimension = 3;
+    constexpr unsigned constraint_dimension = 1;
+    const int trials = 1000;
+
+    // Vector Types
+    using VectorN = Eigen::Matrix<double, state_dimension, 1>;
+    using VectorK = Eigen::Matrix<double, constraint_dimension, 1>;
+    using MatrixKN = Eigen::Matrix<double, constraint_dimension, state_dimension>;
+    using MatrixNN = Eigen::Matrix<double, state_dimension, state_dimension>;
+    using MatrixK2K = Eigen::Matrix<double, constraint_dimension, 2*constraint_dimension>;
+
+    // System Parameters
+    const double mass = 1.0;
+    const double damping = 1.0;   
+    const double cycle_time_step = 0.1;
+
+    const double wn = 5;
+    const double zeta = 1;
+    const MatrixK2K transversal_gain = (MatrixK2K() << wn*wn, 2*zeta*wn).finished(); // can be tuned
+    const Eigen::Vector3d initial_position(0, 0, 1); // start at z=1, should move to z=0
+    const VectorN initial_velocity = VectorN::Zero();
+
+    // Define System
+    gtfo::PointMassSecondOrder<state_dimension> system((gtfo::SecondOrderParameters<double>(cycle_time_step, mass, damping)));
+    
+    // Define constraint surface
+    // Here we use the XY plane, so constraint is the Z value
+    gtfo::ManifoldConstraints<state_dimension, constraint_dimension> surface_constraint;
+
+    // h(X) = X[2] = z
+    const std::function<VectorK(const VectorN&)> constraint_function = [](const VectorN& position){
+        return (VectorK() << position[2]).finished();
+    };
+
+    // dh/dX = [0,0,1]
+    const std::function<MatrixKN(const VectorN&)> constraint_function_gradient = [](const VectorN& position){
+        return (MatrixKN() << 0, 0, 1).finished();
+    };
+
+    // d2h/dX2 = 0
+    const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice = [](const VectorN& position){
+        return MatrixNN::Zero();
+    };
+    const std::array< std::function<MatrixNN(const VectorN&)> , 1> constraint_function_hessian_slices = {constraint_function_hessian_slice};
+    surface_constraint.SetConstraintFunction(constraint_function, constraint_function_gradient, constraint_function_hessian_slices);
+    surface_constraint.SetTransversalGain(transversal_gain);
+    
+    // Define system dynamics for constraints
+    // X_dot = f(X) + g(X)*u
+    const auto f_bottom_half = [mass, damping](const VectorN& position, const VectorN& velocity){
+        return -damping / mass * velocity; // VectorN output
+    };
+    const auto g_bottom_half = [mass, damping](const VectorN& position, const VectorN& velocity){
+        return 1/mass * MatrixNN::Identity(); // MatrixNN output
+    };
+    surface_constraint.SetSecondOrderDynamics(f_bottom_half, g_bottom_half);
+
+    system.SetForcePremodifier([&](const VectorN& force, const gtfo::DynamicsBase<state_dimension>& system){
+       return surface_constraint.Step(force, system.GetPosition(), system.GetVelocity());
+    });
+    system.SetPositionAndVelocity(initial_position, initial_velocity);
+
+    // Constraint is z=0, so step multiple iterations and then check if z has gotten close to zero
+    for(unsigned i = 0; i < trials; ++i){
+        system.Step(Eigen::Vector3d::Ones());
+    }
+    EXPECT_TRUE(gtfo::IsEqual(VectorK(system.GetPosition()[2]), VectorK::Zero()));
+
+    // System with no constraint for comparison:
+    gtfo::PointMassSecondOrder<state_dimension> system_no_constraint((gtfo::SecondOrderParameters<double>(cycle_time_step, mass, damping)));
+    system_no_constraint.SetPositionAndVelocity(initial_position, initial_velocity);
+    for(unsigned i = 0; i < trials; ++i){
+        system_no_constraint.Step(Eigen::Vector3d::Ones());
+    }
+
+    // Check if x and y match system with no constraint (constraint should only affect z)
+    EXPECT_TRUE(gtfo::IsEqual(system.GetPosition().segment<2>(0), system_no_constraint.GetPosition().segment<2>(0)));
+
 }
