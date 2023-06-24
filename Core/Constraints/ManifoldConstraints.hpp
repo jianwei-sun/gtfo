@@ -102,7 +102,8 @@ public:
     }
 
     // Transversal Gain when the gains are similar for all constraint coordinates
-    void SetTransversalGain(const Eigen::Matrix<Scalar, 1, 2>& transversal_gain_i){
+    template<bool ConstraintDimensionGreaterThanOne = (ConstraintDimension > 1)>
+    void SetTransversalGain(const std::enable_if_t<ConstraintDimensionGreaterThanOne, Eigen::Matrix<Scalar, 1, 2>>& transversal_gain_i){
         assert((transversal_gain_i.array() >= 0).all());
 
         transversal_gain_ = Eigen::kroneckerProduct (Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
