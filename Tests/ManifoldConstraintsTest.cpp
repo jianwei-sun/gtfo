@@ -192,3 +192,95 @@ TEST(ManifoldConstraintsTest, XYSurfaceConstraint)
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition().segment<2>(0), system_no_constraint.GetPosition().segment<2>(0)));
 
 }
+
+TEST(ManifoldConstraintsTest, CircularPathConstraint)
+{
+    constexpr unsigned state_dimension = 3;
+    constexpr unsigned constraint_dimension = 2;
+    constexpr unsigned radius = 1;
+    const int trials = 1000;
+
+    // Vector Types
+    using VectorN = Eigen::Matrix<double, state_dimension, 1>;
+    using VectorK = Eigen::Matrix<double, constraint_dimension, 1>;
+    using MatrixKN = Eigen::Matrix<double, constraint_dimension, state_dimension>;
+    using MatrixNN = Eigen::Matrix<double, state_dimension, state_dimension>;
+    using MatrixK2K = Eigen::Matrix<double, constraint_dimension, 2*constraint_dimension>;
+
+    // System Parameters
+    const double mass = 1.0;
+    const double damping = 1.0;   
+    const double cycle_time_step = 0.1;
+
+    const double wn = 5;
+    const double zeta = 1;
+    const Eigen::Matrix<double, 1, 2>transversal_gain = (Eigen::Matrix<double, 1, 2>() << wn*wn, 2*zeta*wn).finished(); // can be tuned
+    const Eigen::Vector3d initial_position(0.5, 0, 1); // start at z=1, x=0.5, should move to z=0 x=1
+    const VectorN initial_velocity = VectorN::Zero();
+
+    // Define System
+    gtfo::PointMassSecondOrder<state_dimension> system((gtfo::SecondOrderParameters<double>(cycle_time_step, mass, damping)));
+    
+    // Define constraint surface
+    // Here we use the XY plane, so constraint is the Z value
+    gtfo::ManifoldConstraints<state_dimension, constraint_dimension> surface_constraint;
+
+    // h(X) = [sqrt(x^2 + y^2) - r; z]
+    const std::function<VectorK(const VectorN&)> constraint_function = [radius](const VectorN& position){
+        return (VectorK() << std::sqrt(std::pow(position[0],2) + std::pow(position[1],2)) - radius, position[2]).finished();
+    };
+
+    // dh/dX
+    const std::function<MatrixKN(const VectorN&)> constraint_function_gradient = [](const VectorN& position){
+        MatrixKN output;
+        output(0,0) = position[0]/std::sqrt(std::pow(position[0],2) + std::pow(position[1],2));
+        output(0,1) = position[1]/std::sqrt(std::pow(position[0],2) + std::pow(position[1],2));
+        output(0,2) = 0; 
+        output(1,0) = 0; output(1,1) = 0; output(1,2) = 1;
+        return output;
+    };
+
+    // d2h/dX2
+    const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_1 = [](const VectorN& position){
+        MatrixNN output = MatrixNN::Zero();
+        output(0,0) = 1 / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(1/2)) - std::pow(position[0],2) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dx2
+        output(0,1) = -(position[0] * position[1]) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dydx
+        output(1,0) = -(position[0] * position[1]) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dxdy
+        output(1,1) = 1 / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(1/2)) - std::pow(position[1],2) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dy2
+        return output;
+    };
+    const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_2 = [](const VectorN& position){
+        return MatrixNN::Zero();
+    };
+
+    const std::array< std::function<MatrixNN(const VectorN&)> , 2> constraint_function_hessian_slices = {constraint_function_hessian_slice_1, constraint_function_hessian_slice_2};
+    surface_constraint.SetConstraintFunction(constraint_function, constraint_function_gradient, constraint_function_hessian_slices);
+    surface_constraint.SetTransversalGain(transversal_gain);
+
+    // Define system dynamics for constraints
+    // X_dot = f(X) + g(X)*u
+    const auto f_bottom_half = [mass, damping](const VectorN& position, const VectorN& velocity){
+        return -damping / mass * velocity; // VectorN output
+    };
+    const auto g_bottom_half = [mass, damping](const VectorN& position, const VectorN& velocity){
+        return 1/mass * MatrixNN::Identity(); // MatrixNN output
+    };
+    surface_constraint.SetSecondOrderDynamics(f_bottom_half, g_bottom_half);
+
+    system.SetForcePremodifier([&](const VectorN& force, const gtfo::DynamicsBase<state_dimension>& system){
+       return surface_constraint.Step(force, system.GetPosition(), system.GetVelocity());
+    });
+    system.SetPositionAndVelocity(initial_position, initial_velocity);
+
+    // Step multiple iterations with external force and check if point goes to, and remains on, the circular path
+    for(unsigned i = 0; i < trials; ++i){
+        system.Step(Eigen::Vector3d::Ones());
+    }
+    std::cout << system.GetPosition()<< std::endl;
+
+    // Check if x,y values lie on the circle
+    EXPECT_TRUE(std::abs(std::pow(system.GetPosition()[0],2) + std::pow(system.GetPosition()[1],2) - std::pow(radius,2)) < 0.01);
+    // Check if z is zero
+    EXPECT_TRUE(std::abs(system.GetPosition()[2]) < 0.01);
+
+}
