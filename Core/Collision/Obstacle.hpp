@@ -30,6 +30,10 @@ public:
     void UpdateVertices(const std::vector<Vector3>& vertices) override{
         // Empty, since an obstacle is fixed.
     }
+
+    void UpdateVirtualState(void) override{
+        // Empty, since there are no dynamics
+    }
 };
 
 }   // namespace collision

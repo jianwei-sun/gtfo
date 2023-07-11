@@ -84,12 +84,19 @@ public:
         return free_entities_.at(free_entities_index);
     }
 
-    std::vector<Segment<Scalar>> GetCollisions(const size_t& free_entities_index) const{
+    std::vector<Collision<Scalar>> GetCollisions(const size_t& free_entities_index) const{
         return free_entities_.at(free_entities_index)->GetCollisions();
     }
 
     void UpdateVertices(const size_t& free_entities_index, const std::vector<Vector3>& vertices){
         free_entities_.at(free_entities_index)->UpdateVertices(vertices);
+    }
+
+    // Assumed that this function is called after ComputeCollisions has executed
+    void UpdateVirtualState(void){
+        for(EntityPtr& free_entity : free_entities_){
+            free_entity->UpdateVirtualState();
+        }
     }
 
 private:

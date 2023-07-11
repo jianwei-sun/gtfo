@@ -124,6 +124,8 @@ public:
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        Base::Step(force_input, physical_position);
+
         // Update the virtual position if a physical position is given
         const bool err = this->SyncVirtualPositionToPhysical(physical_position);
 

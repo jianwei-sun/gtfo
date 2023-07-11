@@ -32,6 +32,7 @@ public:
 
     DynamicsBase(const VectorN& initial_position = VectorN::Zero())
         :   position_(initial_position),
+            old_position_(VectorN::Zero()),
             velocity_(VectorN::Zero()),
             acceleration_(VectorN::Zero()),
             dynamics_paused_(false),
@@ -49,19 +50,21 @@ public:
     // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
     // discontinuities in the state if the target state is out of bounds
     virtual void SyncSystemTo(const DynamicsBase& model){
-        position_ = model.position_;
-        velocity_ = model.velocity_;
-        this->EnforceHardBound();
-        this->EnforceVelocityLimit();
+        this->SetPositionAndVelocity(model.GetPosition(), model.GetVelocity(), false);
         acceleration_ = model.acceleration_;
         dynamics_paused_ = model.dynamics_paused_;
         soft_bound_restoring_force_ = model.soft_bound_restoring_force_;
+        old_position_ = model.old_position_;
     }
 
-    // Pure virtual function to be implemented by the subclass. The function should
+    // Virtual function to be implemented by the subclass. The function should
     // update position and velocity using the inputs, and enforce bounds if necessary
-    // The function should also pause dynamics by referring to the dynamics_paused_ flag
-    virtual bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) = 0;
+    // The function should also pause dynamics by referring to the dynamics_paused_ flag.
+    // The base function should also be called in order to set old_position_
+    virtual bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
+        old_position_ = position_;
+        return true;
+    }
 
     virtual void PauseDynamics(const bool& pause){
         dynamics_paused_ = pause;
@@ -171,6 +174,11 @@ public:
         return position_;
     }
 
+    [[nodiscard]] inline const VectorN &GetOldPosition() const
+    {
+        return old_position_;
+    }
+
     [[nodiscard]] inline const VectorN &GetVelocity() const
     {
         return velocity_;
@@ -181,9 +189,19 @@ public:
         return acceleration_;
     }
 
+    virtual void SetPositionAndVelocity(const VectorN& position, const VectorN& velocity, const bool& bypass_checks = false){
+        position_ = position;
+        velocity_ = velocity;
+        if(!bypass_checks){ 
+            this->EnforceHardBound();
+            this->EnforceVelocityLimit();
+        }
+    }
+
 protected:
     // Addition states can be added by subclasses, but they should handle their updating
     VectorN position_;
+    VectorN old_position_;
     VectorN velocity_;
     VectorN acceleration_;
 

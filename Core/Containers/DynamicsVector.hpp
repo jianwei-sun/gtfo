@@ -48,6 +48,8 @@ public:
     // Step allows stepping all the models in DynamicsVector as if the container is a single model. Step only
     // returns true if all models' Step functions return true
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        Base::Step(force_input, physical_position);
+        
         bool result = true;
 
         std::apply([&](Models&... model){
@@ -92,6 +94,20 @@ public:
             (model.PauseDynamics(pause), ...);
         }, models_);
         Base::PauseDynamics(pause);
+    }
+
+    void SetPositionAndVelocity(const VectorN& position, const VectorN& velocity, const bool& bypass_checks = false) override{
+        Base::SetPositionAndVelocity(position, velocity, bypass_checks);
+        std::apply([&](Models&... models){
+            size_t index = 0;
+            ([&]{
+                models.SetPositionAndVelocity(
+                    position.template block<Models::Dimension, 1>(index, 0),
+                    velocity.template block<Models::Dimension, 1>(index, 0), 
+                    bypass_checks);
+                index += Models::Dimension;
+            }(), ...);
+        }, models_);
     }
 
     template <size_t index>

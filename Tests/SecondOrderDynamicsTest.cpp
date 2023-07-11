@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
-
-#include "../gtfo.hpp"
+#include "gtfo.hpp"
 
 // Verifies that an unbounded point mass with second order dynamics moves without stopping
 TEST(SecondOrderDynamicsTest, MoveUpwards)

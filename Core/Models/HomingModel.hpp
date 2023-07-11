@@ -47,6 +47,7 @@ public:
         second_bend_position_ = first_bend_position_ + (max_speed_ * 0.8 * duration_) * direction_;
 
         // Set the state to the starting state
+        Base::old_position_ = Base::position_;
         Base::position_ = starting_position_;
         Base::velocity_.setZero();
         Base::acceleration_.setZero();
@@ -67,6 +68,7 @@ public:
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        Base::Step(force_input, physical_position);
         // Hold the current position if dynamics are paused
         if(Base::DynamicsArePaused()){
             Base::velocity_.setZero();

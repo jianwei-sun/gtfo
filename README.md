@@ -5,11 +5,10 @@
 Written by the Bionics Lab at UCLA. This library is currently under development!
 
 ## Third-party Libraries
-This project requires `Eigen` version `3.4.0` and `MuJoCo` version `2.3.1` as dependencies. Ensure that they are already installed on your computer. If not, they are included as submodules for convenience, which can be populated using the command below:
+This project requires `Eigen` version `3.4.0`, `MuJoCo` version `2.3.1`, and `OSQP` version `0.6.2` as dependencies. Ensure that they are already installed on your computer. If not, they are available in the `External` subdirectory as git submodules after updating:
 ```
 git submodule update --init --recursive
 ```
-After populating them, follow their instructions to install them.
 
 ## Building and Running Tests
 Tests and be built with the following commands:
@@ -35,3 +34,4 @@ A specific test within the testsuite can also be run with:
 ```
 ctest -R NormBoundTest.Contains1D --output-on-failure
 ``` 
+Note that tests can be skipped altogether by passing `-DGTFO_BUILD_TESTS=OFF` or setting `set(GTFO_BUILD_TESTS OFF)` in your `CMakeLists.txt`.

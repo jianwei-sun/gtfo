@@ -26,6 +26,7 @@ public:
     }
 
     void SyncSystemTo(const Base& model) override{
+        Base::old_position_ = Base::position_;
         Base::position_ = model.GetPosition();
         Base::velocity_ = model.GetVelocity();
         this->EnforceHardBound();
@@ -33,12 +34,12 @@ public:
     }
 
     bool Step(const VectorN& direction, const VectorN& physical_position = VectorN::Constant(NAN)) override{
+        Base::Step(direction, physical_position);
         // Hold the current position if dynamics are paused or the input is zero
         if(Base::DynamicsArePaused() || IsEqual(direction, VectorN::Zero())){
             Base::velocity_.setZero();
             return true;
         }
-
         Base::position_ += (speed_ * dt_) * direction.normalized();
         Base::velocity_ = speed_ * direction.normalized();
         this->EnforceHardBound();

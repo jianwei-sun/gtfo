@@ -4,3 +4,6 @@
 [submodule "External/mujoco"]
 	path = External/mujoco
 	url = https://github.com/deepmind/mujoco.git
+[submodule "External/osqp"]
+	path = External/osqp
+	url = https://github.com/osqp/osqp.git
