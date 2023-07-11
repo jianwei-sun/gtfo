@@ -112,7 +112,7 @@ private:
     std::function<void(PartialJacobian&, const size_t&, const Vector3&)> partial_jacobian_updater_;
     PartialJacobian partial_jacobian_;
 
-    ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment> solver_;
+    ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment, Scalar> solver_;
 
     // Virtual dynamics related
     DynamicsBase<VirtualDimension, Scalar>* model_ptr_;
