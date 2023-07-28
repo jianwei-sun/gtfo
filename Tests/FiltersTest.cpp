@@ -28,8 +28,80 @@ TEST(FiltersTest, LowPassFilter)
     };
 
     for(unsigned i = 0; i < 10; ++i){
-        EXPECT_NEAR(output[i], expected_output[i], 1e-15);
+        EXPECT_NEAR(output[i], expected_output[i], 1e-14);
     }
+}
+
+// Verifies a few coefficients by comparing it to Matlab's butter
+TEST(FiltersTest, LowPassFilterCoefficients1)
+{
+    gtfo::ButterworthLowPassFilter<1, 2> filter(10.0, 3.0);
+    const Eigen::Matrix<double, 3, 1> expected_numerator(
+        0.391335772501769,
+        0.782671545003537,
+        0.391335772501769
+    );
+    const Eigen::Matrix<double, 3, 1> expected_denominator(
+        1.000000000000000,
+        0.369527377351241,
+        0.195815712655833
+    );
+    EXPECT_TRUE(gtfo::IsEqual(expected_numerator, filter.GetNumerator(), 1e-14));
+    std::cout << filter.GetNumerator().transpose() << std::endl;
+    EXPECT_TRUE(gtfo::IsEqual(expected_denominator, filter.GetDenominator(), 1e-14));
+    std::cout << filter.GetDenominator().transpose() << std::endl;
+}
+
+TEST(FiltersTest, LowPassFilterCoefficients2)
+{
+    gtfo::ButterworthLowPassFilter<2, 4, float> filter(100.0, 25.0);
+    const Eigen::Matrix<float, 5, 1> expected_numerator(
+        0.093980851433795f,
+        0.375923405735178f,
+        0.563885108602767f,
+        0.375923405735178f,
+        0.093980851433795f
+    );
+    const Eigen::Matrix<float, 5, 1> expected_denominator(
+        1.000000000000000f,
+        0.000000000000001f,
+        0.486028822068270f,
+        0.000000000000000f,
+        0.017664800872442f
+    );
+    // A coarser tolerance is needed here since the underlying floating-type is float
+    // Recommended to use at least double precision
+    EXPECT_TRUE(gtfo::IsEqual(expected_numerator, filter.GetNumerator(), 1e-7f));
+    std::cout << filter.GetNumerator().transpose() << std::endl;
+    EXPECT_TRUE(gtfo::IsEqual(expected_denominator, filter.GetDenominator(), 1e-7f));
+    std::cout << filter.GetDenominator().transpose() << std::endl;
+}
+
+TEST(FiltersTest, LowPassFilterCoefficients3)
+{
+    gtfo::ButterworthLowPassFilter<1, 6> filter(1000.0, 235.0);
+    const Eigen::Matrix<double, 7, 1> expected_numerator(
+        0.022105040504827,
+        0.132630243028961,
+        0.331575607572401,
+        0.442100810096535,
+        0.331575607572401,
+        0.132630243028961,
+        0.022105040504827
+    );
+    const Eigen::Matrix<double, 7, 1> expected_denominator(
+        1.000000000000000,
+        -0.356061427933937,
+        0.825015917881444,
+        -0.171171303737869,
+        0.126556382247908,
+        -0.011622264283415,
+        0.002005288134782
+    );
+    EXPECT_TRUE(gtfo::IsEqual(expected_numerator, filter.GetNumerator(), 1e-14));
+    std::cout << filter.GetNumerator().transpose() << std::endl;
+    EXPECT_TRUE(gtfo::IsEqual(expected_denominator, filter.GetDenominator(), 1e-14));
+    std::cout << filter.GetDenominator().transpose() << std::endl;
 }
 
 // Verifies that a rate limiter works as expected

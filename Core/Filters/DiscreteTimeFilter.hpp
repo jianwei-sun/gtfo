@@ -57,6 +57,14 @@ public:
         }
     }
 
+    Numerator GetNumerator(void) const{
+        return numerator_;
+    }
+
+    Denominator GetDenominator(void) const{
+        return denominator_;
+    }
+
     VectorN Step(const VectorN& input){
         VectorN internal = input;
         for(size_t i = 1; i < DenominatorDimension; ++i){

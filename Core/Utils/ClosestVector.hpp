@@ -12,12 +12,15 @@
 // Third-party dependencies
 #include <Eigen/Dense>
 #include <osqp.h>
+#include <type_traits>
 
 namespace gtfo {
 
-template<unsigned Dimension, unsigned NumConstraints>
+template<unsigned Dimension, unsigned NumConstraints, typename Scalar = double>
 class ClosestVector{
 public:
+    static_assert(std::is_same_v<c_float, Scalar>, "OSQP's c_float must be of same type as template argument Scalar");
+
     using VectorN = Eigen::Matrix<c_float, Dimension, 1>;
 
     ClosestVector()

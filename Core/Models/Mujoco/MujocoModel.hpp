@@ -23,7 +23,8 @@ public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
     using MujocoVectorN = Eigen::Matrix<mjtNum, Dimensions, 1>;
 
-    MujocoModel(const std::string& model_file, const Scalar& timestep, const VectorN& initial_position = VectorN::Zero())
+    // group_id should match the group field for each joint in the XML
+    MujocoModel(const std::string& model_file, const int& group_id, const Scalar& timestep, const VectorN& initial_position = VectorN::Zero())
         :   Base(initial_position),
             model_(nullptr),
             data_(nullptr)
@@ -41,19 +42,48 @@ public:
             mju_error("Could not load model from file");
         }
 
-        // Ensure the dimensions of the model state and control match up
-        if(Dimensions != model_->nv){
-            mju_error("Dimensions of Wrapper and MuJoCo model state are mismatched");
+        // MujocoModel requires the relevant joints in mjModel to be 1D, since then the dimensions of position and velocity are equal
+        for(int i = 0; i < model_->njnt; ++i){
+            if(model_->jnt_group[i] == group_id && model_->jnt_type[i] != mjJNT_SLIDE && model_->jnt_type[i] != mjJNT_HINGE){
+                mju_error("MujocoModel requires the corresponding joints in mjModel to be of type slide or hinge");
+            }
         }
-        if(model_->nv != model_->nu){
-            mju_error("Dimensions of MuJoCo model state and control are mismatched");
+
+        // Check that the number of relevant joints matches the Dimension
+        size_t num_relevant_joints = 0;
+        for(int i = 0; i < model_->njnt; ++i){
+            if(model_->jnt_group[i] == group_id){
+                num_relevant_joints ++;
+            }
+        }
+        if(num_relevant_joints != Dimensions){
+            mju_error("Dimensions of MujocoModel is different from the number of relevant joints in mjModel");
+        }
+
+        // Require that there are only as many actuators as the Dimension
+        if(model_->nu != Dimensions){
+            mju_error("Dimensions of MujocoModel is different from the number of actuators in mjModel");
+        }
+
+        // Get the addresses of the relevant positions and velocities
+        size_t dimension_index = 0;
+        for(int i = 0; i < model_->njnt; ++i){
+            if(model_->jnt_group[i] == group_id){
+                position_offsets_[dimension_index] = model_->jnt_qposadr[i];
+                velocity_offsets_[dimension_index] = model_->jnt_dofadr[i];
+                dimension_index++;
+            }
         }
 
         // Set simultation parameters
         model_->opt.timestep = timestep;
 
         data_ = mj_makeData(model_);
-        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
+
+        // Set the initial position
+        for(size_t i = 0; i < Dimensions; ++i){
+            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
+        }
     }
 
     // Copy constructor
@@ -62,6 +92,8 @@ public:
     {
         model_ = mj_copyModel(nullptr, other.model_);
         data_ = mj_copyData(nullptr, other.model_, other.data_);
+        position_offsets_ = other.position_offsets_;
+        velocity_offsets_ = other.velocity_offsets_;
     }
 
     // Move constructor
@@ -70,7 +102,8 @@ public:
     {
         model_ = other.model_;
         data_ = other.data_;
-
+        position_offsets_ = other.position_offsets_;
+        velocity_offsets_ = other.velocity_offsets_;
         other.model_ = nullptr;
         other.data_ = nullptr;
     }
@@ -87,6 +120,8 @@ public:
         
         model_ = mj_copyModel(nullptr, other.model_);
         data_ = mj_copyData(nullptr, other.model_, other.data_);  
+        position_offsets_ = other.position_offsets_;
+        velocity_offsets_ = other.velocity_offsets_;
 
         return *this;
     }
@@ -103,6 +138,8 @@ public:
 
         model_ = other.model_;
         data_ = other.data_;
+        position_offsets_ = other.position_offsets_;
+        velocity_offsets_ = other.velocity_offsets_;
 
         other.model_ = nullptr;
         other.data_ = nullptr;
@@ -118,9 +155,11 @@ public:
 
     void SyncSystemTo(const Base& model) override{
         Base::SyncSystemTo(model);
-        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
-        MujocoVectorN::Map(data_->qvel) = Base::velocity_.template cast<mjtNum>();
-        MujocoVectorN::Map(data_->qacc) = Base::acceleration_.template cast<mjtNum>();
+        for(size_t i = 0; i < Dimensions; ++i){
+            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
+            *(data_->qvel + velocity_offsets_[i]) = static_cast<mjtNum>(Base::velocity_[i]);
+            *(data_->qacc + velocity_offsets_[i]) = static_cast<mjtNum>(Base::acceleration_[i]);
+        }
     }
 
     bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
@@ -133,22 +172,27 @@ public:
         if(this->DynamicsArePaused()){
             Base::velocity_.setZero();
             Base::acceleration_.setZero();
-            MujocoVectorN::Map(data_->qpos).setZero();
-            MujocoVectorN::Map(data_->qvel).setZero();
-            MujocoVectorN::Map(data_->qacc).setZero();
+            for(size_t i = 0; i < Dimensions; ++i){
+                *(data_->qvel + velocity_offsets_[i]) = 0.0;
+                *(data_->qacc + velocity_offsets_[i]) = 0.0;
+            }
             return err;
         }
 
-        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
+        for(size_t i = 0; i < Dimensions; ++i){
+            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
+        }
 
         // Compute all intermediate results dependent on the state, but not the control
         // Note that by using mj_step1 and mj_step2, the integrator must be the default Euler
         mj_step1(model_, data_);
 
         // Update the state variables
-        Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
-        Base::velocity_ = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
-        const VectorN previous_velocity = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
+        for(size_t i = 0; i < Dimensions; ++i){
+            Base::position_[i] = static_cast<Scalar>(*(data_->qpos + position_offsets_[i]));
+            Base::velocity_[i] = static_cast<Scalar>(*(data_->qvel + velocity_offsets_[i]));
+        }
+        const VectorN previous_velocity = Base::velocity_;
 
         // Apply the control
         MujocoVectorN::Map(data_->ctrl) = (force_input + this->EnforceSoftBound()).template cast<mjtNum>();
@@ -157,13 +201,17 @@ public:
         mj_step2(model_, data_);
 
         // Update the state variables after the second step
-        Base::position_ = MujocoVectorN::Map(data_->qpos).template cast<Scalar>();
-        Base::velocity_ = MujocoVectorN::Map(data_->qvel).template cast<Scalar>();
+        for(size_t i = 0; i < Dimensions; ++i){
+            Base::position_[i] = static_cast<Scalar>(*(data_->qpos + position_offsets_[i]));
+            Base::velocity_[i] = static_cast<Scalar>(*(data_->qvel + velocity_offsets_[i]));
+        }
 
         // Restrict and set the position and velocity after the integration timestep
         this->EnforceHardBound();
-        MujocoVectorN::Map(data_->qpos) = Base::position_.template cast<mjtNum>();
-        MujocoVectorN::Map(data_->qvel) = Base::velocity_.template cast<mjtNum>();
+        for(size_t i = 0; i < Dimensions; ++i){
+            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
+            *(data_->qvel + velocity_offsets_[i]) = static_cast<mjtNum>(Base::velocity_[i]);
+        }
 
         // Update the acceleration with a backward difference
         Base::acceleration_ = (Base::velocity_ - previous_velocity) / model_->opt.timestep;
@@ -174,6 +222,9 @@ public:
 private:
     mjModel* model_;
     mjData* data_;
+
+    std::array<size_t, Dimensions> position_offsets_;
+    std::array<size_t, Dimensions> velocity_offsets_;
 };
 
 } // namespace gtfo
