@@ -38,6 +38,7 @@ Unit tests can be disabled by:
 ```cmake
 set(GTFO_BUILD_TESTS OFF)
 ```
+Note that in order to build the unit tests, `OSQP` must be configured to use `double` as the floating-point type, which is the default option (`-DFLOAT=OFF`).
 
 # Usage
 This section describes some common use cases for features of the library. More detailed use cases can be found in the unit tests, under `Tests`.
