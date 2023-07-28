@@ -73,9 +73,9 @@ public:
         if(!IsEqual(constrained_virtual_velocity, velocity)){
             const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
             model_ptr_->SetPositionAndVelocity(
-                position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal, 
-                constrained_virtual_velocity, 
-                true);
+                position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal,
+                constrained_virtual_velocity,
+                false);
         }
     }
 
