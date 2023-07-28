@@ -14,6 +14,9 @@
 #include <unsupported/Eigen/KroneckerProduct>
 #include <Eigen/QR>
 
+// Project-specific
+#include "../Utils/Constants.hpp"
+
 namespace gtfo{
 template<unsigned int StateDimension, unsigned int ConstraintDimension, typename Scalar = double>
 class ManifoldConstraints{
@@ -61,9 +64,15 @@ public:
 
         const MatrixKN constraint_function_gradient = constraint_function_gradient_(position);
         
-        // Construct the Lie derivatives
+        // Construct the Lie derivative: LgLf
         const MatrixKN decoupling_matrix = constraint_function_gradient * g_bottom_half_(position, velocity);
 
+        // If the state is already inside the manifold, then just pass the force through
+        if(decoupling_matrix.squaredNorm() < GTFO_EQUALITY_COMPARISON_TOLERANCE){
+            return force;
+        }
+
+        // Construct the Lie derivative: Lf^2
         VectorK affine_term = constraint_function_gradient * f_bottom_half_(position, velocity);
         for (unsigned int i = 0; i < ConstraintDimension; ++i){
             affine_term[i] += (velocity.transpose() * constraint_function_hessian_slices_[i](position) * velocity).value();

@@ -363,4 +363,9 @@ TEST(ManifoldConstraintsTest, EllipticalPathConstraint)
     // Check if z is zero
     EXPECT_NEAR(system.GetPosition()[2], 0.0, 0.01);
 
+<<<<<<< HEAD
+=======
+    // Verify the state is in the constraint manifold to some mild tolerance 
+    EXPECT_TRUE((lower - 0.1) < system.GetPosition().value() && system.GetPosition().value() < (upper + 0.1));
+>>>>>>> 1065a68 (Fixed boundary tests by making small decoupling matrices be treated as zero)
 }
