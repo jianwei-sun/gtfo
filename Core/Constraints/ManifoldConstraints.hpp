@@ -66,7 +66,7 @@ public:
 
         VectorK affine_term = constraint_function_gradient * f_bottom_half_(position, velocity);
         for (unsigned int i = 0; i < ConstraintDimension; ++i){
-            affine_term[i] += velocity.transpose() * constraint_function_hessian_slices_[i](position) * velocity;
+            affine_term[i] += (velocity.transpose() * constraint_function_hessian_slices_[i](position) * velocity).value();
         }
 
         // Form the transversal state and compute its stabilizing control. 
