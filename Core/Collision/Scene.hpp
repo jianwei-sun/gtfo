@@ -99,6 +99,18 @@ public:
         }
     }
 
+    // Getter for free entity list
+    std::vector<EntityPtr> GetFreeEntityList() const
+    {
+        return free_entities_;
+    }
+
+    // Getter for fixed entity list
+    std::vector<EntityPtr> GetFixedEntityList() const
+    {
+        return fixed_entities_;
+    }
+
 private:
     std::vector<EntityPtr> fixed_entities_;
     std::vector<EntityPtr> free_entities_;
