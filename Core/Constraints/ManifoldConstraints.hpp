@@ -65,11 +65,14 @@ public:
         const MatrixKN constraint_function_gradient = constraint_function_gradient_(position);
         
         // Construct the Lie derivative: LgLf
-        const MatrixKN decoupling_matrix = constraint_function_gradient * g_bottom_half_(position, velocity);
+        MatrixKN decoupling_matrix = constraint_function_gradient * g_bottom_half_(position, velocity);
 
-        // If the state is already inside the manifold, then just pass the force through
-        if(decoupling_matrix.squaredNorm() < GTFO_EQUALITY_COMPARISON_TOLERANCE){
-            return force;
+        const Eigen::Matrix<bool, ConstraintDimension, 1> row_is_zero = decoupling_matrix.rowwise().squaredNorm().array() < GTFO_EQUALITY_COMPARISON_TOLERANCE * std::sqrt(StateDimension);
+
+        for(unsigned int i = 0; i < ConstraintDimension; ++i){
+            if(row_is_zero[i]){
+                decoupling_matrix.row(i).setZero();
+            }
         }
 
         // Construct the Lie derivative: Lf^2
@@ -81,13 +84,22 @@ public:
         // Form the transversal state and compute its stabilizing control. 
         // Note transversal state is in the form [h_i; Lfh_i], so we need to interleave the constraint function and its Lie derivative
         const Eigen::Matrix<Scalar, 2, ConstraintDimension> transversal_state = (Eigen::Matrix<Scalar, 2, ConstraintDimension>() << constraint_function_(position).transpose(), (constraint_function_gradient * velocity).transpose()).finished();
-
         const VectorK transversal_control = -transversal_gain_ * Vector2K::Map(transversal_state.data());
 
-        // Assemble the total force by summing the tangential and tranversal components
+        // Some rows of the decoupling matrix are zero, but may not appear so due to precision. 
         const MatrixNK pinv_decoupling_matrix = decoupling_matrix.completeOrthogonalDecomposition().pseudoInverse();
 
-        return (MatrixNN::Identity() - pinv_decoupling_matrix * decoupling_matrix) * force + pinv_decoupling_matrix * (transversal_control - affine_term);
+        // Assemble the total force by summing the tangential and tranversal components
+        // return (MatrixNN::Identity() - pinv_decoupling_matrix * decoupling_matrix) * force + pinv_decoupling_matrix * (transversal_control - affine_term);
+
+        VectorN modified_force = force;
+        for(unsigned i = 0; i < ConstraintDimension; ++i){
+            if(!row_is_zero[i]){
+                modified_force += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force + transversal_control[i] - affine_term[i]);
+            }
+        }
+
+        return modified_force;
     }
 
     // Require the user to set the second order dynamics. Since these manifold constraints are only for systems with vector relative degree 2, only the bottom half of f and g matter
@@ -106,7 +118,6 @@ public:
     // Transversal gain in the general case where the whole matrix is entered. This is for when the gains are different in each constraint coordinate
     void SetTransversalGain(const Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension>& transversal_gain){
         assert((transversal_gain.array() >= 0).all());
-
         transversal_gain_ = transversal_gain;
     }
 
@@ -114,8 +125,7 @@ public:
     template<bool ConstraintDimensionGreaterThanOne = (ConstraintDimension > 1)>
     void SetTransversalGain(const std::enable_if_t<ConstraintDimensionGreaterThanOne, Eigen::Matrix<Scalar, 1, 2>>& transversal_gain_i){
         assert((transversal_gain_i.array() >= 0).all());
-
-        transversal_gain_ = Eigen::kroneckerProduct (Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
+        transversal_gain_ = Eigen::kroneckerProduct(Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
     }
 
 private:

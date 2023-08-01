@@ -366,6 +366,159 @@ TEST(ManifoldConstraintsTest, EllipticalPathConstraint)
 <<<<<<< HEAD
 =======
     // Verify the state is in the constraint manifold to some mild tolerance 
+<<<<<<< HEAD
     EXPECT_TRUE((lower - 0.1) < system.GetPosition().value() && system.GetPosition().value() < (upper + 0.1));
 >>>>>>> 1065a68 (Fixed boundary tests by making small decoupling matrices be treated as zero)
+=======
+    EXPECT_TRUE((lower - 0.1) <= system.GetPosition().value() && system.GetPosition().value() <= (upper + 0.1));
+}
+
+TEST(ManifoldConstraintsTest, BarrierConstraint2D)
+{
+    // Vector Types
+    using VectorN = Eigen::Matrix<double, 2, 1>;
+    using VectorK = Eigen::Matrix<double, 2, 1>;
+    using MatrixKN = Eigen::Matrix<double, 2, 2>;
+    using MatrixNN = Eigen::Matrix<double, 2, 2>;
+    using MatrixK2K = Eigen::Matrix<double, 2, 4>;
+
+    // Define System
+    const double mass = 1.0;
+    const double damping = 1.0;  
+    const double cycle_time_step = 0.01;
+    gtfo::PointMassSecondOrder<2> system((gtfo::SecondOrderParameters<double>(cycle_time_step, mass, damping)));
+    
+    // Define constraint surface
+    gtfo::ManifoldConstraints<2, 2> manifold_constraints;
+
+    // Define boundaries and constants
+    const VectorK lower(-1.0, -0.5);
+    const VectorK upper(0.5, 1.0);
+    const double steepness = 10.0;
+
+    // h(x)
+    const std::function<VectorK(const VectorN&)> constraint_function = [&](const VectorN& position){
+        // return (position.array() < lower.array()).select(steepness * (lower - position).array().pow(3), 
+        //     (position.array() > upper.array()).select(steepness * (position - upper).array().pow(3),
+        //         VectorK::Zero()));
+
+
+        const double x1 = position[0];
+        const double dh1 = 
+            x1 < lower[0] ? 
+                steepness * std::pow(lower[0] - x1, 3) : 
+            x1 > upper[0] ? 
+                steepness * std::pow(x1 - upper[0], 3) : 
+                0.0;
+        
+        const double x2 = position[1];
+        const double dh2 = 
+            x2 < lower[1] ? 
+                steepness * std::pow(lower[1] - x2, 3) : 
+            x2 > upper[1] ? 
+                steepness * std::pow(x2 - upper[1], 3) : 
+                0.0;
+
+        return VectorK(dh1, dh2);
+
+        // const double x = position.value();
+        // if(x < lower){
+        //     return VectorK(steepness * (lower - x) * (lower - x) * (lower - x));
+        // } else if(x > upper){
+        //     return VectorK(steepness * (x - upper) * (x - upper) * (x - upper));
+        // } else{
+        //     return VectorK(0);
+        // }
+    };
+
+    // h'(x)
+    const std::function<MatrixKN(const VectorN&)> constraint_function_gradient = [&](const VectorN& position){
+        // return VectorN((position.array() < lower.array()).select(-3.0 * steepness * (lower - position).array().pow(2),
+        //     (position.array() > upper.array()).select(3.0 * steepness * (position - upper).array().pow(2),
+        //         VectorK::Zero()))).asDiagonal();
+
+        const double x1 = position[0];
+        const double dh1 = 
+            x1 < lower[0] ? 
+                -3.0 * steepness * std::pow(lower[0] - x1, 2) : 
+            x1 > upper[0] ? 
+                3.0 * steepness * std::pow(x1 - upper[0], 2) : 
+                0.0;
+        
+        const double x2 = position[1];
+        const double dh2 = 
+            x2 < lower[1] ? 
+                -3.0 * steepness * std::pow(lower[1] - x2, 2) : 
+            x2 > upper[1] ? 
+                3.0 * steepness * std::pow(x2 - upper[1], 2) : 
+                0.0;
+
+        return (MatrixKN() << dh1, 0.0, 0.0, dh2).finished();
+
+        // const double x = position.value();
+        // if(x < lower){
+        //     return MatrixKN(-3.0 * steepness * (lower - x) * (lower - x));
+        // } else if(x > upper){
+        //     return MatrixKN(3.0 * steepness * (x - upper) * (x - upper));
+        // } else{
+        //     return MatrixKN(0);
+        // }
+    };
+
+    // h''(x)
+    const std::function<MatrixNN(const VectorN&, const unsigned&)> constraint_function_hessian_slice = [&](const VectorN& position, const unsigned& index){
+        const double& x = position[index];
+        const double& l = lower[index];
+        const double& u = upper[index];
+        const double d2h = 
+            x < l ? 
+                6.0 * steepness * (l - x) : 
+            x > u ? 
+                6.0 * steepness * (x - u) : 
+                0.0;
+        if(index == 0){
+            return (MatrixNN() << d2h, 0.0, 0.0, 0.0).finished();
+        } else{
+            return (MatrixNN() << 0.0, 0.0, 0.0, d2h).finished();
+        }
+    };
+    const std::array<std::function<MatrixNN(const VectorN&)>, 2> constraint_function_hessian_slices{
+        std::bind(constraint_function_hessian_slice, std::placeholders::_1, 0),
+        std::bind(constraint_function_hessian_slice, std::placeholders::_1, 1),
+    };
+
+    // Set the constraint functions
+    manifold_constraints.SetConstraintFunction(constraint_function, constraint_function_gradient, constraint_function_hessian_slices);
+
+    // Set the virtual dynamics
+    const auto f_bottom_half = [mass, damping](const VectorN& position, const VectorN& velocity){
+        return -damping / mass * velocity; // VectorN output
+    };
+    const auto g_bottom_half = [mass, damping](const VectorN& position, const VectorN& velocity){
+        return 1/mass * MatrixNN::Identity(); // MatrixNN output
+    };
+    manifold_constraints.SetSecondOrderDynamics(f_bottom_half, g_bottom_half);
+
+    // Set the transversal gain to be the same in both dimensions
+    const double wn = 5.0;
+    const double zeta = 1.0;
+    manifold_constraints.SetTransversalGain(Eigen::RowVector2d(wn * wn, 2.0 * zeta * wn));
+
+    // Associate the manifold constraints with the dynamics
+    system.SetForcePremodifier([&](const VectorN& force, const gtfo::DynamicsBase<2>& system){
+       const VectorN modified_force = manifold_constraints.Step(force, system.GetPosition(), system.GetVelocity());
+       std::cout << modified_force.transpose() << ", ";
+       return modified_force;
+    });
+
+    // Step the system
+    std::cout << "Force, Position, Velocity" << std::endl;
+    for(unsigned i = 0; i < 500; ++i){
+        system.Step(VectorN(2.0, -1.0));
+        std::cout << system.GetPosition().transpose() << ", " << system.GetVelocity().transpose() << std::endl;
+    }
+
+    // Verify the state is in the constraint manifold to some mild tolerance 
+    EXPECT_TRUE(((lower.array() - 0.1) < system.GetPosition().array()).all() && (system.GetPosition().array() < (upper.array() + 0.1)).all());
+>>>>>>> 13906d8 (Added test for 2D boundary and fix for certain rows of decoupling matrix being close to zero)
 }
