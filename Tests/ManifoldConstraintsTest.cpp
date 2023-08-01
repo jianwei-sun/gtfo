@@ -7,7 +7,7 @@ TEST(ManifoldConstraintsTest, PassThroughTest)
 
     for(unsigned i = 0; i < 10; ++i){
         Eigen::Vector4d force = Eigen::Vector4d::Ones() * i;
-        EXPECT_TRUE(gtfo::IsEqual(manifold_constraints.Step(force, Eigen::Vector4d::Ones(), Eigen::Vector4d::Ones()) , force));
+        EXPECT_TRUE(gtfo::IsEqual(manifold_constraints.Step(force, Eigen::Vector4d::Ones(), Eigen::Vector4d::Ones()), force));
     }
 
 }
@@ -398,71 +398,17 @@ TEST(ManifoldConstraintsTest, BarrierConstraint2D)
 
     // h(x)
     const std::function<VectorK(const VectorN&)> constraint_function = [&](const VectorN& position){
-        // return (position.array() < lower.array()).select(steepness * (lower - position).array().pow(3), 
-        //     (position.array() > upper.array()).select(steepness * (position - upper).array().pow(3),
-        //         VectorK::Zero()));
-
-
-        const double x1 = position[0];
-        const double dh1 = 
-            x1 < lower[0] ? 
-                steepness * std::pow(lower[0] - x1, 3) : 
-            x1 > upper[0] ? 
-                steepness * std::pow(x1 - upper[0], 3) : 
-                0.0;
-        
-        const double x2 = position[1];
-        const double dh2 = 
-            x2 < lower[1] ? 
-                steepness * std::pow(lower[1] - x2, 3) : 
-            x2 > upper[1] ? 
-                steepness * std::pow(x2 - upper[1], 3) : 
-                0.0;
-
-        return VectorK(dh1, dh2);
-
-        // const double x = position.value();
-        // if(x < lower){
-        //     return VectorK(steepness * (lower - x) * (lower - x) * (lower - x));
-        // } else if(x > upper){
-        //     return VectorK(steepness * (x - upper) * (x - upper) * (x - upper));
-        // } else{
-        //     return VectorK(0);
-        // }
+        return (position.array() < lower.array()).select(steepness * (lower - position).array().pow(3), 
+            (position.array() > upper.array()).select(steepness * (position - upper).array().pow(3),
+                VectorK::Zero()));
     };
 
     // h'(x)
     const std::function<MatrixKN(const VectorN&)> constraint_function_gradient = [&](const VectorN& position){
-        // return VectorN((position.array() < lower.array()).select(-3.0 * steepness * (lower - position).array().pow(2),
-        //     (position.array() > upper.array()).select(3.0 * steepness * (position - upper).array().pow(2),
-        //         VectorK::Zero()))).asDiagonal();
-
-        const double x1 = position[0];
-        const double dh1 = 
-            x1 < lower[0] ? 
-                -3.0 * steepness * std::pow(lower[0] - x1, 2) : 
-            x1 > upper[0] ? 
-                3.0 * steepness * std::pow(x1 - upper[0], 2) : 
-                0.0;
-        
-        const double x2 = position[1];
-        const double dh2 = 
-            x2 < lower[1] ? 
-                -3.0 * steepness * std::pow(lower[1] - x2, 2) : 
-            x2 > upper[1] ? 
-                3.0 * steepness * std::pow(x2 - upper[1], 2) : 
-                0.0;
-
-        return (MatrixKN() << dh1, 0.0, 0.0, dh2).finished();
-
-        // const double x = position.value();
-        // if(x < lower){
-        //     return MatrixKN(-3.0 * steepness * (lower - x) * (lower - x));
-        // } else if(x > upper){
-        //     return MatrixKN(3.0 * steepness * (x - upper) * (x - upper));
-        // } else{
-        //     return MatrixKN(0);
-        // }
+        return MatrixKN(VectorN(
+            (position.array() < lower.array()).select(-3.0 * steepness * (lower - position).array().pow(2),
+            (position.array() > upper.array()).select(3.0 * steepness * (position - upper).array().pow(2),
+                VectorK::Zero()))).asDiagonal());
     };
 
     // h''(x)

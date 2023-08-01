@@ -62,18 +62,15 @@ public:
             return force;
         }
 
+        // Evaluate the derivatives of h at the current state
         const MatrixKN constraint_function_gradient = constraint_function_gradient_(position);
         
         // Construct the Lie derivative: LgLf
-        MatrixKN decoupling_matrix = constraint_function_gradient * g_bottom_half_(position, velocity);
+        const MatrixKN decoupling_matrix_unconditioned = constraint_function_gradient * g_bottom_half_(position, velocity);
 
-        const Eigen::Matrix<bool, ConstraintDimension, 1> row_is_zero = decoupling_matrix.rowwise().squaredNorm().array() < GTFO_EQUALITY_COMPARISON_TOLERANCE * std::sqrt(StateDimension);
-
-        for(unsigned int i = 0; i < ConstraintDimension; ++i){
-            if(row_is_zero[i]){
-                decoupling_matrix.row(i).setZero();
-            }
-        }
+        // Find and keep the rows that are numerically nonzero
+        const Eigen::Matrix<bool, ConstraintDimension, 1> row_is_nonzero = decoupling_matrix_unconditioned.rowwise().squaredNorm().array() >= GTFO_EQUALITY_COMPARISON_TOLERANCE * std::sqrt(StateDimension);
+        const MatrixKN decoupling_matrix = row_is_nonzero.replicate(1, StateDimension).select(decoupling_matrix_unconditioned, 0.0);
 
         // Construct the Lie derivative: Lf^2
         VectorK affine_term = constraint_function_gradient * f_bottom_half_(position, velocity);
@@ -89,12 +86,10 @@ public:
         // Some rows of the decoupling matrix are zero, but may not appear so due to precision. 
         const MatrixNK pinv_decoupling_matrix = decoupling_matrix.completeOrthogonalDecomposition().pseudoInverse();
 
-        // Assemble the total force by summing the tangential and tranversal components
-        // return (MatrixNN::Identity() - pinv_decoupling_matrix * decoupling_matrix) * force + pinv_decoupling_matrix * (transversal_control - affine_term);
-
+        // Assemble the total force by replacing components that align with the nonzero rows of the decoupling matrix, with the transversal control
         VectorN modified_force = force;
-        for(unsigned i = 0; i < ConstraintDimension; ++i){
-            if(!row_is_zero[i]){
+        for(unsigned int i = 0; i < ConstraintDimension; ++i){
+            if(row_is_nonzero[i]){
                 modified_force += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force + transversal_control[i] - affine_term[i]);
             }
         }
