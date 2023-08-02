@@ -288,3 +288,7 @@ A specific test within the testsuite can also be run with:
 ```
 ctest -R NormBoundTest.Contains1D --output-on-failure
 ``` 
+
+# License and Disclaimer
+Copyright 2023 UCLA Samueli School of Engineering. Developed by the [Bionics Lab](http://bionics.seas.ucla.edu/index.html).
+
