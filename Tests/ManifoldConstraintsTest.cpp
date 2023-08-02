@@ -15,12 +15,12 @@ TEST(ManifoldConstraintsTest, PassThroughTest)
 TEST(ManifoldConstraintsTest, SurfaceTest)
 {
     // Create a second order system that has different parameters in the coordinates
-    const gtfo::SecondOrderParameters<double> parameters_1(0.1, 0.5, 0.5);
-    const gtfo::SecondOrderParameters<double> parameters_2(0.1, 5.0, 5.0);
+    static const gtfo::SecondOrderParameters<double> parameters_1(0.1, 0.5, 0.5);
+    static const gtfo::SecondOrderParameters<double> parameters_2(0.1, 5.0, 5.0);
 
-    const double wn = 5;
-    const double zeta = 1;
-    const Eigen::RowVector2d transversal_gain(wn*wn, 2*zeta*wn); // can be tuned
+    constexpr double wn = 5;
+    constexpr double zeta = 1;
+    static const Eigen::RowVector2d transversal_gain(wn*wn, 2*zeta*wn); // can be tuned
     constexpr int trials = 1000;
 
     gtfo::DynamicsVector<
@@ -115,7 +115,7 @@ TEST(ManifoldConstraintsTest, XYSurfaceConstraint)
 {
     constexpr unsigned state_dimension = 3;
     constexpr unsigned constraint_dimension = 1;
-    const int trials = 1000;
+    constexpr int trials = 1000;
 
     // Vector Types
     using VectorN = Eigen::Matrix<double, state_dimension, 1>;
@@ -125,15 +125,15 @@ TEST(ManifoldConstraintsTest, XYSurfaceConstraint)
     using MatrixK2K = Eigen::Matrix<double, constraint_dimension, 2*constraint_dimension>;
 
     // System Parameters
-    const double mass = 1.0;
-    const double damping = 1.0;   
-    const double cycle_time_step = 0.1;
+    constexpr double mass = 1.0;
+    constexpr double damping = 1.0;   
+    constexpr double cycle_time_step = 0.1;
 
-    const double wn = 5;
-    const double zeta = 1;
-    const MatrixK2K transversal_gain = (MatrixK2K() << wn*wn, 2*zeta*wn).finished(); // can be tuned
-    const Eigen::Vector3d initial_position(0, 0, 1); // start at z=1, should move to z=0
-    const VectorN initial_velocity = VectorN::Zero();
+    constexpr double wn = 5;
+    constexpr double zeta = 1;
+    static const MatrixK2K transversal_gain = (MatrixK2K() << wn*wn, 2*zeta*wn).finished(); // can be tuned
+    static const Eigen::Vector3d initial_position(0, 0, 1); // start at z=1, should move to z=0
+    static const VectorN initial_velocity = VectorN::Zero();
 
     // Define System
     gtfo::PointMassSecondOrder<state_dimension> system((gtfo::SecondOrderParameters<double>(cycle_time_step, mass, damping)));
@@ -191,6 +191,7 @@ TEST(ManifoldConstraintsTest, XYSurfaceConstraint)
     // Check if x and y match system with no constraint (constraint should only affect z)
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition().segment<2>(0), system_no_constraint.GetPosition().segment<2>(0)));
 
+<<<<<<< HEAD
 }
 
 TEST(ManifoldConstraintsTest, CircularPathConstraint)
@@ -362,14 +363,6 @@ TEST(ManifoldConstraintsTest, EllipticalPathConstraint)
     EXPECT_NEAR(std::pow(system.GetPosition()[0] - x0, 2)/a/a + std::pow(system.GetPosition()[1] - y0, 2)/b/b, 1, 0.01);
     // Check if z is zero
     EXPECT_NEAR(system.GetPosition()[2], 0.0, 0.01);
-
-<<<<<<< HEAD
-=======
-    // Verify the state is in the constraint manifold to some mild tolerance 
-<<<<<<< HEAD
-    EXPECT_TRUE((lower - 0.1) < system.GetPosition().value() && system.GetPosition().value() < (upper + 0.1));
->>>>>>> 1065a68 (Fixed boundary tests by making small decoupling matrices be treated as zero)
-=======
     EXPECT_TRUE((lower - 0.1) <= system.GetPosition().value() && system.GetPosition().value() <= (upper + 0.1));
 }
 
@@ -466,5 +459,4 @@ TEST(ManifoldConstraintsTest, BarrierConstraint2D)
 
     // Verify the state is in the constraint manifold to some mild tolerance 
     EXPECT_TRUE(((lower.array() - 0.1) < system.GetPosition().array()).all() && (system.GetPosition().array() < (upper.array() + 0.1)).all());
->>>>>>> 13906d8 (Added test for 2D boundary and fix for certain rows of decoupling matrix being close to zero)
 }
