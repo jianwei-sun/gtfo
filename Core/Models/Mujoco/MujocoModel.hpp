@@ -162,25 +162,11 @@ public:
         }
     }
 
-    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{
-        Base::Step(force_input, physical_position);
-
-        // Update the virtual position if a physical position is given
-        const bool err = this->SyncVirtualPositionToPhysical(physical_position);
-
-        // Zero the time-dependent states and do not step if the dynamics are paused
-        if(this->DynamicsArePaused()){
-            Base::velocity_.setZero();
-            Base::acceleration_.setZero();
-            for(size_t i = 0; i < Dimensions; ++i){
-                *(data_->qvel + velocity_offsets_[i]) = 0.0;
-                *(data_->qacc + velocity_offsets_[i]) = 0.0;
-            }
-            return err;
-        }
-
+    void PropagateDynamics(const VectorN& force_input) override{
         for(size_t i = 0; i < Dimensions; ++i){
             *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
+            *(data_->qvel + velocity_offsets_[i]) = static_cast<mjtNum>(Base::velocity_[i]);
+            *(data_->qacc + velocity_offsets_[i]) = static_cast<mjtNum>(Base::acceleration_[i]);
         }
 
         // Compute all intermediate results dependent on the state, but not the control
@@ -192,7 +178,6 @@ public:
             Base::position_[i] = static_cast<Scalar>(*(data_->qpos + position_offsets_[i]));
             Base::velocity_[i] = static_cast<Scalar>(*(data_->qvel + velocity_offsets_[i]));
         }
-        const VectorN previous_velocity = Base::velocity_;
 
         // Apply the control
         MujocoVectorN::Map(data_->ctrl) = (force_input + this->EnforceSoftBound()).template cast<mjtNum>();
@@ -204,19 +189,8 @@ public:
         for(size_t i = 0; i < Dimensions; ++i){
             Base::position_[i] = static_cast<Scalar>(*(data_->qpos + position_offsets_[i]));
             Base::velocity_[i] = static_cast<Scalar>(*(data_->qvel + velocity_offsets_[i]));
+            Base::acceleration_[i] = static_cast<Scalar>(*(data_->qacc + velocity_offsets_[i]));
         }
-
-        // Restrict and set the position and velocity after the integration timestep
-        this->EnforceHardBound();
-        for(size_t i = 0; i < Dimensions; ++i){
-            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
-            *(data_->qvel + velocity_offsets_[i]) = static_cast<mjtNum>(Base::velocity_[i]);
-        }
-
-        // Update the acceleration with a backward difference
-        Base::acceleration_ = (Base::velocity_ - previous_velocity) / model_->opt.timestep;
-
-        return err;
     }
 
 private:

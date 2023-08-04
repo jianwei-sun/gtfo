@@ -8,6 +8,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <functional>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -41,7 +42,8 @@ public:
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_spring_constant_(0.0),
             soft_bound_damping_constant_(0.0),
-            velocity_bound_(new BoundBase<Dimensions, Scalar>())
+            velocity_bound_(new BoundBase<Dimensions, Scalar>()),
+            force_premodifier_(nullptr)
     {
         
     }
@@ -58,12 +60,37 @@ public:
     }
 
     // Virtual function to be implemented by the subclass. The function should
-    // update position and velocity using the inputs, and enforce bounds if necessary
-    // The function should also pause dynamics by referring to the dynamics_paused_ flag.
-    // The base function should also be called in order to set old_position_
+    // update the position, velocity, and acceleration states
+    virtual void PropagateDynamics(const VectorN& force_input) = 0;
+
     virtual bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
         old_position_ = position_;
-        return true;
+
+        const bool err = SyncVirtualPositionToPhysical(physical_position);
+
+        // When the dynamics are paused, position can still be updated by the physical_position passed into Step. However, velocity is zeroed. Acceleration is also zeroed to prevent an impulse, even though the actual instantaneous acceleration is -velocity / dt
+        if(DynamicsArePaused()){
+            velocity_.setZero();
+            acceleration_.setZero();
+            return err;
+        }
+
+        // Any modifications to the input force happen first
+        const VectorN modified_force = force_premodifier_ ? force_premodifier_(force_input, *this) : force_input;
+
+        // Dynamics are propagated with the modified and soft bound restoring forces
+        soft_bound_restoring_force_ = this->EnforceSoftBound();
+        this->PropagateDynamics(modified_force + soft_bound_restoring_force_);
+
+        // Ensure the hard bounds are satisfied
+        this->EnforceHardBound();
+        this->EnforceVelocityLimit();
+
+        return err;
+    }
+
+    void SetForcePremodifier(const std::function<VectorN(const VectorN&, const DynamicsBase<Dimensions, Scalar>&)>& force_premodifier){
+        force_premodifier_ = force_premodifier;
     }
 
     virtual void PauseDynamics(const bool& pause){
@@ -216,6 +243,11 @@ private:
 
     // Same goes for velocity limit
     BoundPtr velocity_bound_;
+
+    // Lambda for force premodifier
+    std::function<VectorN(const VectorN&, const DynamicsBase<Dimensions, Scalar>&)> force_premodifier_;
 };
 
 }
+
+
