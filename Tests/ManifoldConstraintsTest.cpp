@@ -198,7 +198,7 @@ TEST(ManifoldConstraintsTest, CircularPathConstraint)
     constexpr unsigned state_dimension = 3;
     constexpr unsigned constraint_dimension = 2;
     constexpr unsigned radius = 1;
-    const int trials = 1000;
+    const unsigned trials = 1000;
 
     // Vector Types
     using VectorN = Eigen::Matrix<double, state_dimension, 1>;
@@ -214,7 +214,7 @@ TEST(ManifoldConstraintsTest, CircularPathConstraint)
 
     const double wn = 5;
     const double zeta = 1;
-    const Eigen::Matrix<double, 1, 2>transversal_gain = (Eigen::Matrix<double, 1, 2>() << wn*wn, 2*zeta*wn).finished(); // can be tuned
+    const Eigen::RowVector2d transversal_gain(wn*wn, 2*zeta*wn);
     const Eigen::Vector3d initial_position(0.5, 0, 1); // start at z=1, x=0.5, should move to z=0 x=1
     const VectorN initial_velocity = VectorN::Zero();
 
@@ -227,26 +227,20 @@ TEST(ManifoldConstraintsTest, CircularPathConstraint)
 
     // h(X) = [sqrt(x^2 + y^2) - r; z]
     const std::function<VectorK(const VectorN&)> constraint_function = [radius](const VectorN& position){
-        return (VectorK() << std::sqrt(std::pow(position[0],2) + std::pow(position[1],2)) - radius, position[2]).finished();
+        return VectorK(position.head<2>().norm()  - radius, position[2]);
     };
 
     // dh/dX
     const std::function<MatrixKN(const VectorN&)> constraint_function_gradient = [](const VectorN& position){
-        MatrixKN output;
-        output(0,0) = position[0]/std::sqrt(std::pow(position[0],2) + std::pow(position[1],2));
-        output(0,1) = position[1]/std::sqrt(std::pow(position[0],2) + std::pow(position[1],2));
-        output(0,2) = 0; 
-        output(1,0) = 0; output(1,1) = 0; output(1,2) = 1;
-        return output;
+        return (MatrixKN() << position.head<2>().normalized().transpose(), 0.0, VectorN::UnitZ().transpose()).finished();
     };
 
     // d2h/dX2
     const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_1 = [](const VectorN& position){
         MatrixNN output = MatrixNN::Zero();
-        output(0,0) = 1 / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(1/2)) - std::pow(position[0],2) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dx2
-        output(0,1) = -(position[0] * position[1]) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dydx
-        output(1,0) = -(position[0] * position[1]) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dxdy
-        output(1,1) = 1 / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(1/2)) - std::pow(position[1],2) / std::pow((std::pow(position[0],2) + std::pow(position[1],2)),(3/2)); // d2h/dy2
+        const double xy_norm = position.head<2>().norm();
+        const double xy_norm_cubed = std::pow(xy_norm, 3);
+        output.topLeftCorner<2,2>() = Eigen::Matrix2d::Identity() / xy_norm - position.head<2>() * position.head<2>().transpose() / std::pow(xy_norm, 3);
         return output;
     };
     const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_2 = [](const VectorN& position){
@@ -279,8 +273,8 @@ TEST(ManifoldConstraintsTest, CircularPathConstraint)
     std::cout << system.GetPosition()<< std::endl;
 
     // Check if x,y values lie on the circle
-    EXPECT_TRUE(std::abs(std::pow(system.GetPosition()[0],2) + std::pow(system.GetPosition()[1],2) - std::pow(radius,2)) < 0.01);
+    EXPECT_NEAR(system.GetPosition().head<2>().norm(), radius, 0.01);
     // Check if z is zero
-    EXPECT_TRUE(std::abs(system.GetPosition()[2]) < 0.01);
+    EXPECT_NEAR(system.GetPosition()[2], 0.0, 0.01);
 
 }
