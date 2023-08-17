@@ -41,7 +41,7 @@ public:
 
         // Compute the location of the continuous-time poles for a Butterworth low pass of the desired order
         std::array<Complex, Order> continuous_poles;
-        for(int i = 0; i < Order; ++i){
+        for(unsigned i = 0; i < Order; ++i){
             const Scalar angle = static_cast<Scalar>(2 * i + Order + 1) * Scalar(M_PI_2) / Order;
             continuous_poles[i] = Complex(std::cos(angle), std::sin(angle)) * frequency_prewarped;
         }

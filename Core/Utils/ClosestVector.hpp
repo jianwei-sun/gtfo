@@ -47,8 +47,8 @@ public:
         Eigen::Matrix<c_float, Dimension, 1>::Map(data_->q).setZero();
 
         // Precompute the indices corresponding to the non-identity portion of the constraint matrix
-        for(c_int i = 0; i < Dimension; ++i){
-            for(c_int j = 0; j < NumConstraints; ++j){
+        for(unsigned i = 0; i < Dimension; ++i){
+            for(unsigned j = 0; j < NumConstraints; ++j){
                 non_identity_constraint_indices_[i * NumConstraints + j] = i * (NumConstraints + 1) + j;
             }
         }
@@ -57,12 +57,12 @@ public:
         const c_int A_nnz = NumConstraints * Dimension + Dimension;
         data_->A = csc_spalloc(data_->m, data_->n, A_nnz, 1, 0);
         Eigen::Matrix<c_float, A_nnz, 1>::Map(data_->A->x).setZero();
-        for(c_int i = NumConstraints; i < A_nnz; i += NumConstraints + 1){
+        for(unsigned i = NumConstraints; i < A_nnz; i += NumConstraints + 1){
             data_->A->x[i] = (c_float)1.0f;
         }
         Eigen::Matrix<c_int, A_nnz, 1>::Map(data_->A->i) = Eigen::Matrix<c_int, NumConstraints + 1, 1>::LinSpaced(0, NumConstraints).colwise().replicate(Dimension);
-        for(c_int j = 0; j < Dimension; ++j){
-            data_->A->i[(NumConstraints + 1) * j + NumConstraints] += j;
+        for(unsigned j = 0; j < Dimension; ++j){
+            data_->A->i[(NumConstraints + 1) * j + NumConstraints] += static_cast<c_int>(j);
         }
         Eigen::Matrix<c_int, Dimension + 1, 1>::Map(data_->A->p) = Eigen::Matrix<c_int, Dimension + 1, 1>::LinSpaced(0, A_nnz);
         
@@ -169,7 +169,7 @@ public:
 
         // It seems that status is always 0, which doesn't match one of the expected return types,
         // so just return the solution
-        const c_int status = osqp_solve(work_);
+        osqp_solve(work_);
         return VectorN::Map(work_->solution->x);
     }
 private:
