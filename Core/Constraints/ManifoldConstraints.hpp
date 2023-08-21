@@ -14,6 +14,9 @@
 #include <unsupported/Eigen/KroneckerProduct>
 #include <Eigen/QR>
 
+// Project-specific
+#include "../Utils/Constants.hpp"
+
 namespace gtfo{
 template<unsigned int StateDimension, unsigned int ConstraintDimension, typename Scalar = double>
 class ManifoldConstraints{
@@ -59,26 +62,39 @@ public:
             return force;
         }
 
+        // Evaluate the derivatives of h at the current state
         const MatrixKN constraint_function_gradient = constraint_function_gradient_(position);
         
-        // Construct the Lie derivatives
-        const MatrixKN decoupling_matrix = constraint_function_gradient * g_bottom_half_(position, velocity);
+        // Construct the Lie derivative: LgLf
+        const MatrixKN decoupling_matrix_unconditioned = constraint_function_gradient * g_bottom_half_(position, velocity);
 
+        // Find and keep the rows that are numerically nonzero
+        const Eigen::Matrix<bool, ConstraintDimension, 1> row_is_nonzero = decoupling_matrix_unconditioned.rowwise().squaredNorm().array() >= GTFO_EQUALITY_COMPARISON_TOLERANCE * std::sqrt(StateDimension);
+        const MatrixKN decoupling_matrix = row_is_nonzero.replicate(1, StateDimension).select(decoupling_matrix_unconditioned, 0.0);
+
+        // Construct the Lie derivative: Lf^2
         VectorK affine_term = constraint_function_gradient * f_bottom_half_(position, velocity);
         for (unsigned int i = 0; i < ConstraintDimension; ++i){
-            affine_term[i] += velocity.transpose() * constraint_function_hessian_slices_[i](position) * velocity;
+            affine_term[i] += (velocity.transpose() * constraint_function_hessian_slices_[i](position) * velocity).value();
         }
 
         // Form the transversal state and compute its stabilizing control. 
         // Note transversal state is in the form [h_i; Lfh_i], so we need to interleave the constraint function and its Lie derivative
         const Eigen::Matrix<Scalar, 2, ConstraintDimension> transversal_state = (Eigen::Matrix<Scalar, 2, ConstraintDimension>() << constraint_function_(position).transpose(), (constraint_function_gradient * velocity).transpose()).finished();
-
         const VectorK transversal_control = -transversal_gain_ * Vector2K::Map(transversal_state.data());
 
-        // Assemble the total force by summing the tangential and tranversal components
+        // Some rows of the decoupling matrix are zero, but may not appear so due to precision. 
         const MatrixNK pinv_decoupling_matrix = decoupling_matrix.completeOrthogonalDecomposition().pseudoInverse();
 
-        return (MatrixNN::Identity() - pinv_decoupling_matrix * decoupling_matrix) * force + pinv_decoupling_matrix * (transversal_control - affine_term);
+        // Assemble the total force by replacing components that align with the nonzero rows of the decoupling matrix, with the transversal control
+        VectorN modified_force = force;
+        for(unsigned int i = 0; i < ConstraintDimension; ++i){
+            if(row_is_nonzero[i]){
+                modified_force += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force + transversal_control[i] - affine_term[i]);
+            }
+        }
+
+        return modified_force;
     }
 
     // Require the user to set the second order dynamics. Since these manifold constraints are only for systems with vector relative degree 2, only the bottom half of f and g matter
@@ -97,7 +113,6 @@ public:
     // Transversal gain in the general case where the whole matrix is entered. This is for when the gains are different in each constraint coordinate
     void SetTransversalGain(const Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension>& transversal_gain){
         assert((transversal_gain.array() >= 0).all());
-
         transversal_gain_ = transversal_gain;
     }
 
@@ -105,8 +120,7 @@ public:
     template<bool ConstraintDimensionGreaterThanOne = (ConstraintDimension > 1)>
     void SetTransversalGain(const std::enable_if_t<ConstraintDimensionGreaterThanOne, Eigen::Matrix<Scalar, 1, 2>>& transversal_gain_i){
         assert((transversal_gain_i.array() >= 0).all());
-
-        transversal_gain_ = Eigen::kroneckerProduct (Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
+        transversal_gain_ = Eigen::kroneckerProduct(Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
     }
 
 private:
