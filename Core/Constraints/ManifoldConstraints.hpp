@@ -47,12 +47,15 @@ public:
     using TransversalGain = Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension>;
 
     ManifoldConstraints()
-    :   f_bottom_half_(nullptr),
-        g_bottom_half_(nullptr),
-        constraint_function_(nullptr),
-        constraint_function_gradient_(nullptr),
-        constraint_function_hessian_slices_{},
-        transversal_gain_(TransversalGain::Zero())
+        : f_bottom_half_(nullptr),
+          g_bottom_half_(nullptr),
+          constraint_function_(nullptr),
+          constraint_function_gradient_(nullptr),
+          constraint_function_hessian_slices_{},
+          transversal_gain_(TransversalGain::Zero()),
+          transversal_control_force_(VectorN::Zero()),
+          tangential_force_(VectorN::Zero()),
+          transversal_state_(Eigen::Matrix<Scalar, 2, ConstraintDimension>::Zero())
     {}
 
     // Calculate on each iteration after constraint function and gains have been set to create the new forces
@@ -80,17 +83,21 @@ public:
 
         // Form the transversal state and compute its stabilizing control. 
         // Note transversal state is in the form [h_i; Lfh_i], so we need to interleave the constraint function and its Lie derivative
-        const Eigen::Matrix<Scalar, 2, ConstraintDimension> transversal_state = (Eigen::Matrix<Scalar, 2, ConstraintDimension>() << constraint_function_(position).transpose(), (constraint_function_gradient * velocity).transpose()).finished();
-        const VectorK transversal_control = -transversal_gain_ * Vector2K::Map(transversal_state.data());
+        transversal_state_ = (Eigen::Matrix<Scalar, 2, ConstraintDimension>() << constraint_function_(position).transpose(), (constraint_function_gradient * velocity).transpose()).finished();
+        const VectorK transversal_control = -transversal_gain_ * Vector2K::Map(transversal_state_.data());
 
         // Some rows of the decoupling matrix are zero, but may not appear so due to precision. 
         const MatrixNK pinv_decoupling_matrix = decoupling_matrix.completeOrthogonalDecomposition().pseudoInverse();
 
         // Assemble the total force by replacing components that align with the nonzero rows of the decoupling matrix, with the transversal control
         VectorN modified_force = force;
+        transversal_control_force_ = VectorN::Zero();
+        tangential_force_ = force;
         for(unsigned int i = 0; i < ConstraintDimension; ++i){
             if(row_is_nonzero[i]){
                 modified_force += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force + transversal_control[i] - affine_term[i]);
+                transversal_control_force_ += pinv_decoupling_matrix.col(i) * (transversal_control[i] - affine_term[i]);
+                tangential_force_ += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force);
             }
         }
 
@@ -123,6 +130,21 @@ public:
         transversal_gain_ = Eigen::kroneckerProduct(Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
     }
 
+    VectorN getTangentialForce()
+    {
+        return this->tangential_force_;
+    }
+
+    VectorN getTransversalControlForce()
+    {
+        return this->transversal_control_force_;
+    }
+
+    Eigen::Matrix<Scalar, 2, ConstraintDimension> getTransversalState()
+    {
+        return this->transversal_state_;
+    }
+
 private:
     // Second-order dynamics
     StateFunctionBottomHalf f_bottom_half_;
@@ -135,6 +157,11 @@ private:
 
     // Tranversal control
     TransversalGain transversal_gain_;
+    Eigen::Matrix<Scalar, 2, ConstraintDimension> transversal_state_;
+
+    // Modified forces
+    VectorN transversal_control_force_;
+    VectorN tangential_force_;
 };
 
 } // namespace gtfo
