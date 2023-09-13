@@ -53,15 +53,16 @@ public:
           constraint_function_gradient_(nullptr),
           constraint_function_hessian_slices_{},
           transversal_gain_(TransversalGain::Zero()),
+          transversal_state_(Eigen::Matrix<Scalar, 2, ConstraintDimension>::Zero()),
           transversal_control_force_(VectorN::Zero()),
           tangential_force_(VectorN::Zero()),
-          transversal_state_(Eigen::Matrix<Scalar, 2, ConstraintDimension>::Zero())
+          enable_(true)
     {}
 
     // Calculate on each iteration after constraint function and gains have been set to create the new forces
     VectorN Step(const VectorN& force, const VectorN& position, const VectorN& velocity){
         // When callbacks are unset, Step just passes through forces
-        if (!constraint_function_ || !f_bottom_half_){
+        if (!enable_ || !constraint_function_ || !f_bottom_half_){
             return force;
         }
 
@@ -130,19 +131,32 @@ public:
         transversal_gain_ = Eigen::kroneckerProduct(Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
     }
 
-    VectorN getTangentialForce()
+    [[nodiscard]] VectorN getTangentialForce() const
     {
         return this->tangential_force_;
     }
 
-    VectorN getTransversalControlForce()
+    [[nodiscard]] VectorN getTransversalControlForce() const
     {
         return this->transversal_control_force_;
     }
 
-    Eigen::Matrix<Scalar, 2, ConstraintDimension> getTransversalState()
+    [[nodiscard]] Eigen::Matrix<Scalar, 2, ConstraintDimension> getTransversalState() const
     {
         return this->transversal_state_;
+    }
+
+    void UpdateConstraintFunction(const ConstraintFunction& constraint_function){
+        constraint_function_ = constraint_function;
+    }
+
+    void SetConstraintsActive(const bool& enable){
+        enable_ = enable;
+    }
+
+    [[nodiscard]] bool GetConstraintsActive(void) const
+    {
+        return enable_;
     }
 
 private:
@@ -162,6 +176,9 @@ private:
     // Modified forces
     VectorN transversal_control_force_;
     VectorN tangential_force_;
+
+    // Enable / disable logic
+    bool enable_;
 };
 
 } // namespace gtfo
