@@ -303,7 +303,7 @@ TEST(ManifoldConstraintsTest, EllipticalPathConstraint)
     const double cycle_time_step = 0.1;
 
     const double wn = 0.5;
-    const double zeta = 1;
+    const double zeta = 0.7;
     static const Eigen::RowVector2d transversal_gain(wn*wn, 2*zeta*wn);
     static const Eigen::Vector3d initial_position(0, 0, 1); // start at z=1, x=0.5, should move to z=0 x=1
     static const VectorN initial_velocity = VectorN::Zero();
@@ -327,7 +327,7 @@ TEST(ManifoldConstraintsTest, EllipticalPathConstraint)
 
     // d2h/dX2
     const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_1 = [a, b](const VectorN& position){
-        return (MatrixNN() << 2*position[0]/a, 0, 0, 0, 2*position[1]/b, 0, 0, 0, 0).finished();
+        return (MatrixNN() << 2/a/a, 0, 0, 0, 2/b/b, 0, 0, 0, 0).finished();
     };
     const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_2 = [](const VectorN& position){
         return MatrixNN::Zero();
@@ -373,8 +373,7 @@ TEST(ManifoldConstraintsTest, RotatedEllipticalPathConstraint)
     constexpr double x0 = 0;
     constexpr double y0 = 0;
     constexpr unsigned trials = 1000;
-    Eigen::Matrix3f rotation_matrix = Eigen::AngleAxisf(0.25*M_PI,  Vector3f::UnitY()).toRotationMatrix(); // rotate 45deg about y axis
-
+    Eigen::Matrix3d rotation_matrix = Eigen::AngleAxisd(0.25*M_PI,  Eigen::Vector3d::UnitY()).toRotationMatrix(); // rotate 45deg about y axis
 
     // Vector Types
     using VectorN = Eigen::Matrix<double, state_dimension, 1>;
@@ -389,9 +388,9 @@ TEST(ManifoldConstraintsTest, RotatedEllipticalPathConstraint)
     const double cycle_time_step = 0.1;
 
     const double wn = 0.5;
-    const double zeta = 1;
+    const double zeta = 0.7;
     static const Eigen::RowVector2d transversal_gain(wn*wn, 2*zeta*wn);
-    static const Eigen::Vector3d initial_position(0, 0, 1); // start at z=1, x=0.5, should move to z=0 x=1
+    static const Eigen::Vector3d initial_position(0, 0, 1);
     static const VectorN initial_velocity = VectorN::Zero();
 
     // Define System
@@ -403,19 +402,19 @@ TEST(ManifoldConstraintsTest, RotatedEllipticalPathConstraint)
 
     // h(X) = [(x-x0)^2/a^2 + (y-y0)^2/b^2 - 1; z]
     const std::function<VectorK(const VectorN&)> constraint_function = [a, b, x0, y0, rotation_matrix](const VectorN& position){
-        VectorN transformed_position = rotation_matrix * position;
+        VectorN transformed_position = rotation_matrix.inverse() * position;
         return VectorK(std::pow(transformed_position[0] - x0, 2)/a/a + std::pow(transformed_position[1] - y0, 2)/b/b - 1, transformed_position[2]);
     };
 
     // dh/dX
     const std::function<MatrixKN(const VectorN&)> constraint_function_gradient = [a, b, x0, y0, rotation_matrix](const VectorN& position){
-        VectorN transformed_position = rotation_matrix * position;
-        return (MatrixKN() << 2/a/a*(transformed_position[0] - x0), 2/b/b*(transformed_position[1] - y0), 0.0, VectorN::UnitZ().transpose()).finished() * rotation_matrix;
+        VectorN transformed_position = rotation_matrix.inverse() * position;
+        return MatrixKN((((MatrixKN() << 2/a/a*(transformed_position[0] - x0), 2/b/b*(transformed_position[1] - y0), 0.0, VectorN::UnitZ().transpose()).finished()) * rotation_matrix.inverse()));
     };
 
     // d2h/dX2
     const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_1 = [a, b, rotation_matrix](const VectorN& position){
-        return rotation_matrix.transpose() * (MatrixNN() << 2/a, 0, 0, 0, 2/b, 0, 0, 0, 0).finished() * rotation_matrix;
+        return MatrixNN(rotation_matrix * (MatrixNN() << 2/a/a, 0, 0, 0, 2/b/b, 0, 0, 0, 0).finished() * rotation_matrix.inverse());
     };
     const std::function<MatrixNN(const VectorN&)> constraint_function_hessian_slice_2 = [](const VectorN& position){
         return MatrixNN::Zero();
@@ -443,6 +442,7 @@ TEST(ManifoldConstraintsTest, RotatedEllipticalPathConstraint)
     // Step multiple iterations with external force and check if point goes to, and remains on, the elliptical path
     for(unsigned i = 0; i < trials; ++i){
         system.Step(Eigen::Vector3d::Ones());
+        std::cout << "Iteration: "<< i << "..." << std::endl << system.GetPosition().transpose()<< std::endl;
     }
     std::cout << system.GetPosition()<< std::endl;
 
