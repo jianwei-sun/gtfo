@@ -47,7 +47,6 @@ public:
         second_bend_position_ = first_bend_position_ + (max_speed_ * 0.8 * duration_) * direction_;
 
         // Set the state to the starting state
-        Base::old_position_ = Base::position_;
         Base::position_ = starting_position_;
         Base::velocity_.setZero();
         Base::acceleration_.setZero();
@@ -55,9 +54,9 @@ public:
 
     // If HomingModel is used in DynamicsSelector, then homing is automatically reset when the model
     // is selected
-    void SyncSystemTo(const Base& model) override{
+    void SyncModelTo(const Base& model) override{
+        Base::SyncModelTo(model);
         ResetHoming(model.GetPosition());
-        Base::PauseDynamics(model.DynamicsArePaused());
     }
 
     void PauseDynamics(const bool& pause) override{

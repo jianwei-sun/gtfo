@@ -173,7 +173,7 @@ TEST(ManifoldConstraintsTest, XYSurfaceConstraint)
     system.SetForcePremodifier([&](const VectorN& force, const gtfo::DynamicsBase<state_dimension>& system){
        return surface_constraint.Step(force, system.GetPosition(), system.GetVelocity());
     });
-    system.SetPositionAndVelocity(initial_position, initial_velocity);
+    system.SetState(initial_position, initial_velocity);
 
     // Constraint is z=0, so step multiple iterations and then check if z has gotten close to zero
     for(unsigned i = 0; i < trials; ++i){
@@ -183,7 +183,7 @@ TEST(ManifoldConstraintsTest, XYSurfaceConstraint)
 
     // System with no constraint for comparison:
     gtfo::PointMassSecondOrder<state_dimension> system_no_constraint((gtfo::SecondOrderParameters<double>(cycle_time_step, mass, damping)));
-    system_no_constraint.SetPositionAndVelocity(initial_position, initial_velocity);
+    system_no_constraint.SetState(initial_position, initial_velocity);
     for(unsigned i = 0; i < trials; ++i){
         system_no_constraint.Step(Eigen::Vector3d::Ones());
     }
@@ -264,7 +264,7 @@ TEST(ManifoldConstraintsTest, CircularPathConstraint)
     system.SetForcePremodifier([&](const VectorN& force, const gtfo::DynamicsBase<state_dimension>& system){
        return surface_constraint.Step(force, system.GetPosition(), system.GetVelocity());
     });
-    system.SetPositionAndVelocity(initial_position, initial_velocity);
+    system.SetState(initial_position, initial_velocity);
 
     // Step multiple iterations with external force and check if point goes to, and remains on, the circular path
     for(unsigned i = 0; i < trials; ++i){
@@ -350,7 +350,7 @@ TEST(ManifoldConstraintsTest, EllipticalPathConstraint)
     system.SetForcePremodifier([&](const VectorN& force, const gtfo::DynamicsBase<state_dimension>& system){
        return surface_constraint.Step(force, system.GetPosition(), system.GetVelocity());
     });
-    system.SetPositionAndVelocity(initial_position, initial_velocity);
+    system.SetState(initial_position, initial_velocity);
 
     // Step multiple iterations with external force and check if point goes to, and remains on, the elliptical path
     for(unsigned i = 0; i < trials; ++i){

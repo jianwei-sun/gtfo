@@ -30,12 +30,12 @@ TEST(ForcePremodifierTest, Containers)
         (gtfo::SecondOrderParameters<double>()));
 
     // Make the first system just pass in the opposite of the force in the first two coordinates
-    system.GetModel<0>().SetForcePremodifier([](const Eigen::Vector4d& force, const gtfo::DynamicsBase<4>& system){
+    system.GetModel<0>().SetForcePremodifier([](const Eigen::Vector4d& force, const gtfo::DynamicsBase<4>& system) -> Eigen::Vector4d{
        return force.cwiseProduct(Eigen::Vector4d(-1.0, -1.0, 1.0, 1.0)).eval();
     });
 
     // Make the second system be a PD controller
-    system.GetModel<1>().SetForcePremodifier([](const Eigen::Vector4d& force, const gtfo::DynamicsBase<4>& system){
+    system.GetModel<1>().SetForcePremodifier([](const Eigen::Vector4d& force, const gtfo::DynamicsBase<4>& system) -> Eigen::Vector4d{
        return -1.0 * system.GetPosition() - 0.5 * system.GetVelocity();
     });
 
@@ -64,5 +64,6 @@ TEST(ForcePremodifierTest, Containers)
     }
 
     // Verify that the second system has stabilized to the origin
+    std::cout << system.GetPosition().transpose() << std::endl;
     EXPECT_TRUE(gtfo::IsEqual(system.GetPosition(), Eigen::Vector4d::Zero()));
 }

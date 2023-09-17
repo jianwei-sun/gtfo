@@ -275,7 +275,7 @@ TEST(ManifoldBoundariesTest, CircularBarrierConstraint2D)
     });
 
     // Step the system
-    system.SetPositionAndVelocity(VectorN(0.1, 1.0), VectorN::Zero());
+    system.SetState(VectorN(0.1, 1.0), VectorN::Zero());
     std::cout << "Force, Position, Velocity" << std::endl;
     for(unsigned i = 0; i < 500; ++i){
         system.Step(VectorN(-1.0, 0.0));

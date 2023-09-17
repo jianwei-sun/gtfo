@@ -44,69 +44,104 @@ public:
             soft_bound_damping_constant_(0.0),
             velocity_bound_(new BoundBase<Dimensions, Scalar>()),
             force_premodifier_(nullptr)
-    {
-        
-    }
-
-    // Sets the current model's state to that of the target model. Since the current model may have different
-    // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
-    // discontinuities in the state if the target state is out of bounds
-    virtual void SyncSystemTo(const DynamicsBase& model){
-        acceleration_ = model.acceleration_;
-        dynamics_paused_ = model.dynamics_paused_;
-        soft_bound_restoring_force_ = model.soft_bound_restoring_force_;
-        old_position_ = model.old_position_;
-        this->SetPositionAndVelocity(model.GetPosition(), model.GetVelocity(), false);
-    }
+    {}
 
     // Virtual function to be implemented by the subclass. The function should
     // update the position, velocity, and acceleration states
     virtual void PropagateDynamics(const VectorN& force_input) = 0;
 
-    virtual bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
+    virtual void Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
+        // Store a history of the position
         old_position_ = position_;
 
-        const bool err = SyncVirtualPositionToPhysical(physical_position);
-
-        // When the dynamics are paused, position can still be updated by the physical_position passed into Step. However, velocity is zeroed. Acceleration is also zeroed to prevent an impulse, even though the actual instantaneous acceleration is -velocity / dt
-        if(DynamicsArePaused()){
-            velocity_.setZero();
-            acceleration_.setZero();
-            return err;
+        // Update the position with the physical position, if necessary
+        if(!physical_position.array().isNaN().any()){
+            position_ = physical_position;
         }
 
-        // Any modifications to the input force happen first
+        // Update force, if necessary
         const VectorN modified_force = PremodifyForce(force_input);
 
-        // Dynamics are propagated with the modified and soft bound restoring forces
-        soft_bound_restoring_force_ = this->EnforceSoftBound();
-        this->PropagateDynamics(modified_force + soft_bound_restoring_force_);
-
-        // Ensure the hard bounds are satisfied
-        this->EnforceHardBound();
-        this->EnforceVelocityLimit();
-
-        return err;
-    }
-
-    void SetForcePremodifier(const std::function<VectorN(const VectorN&, const DynamicsBase<Dimensions, Scalar>&)>& force_premodifier){
-        force_premodifier_ = force_premodifier;
-    }
-
-    VectorN PremodifyForce(const VectorN& force_input) {
-        if(force_premodifier_){
-            return force_premodifier_(force_input, *this);
-        } else{
-            return force_input;
+        // Dynamics are only propagated when unpaused
+        if(dynamics_paused_){
+            // When paused, acceleration is also zeroed to prevent an impulse, even though the actual instantaneous acceleration is -velocity / dt
+            velocity_.setZero();
+            acceleration_.setZero();
+        } else{            
+            const VectorN soft_bound_restoring_force = this->EnforceSoftBound();
+            this->PropagateDynamics(modified_force + soft_bound_restoring_force);
         }
+
+        // Perform the dynamically discontinuous actions, such as enforcing hard bounds
+        EnforceStateConstraints();
+    }
+
+    //----------------------------------------------------------------------------------------------------
+    [[nodiscard]] virtual inline VectorN GetPosition(void) const{
+        return position_;
+    }
+
+    [[nodiscard]] virtual inline VectorN GetOldPosition(void) const{
+        return old_position_;
+    }
+
+    [[nodiscard]] virtual inline VectorN GetVelocity(void) const{
+        return velocity_;
+    }
+
+    [[nodiscard]] virtual inline VectorN GetAcceleration(void) const{
+        return acceleration_;
+    }
+
+    [[nodiscard]] virtual inline bool DynamicsArePaused(void) const{
+        return dynamics_paused_;
+    }
+
+    [[nodiscard]] virtual inline VectorN GetSoftBoundRestoringForce(void) const{
+        return soft_bound_restoring_force_;
+    }
+
+    // Sets the current model's state to that of the target model. Since the current model may have different
+    // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
+    // discontinuities in the state if the target state is out of bounds
+    virtual void SyncModelTo(const DynamicsBase& model){
+        SetFullState(
+            model.GetPosition(),
+            model.GetOldPosition(),
+            model.GetVelocity(),
+            model.GetAcceleration(),
+            model.DynamicsArePaused(),
+            model.GetSoftBoundRestoringForce()
+        );
+    }
+
+    virtual void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused, const VectorN& soft_bound_restoring_force){
+        position_ = position;
+        old_position_ = old_position;
+        velocity_ = velocity;
+        acceleration_ = acceleration;
+        dynamics_paused_ = dynamics_paused;
+        soft_bound_restoring_force_ = soft_bound_restoring_force;
+        EnforceStateConstraints();
+    }
+
+    virtual void SetState(const VectorN& position, const VectorN& velocity, const VectorN& acceleration = VectorN::Zero()){
+        position_ = position;
+        velocity_ = velocity;
+        acceleration_ = acceleration;
+        EnforceStateConstraints();
     }
 
     virtual void PauseDynamics(const bool& pause){
         dynamics_paused_ = pause;
     }
 
-    [[nodiscard]] inline bool DynamicsArePaused(void) const{
-        return dynamics_paused_;
+    //----------------------------------------------------------------------------------------------------
+    // Main function for enforcing all hard limits for states, which may result in discontinuous dynamics
+    // TODO: Update with collision avoidance constraints
+    void EnforceStateConstraints(void){
+        EnforceHardBound();
+        EnforceVelocityLimit();
     }
 
     template <typename BoundType>
@@ -121,7 +156,7 @@ public:
 
     // Hard bound logic modifies position_, velocity_, and acceleration_. This function
     // should be called after the variables have been updated by Step
-    virtual void EnforceHardBound(void){
+    void EnforceHardBound(void){
         position_ = hard_bound_->GetNearestPointWithinBound(position_);
         const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
         if(surface_normals.HasPositiveDotProductWith(velocity_)){
@@ -148,7 +183,7 @@ public:
     // Since the soft bound only computes a restoring force, it should not modify the position
     // or velocity states. It should typically be called before Step updates position and
     // velocity so that the restoring force can be used in Step
-    [[nodiscard]] virtual VectorN EnforceSoftBound(void){
+    [[nodiscard]] VectorN EnforceSoftBound(void){
         // Find your surface normals to so we can see if we are moving towards bounds or away
         const auto surface_normals = soft_bound_->GetSurfaceNormals(soft_bound_->GetNearestPointWithinBound(position_));
 
@@ -169,10 +204,6 @@ public:
         return soft_bound_restoring_force_;
     }
 
-    [[nodiscard]] inline const VectorN &GetSoftBoundRestoringForce(void) const{
-        return soft_bound_restoring_force_;
-    }
-
     // Sets a norm-bound for the velocity
     void SetVelocityLimit(const Scalar& limit){
         assert(limit >= 0.0);
@@ -181,7 +212,7 @@ public:
 
     // Modifies the current velocity to the closest point within the velocity bound, and prevent
     // accelerations that try to exceed the velocity bound
-    virtual void EnforceVelocityLimit(void){
+    void EnforceVelocityLimit(void){
         velocity_ = velocity_bound_->GetNearestPointWithinBound(velocity_);
         const auto surface_normals = velocity_bound_->GetSurfaceNormals(velocity_);
         if(surface_normals.HasPositiveDotProductWith(acceleration_)){
@@ -189,60 +220,16 @@ public:
         }
     }
 
-    // Sets the virtual position to the physical one if the physical input is in hard bounds.
-    virtual bool SyncVirtualPositionToPhysical(const VectorN &physical_position)
-    {
-        if (!physical_position.array().isNaN().any())
-        {
-            // Snap position to closest point to physical position in bounds.
-            position_ = hard_bound_->GetNearestPointWithinBound(physical_position);
+    void SetForcePremodifier(const std::function<VectorN(const VectorN&, const DynamicsBase<Dimensions, Scalar>&)>& force_premodifier){
+        force_premodifier_ = force_premodifier;
+    }
 
-            // Let user know if snap worked
-            return !hard_bound_->Contains(physical_position);
+    VectorN PremodifyForce(const VectorN& force_input) {
+        if(force_premodifier_){
+            return force_premodifier_(force_input, *this);
+        } else{
+            return force_input;
         }
-
-        return true;
-    }
-
-    [[nodiscard]] inline const VectorN &GetPosition() const
-    {
-        return position_;
-    }
-
-    [[nodiscard]] inline const VectorN &GetOldPosition() const
-    {
-        return old_position_;
-    }
-
-    [[nodiscard]] inline const VectorN &GetVelocity() const
-    {
-        return velocity_;
-    }
-
-    [[nodiscard]] inline const VectorN &GetAcceleration() const
-    {
-        return acceleration_;
-    }
-
-    virtual void SetPositionAndVelocity(const VectorN& position, const VectorN& velocity, const bool& bypass_checks = false){
-        position_ = position;
-        velocity_ = velocity;
-        if(!bypass_checks){ 
-            this->EnforceHardBound();
-            this->EnforceVelocityLimit();
-        }
-    }
-
-    void SetOldPosition(const VectorN& old_position){
-        old_position_ = old_position;
-    }
-
-    void SetAcceleration(const VectorN& acceleration){
-        acceleration_ = acceleration;
-    }
-
-    void SetSoftBoundRestoringForce(const VectorN& soft_bound_restoring_force){
-        soft_bound_restoring_force_ = soft_bound_restoring_force;
     }
 
 protected:
