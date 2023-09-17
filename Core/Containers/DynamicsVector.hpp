@@ -122,19 +122,7 @@ public:
         return dynamics_paused;
     }
 
-    [[nodiscard]] VectorN GetSoftBoundRestoringForce(void) const{
-        VectorN soft_bound_restoring_force;
-        std::apply([&](const Models&... models){
-            size_t index = 0;
-            ([&]{
-                soft_bound_restoring_force.template block<Models::Dimension, 1>(index, 0) = models.GetSoftBoundRestoringForce();
-                index += Models::Dimension;
-            }(), ...);
-        }, models_);
-        return soft_bound_restoring_force;
-    }
-
-    void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused, const VectorN& soft_bound_restoring_force) override{
+    void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
         std::apply([&](Models&... models){
             size_t index = 0;
             ([&]{
@@ -143,8 +131,7 @@ public:
                     old_position.template block<Models::Dimension, 1>(index, 0), 
                     velocity.template block<Models::Dimension, 1>(index, 0),
                     acceleration.template block<Models::Dimension, 1>(index, 0),
-                    dynamics_paused,
-                    soft_bound_restoring_force.template block<Models::Dimension, 1>(index, 0)
+                    dynamics_paused
                 );
                 index += Models::Dimension;
             }(), ...);

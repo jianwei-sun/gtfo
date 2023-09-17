@@ -64,18 +64,13 @@ public:
         return GetActiveModel()->DynamicsArePaused();
     }
 
-    [[nodiscard]] VectorN GetSoftBoundRestoringForce(void) const{
-        return GetActiveModel()->GetSoftBoundRestoringForce();
-    }
-
-    void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused, const VectorN& soft_bound_restoring_force) override{
+    void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
         GetActiveModel()->SetFullState(
             position, 
             old_position,
             velocity,
             acceleration,
-            dynamics_paused,
-            soft_bound_restoring_force
+            dynamics_paused
         );
     }
 

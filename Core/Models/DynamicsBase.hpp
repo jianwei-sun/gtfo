@@ -38,7 +38,6 @@ public:
             velocity_(VectorN::Zero()),
             acceleration_(VectorN::Zero()),
             dynamics_paused_(false),
-            soft_bound_restoring_force_(VectorN::Zero()),
             hard_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_(new BoundBase<Dimensions, Scalar>()),
             soft_bound_spring_constant_(0.0),
@@ -98,10 +97,6 @@ public:
         return dynamics_paused_;
     }
 
-    [[nodiscard]] virtual inline VectorN GetSoftBoundRestoringForce(void) const{
-        return soft_bound_restoring_force_;
-    }
-
     // Sets the current model's state to that of the target model. Since the current model may have different
     // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
     // discontinuities in the state if the target state is out of bounds
@@ -111,18 +106,16 @@ public:
             model.GetOldPosition(),
             model.GetVelocity(),
             model.GetAcceleration(),
-            model.DynamicsArePaused(),
-            model.GetSoftBoundRestoringForce()
+            model.DynamicsArePaused()
         );
     }
 
-    virtual void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused, const VectorN& soft_bound_restoring_force){
+    virtual void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused){
         position_ = position;
         old_position_ = old_position;
         velocity_ = velocity;
         acceleration_ = acceleration;
         dynamics_paused_ = dynamics_paused;
-        soft_bound_restoring_force_ = soft_bound_restoring_force;
         EnforceStateConstraints();
     }
 
@@ -179,7 +172,7 @@ public:
         const auto surface_normals = soft_bound_->GetSurfaceNormals(soft_bound_->GetNearestPointWithinBound(position_));
 
         // Add a spring force based on how far we are outside the bounds
-        soft_bound_restoring_force_ = -soft_bound_spring_constant_ * (position_ - soft_bound_->GetNearestPointWithinBound(position_));
+        VectorN soft_bound_restoring_force = -soft_bound_spring_constant_ * (position_ - soft_bound_->GetNearestPointWithinBound(position_));
 
         // If we are trying to move outward we also add a damping force in directions that we are pushing away from bounds
         if (surface_normals.HasPositiveDotProductWith(velocity_))
@@ -188,11 +181,11 @@ public:
             {
                 const Scalar dot_product = surface_normal.dot(velocity_);
                 if(dot_product > 0.0){
-                    soft_bound_restoring_force_ += -soft_bound_damping_constant_ * dot_product * surface_normal;
+                    soft_bound_restoring_force += -soft_bound_damping_constant_ * dot_product * surface_normal;
                 }
             }
         }
-        return soft_bound_restoring_force_;
+        return soft_bound_restoring_force;
     }
 
     // Sets a norm-bound for the velocity
@@ -231,7 +224,7 @@ protected:
     VectorN acceleration_;
 
     bool dynamics_paused_;
-    VectorN soft_bound_restoring_force_;
+
 private:
     // Hard and soft bounds are included for convenience, but do not have to be used
     BoundPtr hard_bound_;
