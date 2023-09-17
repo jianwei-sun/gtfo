@@ -26,7 +26,8 @@ public:
     static_assert(std::is_floating_point_v<Scalar>, "Template argument Scalar must be a floating-point type.");
 
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-    using BoundPtr = std::shared_ptr<BoundBase<Dimensions, Scalar>>;
+    using Bound = BoundBase<Dimensions, Scalar>;
+    using BoundPtr = std::shared_ptr<Bound>;
 
     const static unsigned int Dimension = Dimensions; 
     using ScalarType = Scalar;
@@ -144,13 +145,8 @@ public:
         EnforceVelocityLimit();
     }
 
-    template <typename BoundType>
-    void SetHardBound(const BoundType& bound){
-        static_assert(
-            std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>, 
-            "Hard bound must derive from BoundBase"
-        );
-        hard_bound_ = std::make_shared<BoundType>(bound);
+    virtual void SetHardBound(const Bound& bound){
+        hard_bound_ = bound.DeepCopy();
         assert(hard_bound_->Contains(position_));
     }
 
@@ -169,13 +165,8 @@ public:
         }
     }
 
-    template <typename BoundType>
-    void SetSoftBound(const BoundType& bound, const Scalar &spring_constant, const Scalar &damping_constant){
-        static_assert(
-            std::is_base_of_v<BoundBase<Dimensions, Scalar>, BoundType>, 
-            "Soft bound must derive from BoundBase"
-        );
-        soft_bound_ = std::make_shared<BoundType>(bound);
+    virtual void SetSoftBound(const Bound& bound, const Scalar &spring_constant, const Scalar &damping_constant){
+        soft_bound_ = bound.DeepCopy();
         soft_bound_spring_constant_ = spring_constant;
         soft_bound_damping_constant_ = damping_constant;
     }

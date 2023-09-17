@@ -11,6 +11,7 @@
 
 // Project-specific
 #include "../Models/DynamicsBase.hpp"
+#include "../Bounds/BoundBase.hpp"
 
 namespace gtfo{
 
@@ -19,6 +20,7 @@ class DynamicsSelector : public DynamicsBase<std::tuple_element<0, std::tuple<Mo
 public:
     using Scalar = typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType;
     using Base = DynamicsBase<std::tuple_element<0, std::tuple<Models...>>::type::Dimension, Scalar>;
+    using Bound = BoundBase<std::tuple_element<0, std::tuple<Models...>>::type::Dimension, Scalar>;
     using VectorN = typename Base::VectorN;
 
     static_assert(std::conjunction_v<std::is_base_of<Base, Models>...>, "Models must inherit from DynamicsBase");
@@ -83,6 +85,15 @@ public:
 
     void PauseDynamics(const bool& pause) override{
         GetActiveModel()->PauseDynamics(pause);
+    }
+
+    // Bounds are prevented from being set at the container level. They should be set at the submodel level
+    void SetHardBound(const Bound& bound) override{
+        assert(false);
+    }
+
+    void SetSoftBound(const Bound& bound, const Scalar &spring_constant, const Scalar &damping_constant) override{
+        assert(false);
     }
 
     // Selects a model using an index, and returns true if the index is within bounds. The newly selected

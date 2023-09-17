@@ -15,6 +15,7 @@ namespace gtfo
     {
     public:
         using Base = BoundBase<Dimensions, Scalar>;
+        using BoundPtr = std::shared_ptr<Base>;
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
         RectangleBound(const VectorN &lower_limits, const VectorN &upper_limits, const VectorN &center, const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
@@ -36,6 +37,10 @@ namespace gtfo
         {
             // All lower limits must be lower than their respective upper limits
             assert((bilateral_limits.array() >= 0.0).all());
+        }
+
+        [[nodiscard]] BoundPtr DeepCopy(void) const override {
+            return std::make_shared<RectangleBound>(*this);
         }
 
         [[nodiscard]] bool Contains(const VectorN &point) const override
