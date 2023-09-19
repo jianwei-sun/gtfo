@@ -60,7 +60,8 @@ public:
     {}
 
     // Calculate on each iteration after constraint function and gains have been set to create the new forces
-    VectorN Step(const VectorN& force, const VectorN& position, const VectorN& velocity){
+    VectorN Step(const VectorN &force, const VectorN &position, const VectorN &velocity, const Scalar &gamma = 1)
+    {
         // When callbacks are unset, Step just passes through forces
         if (!enable_ || !constraint_function_ || !f_bottom_half_){
             return force;
@@ -96,7 +97,7 @@ public:
         tangential_force_ = force;
         for(unsigned int i = 0; i < ConstraintDimension; ++i){
             if(row_is_nonzero[i]){
-                modified_force += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force + transversal_control[i] - affine_term[i]);
+                modified_force += pinv_decoupling_matrix.col(i) * gamma * (-decoupling_matrix.row(i) * force + transversal_control[i] - affine_term[i]);
                 transversal_control_force_ += pinv_decoupling_matrix.col(i) * (transversal_control[i] - affine_term[i]);
                 tangential_force_ += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force);
             }
