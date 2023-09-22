@@ -38,35 +38,43 @@ public:
         size_t index = 0;
         ([&]{
             Base::position_.template block<Models::Dimension, 1>(index, 0) = models.GetPosition();
+            Base::old_position_.template block<Models::Dimension, 1>(index, 0) = models.GetOldPosition();
             Base::velocity_.template block<Models::Dimension, 1>(index, 0) = models.GetVelocity();
             Base::acceleration_.template block<Models::Dimension, 1>(index, 0) = models.GetAcceleration();
             Base::soft_bound_restoring_force_.template block<Models::Dimension, 1>(index, 0) = models.GetSoftBoundRestoringForce();
+            Base::dynamics_paused_ |= models.DynamicsArePaused();
             index += Models::Dimension;
         }(), ...);
     }
 
-    // PropagateDynamics propagates the dynamics of each model and updates the vector state accordingly
+    // PropagateDynamics is empty since each model already contains the relevant dynamics
     void PropagateDynamics(const VectorN& force_input) override{
-        std::apply([&](Models&... model){
+        return;
+    }
+
+    // Step calls the corresponding Step function on each of the models
+    bool Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{      
+        // Any modifications to the input force happen first
+        const VectorN modified_force = PremodifyForce(force_input);
+
+        bool result = true;
+        std::apply([&](Models&... models){
             // Index is used to keep track of where each model's dimensions begin in the concatenated VectorN
             size_t index = 0;
-
+            
             // First, step all the models with the appropriate coordinates of the inputs
             ([&]{
-                model.PropagateDynamics(force_input.template block<Models::Dimension, 1>(index, 0));
-                index += Models::Dimension;
-            }(), ...);
-
-            // Then, update the state variables of DynamicsVector accordingly
-            index = 0;
-            ([&]{
-                Base::position_.template block<Models::Dimension, 1>(index, 0) = model.GetPosition();
-                Base::velocity_.template block<Models::Dimension, 1>(index, 0) = model.GetVelocity();
-                Base::acceleration_.template block<Models::Dimension, 1>(index, 0) = model.GetAcceleration();
-                Base::soft_bound_restoring_force_.template block<Models::Dimension, 1>(index, 0) = model.GetSoftBoundRestoringForce();
+                result &= models.Step(
+                    modified_force.template block<Models::Dimension, 1>(index, 0),
+                    physical_position.template block<Models::Dimension, 1>(index, 0)
+                );
                 index += Models::Dimension;
             }(), ...);
         }, models_);
+
+        UpdateVectorState();
+
+        return result;
     }
 
     // Applies a lambda that accepts a model and index to each model in the tuple.
@@ -89,8 +97,28 @@ public:
         Base::PauseDynamics(pause);
     }
 
+    void SyncSystemTo(const Base& model) override{
+        std::apply([&](Models&... models){
+            size_t index = 0;
+            ([&]{
+                models.SetOldPosition(model.GetOldPosition().template block<Models::Dimension, 1>(index, 0));
+                models.SetAcceleration(model.GetAcceleration().template block<Models::Dimension, 1>(index, 0));
+                models.SetSoftBoundRestoringForce(model.GetSoftBoundRestoringForce().template block<Models::Dimension, 1>(index, 0));
+                models.SetPositionAndVelocity(
+                    model.GetPosition().template block<Models::Dimension, 1>(index, 0),
+                    model.GetVelocity().template block<Models::Dimension, 1>(index, 0),
+                    false
+                );
+                models.PauseDynamics(model.DynamicsArePaused());
+
+                index += Models::Dimension;
+            }(), ...);
+        }, models_);
+
+        UpdateVectorState();
+    }
+
     void SetPositionAndVelocity(const VectorN& position, const VectorN& velocity, const bool& bypass_checks = false) override{
-        Base::SetPositionAndVelocity(position, velocity, bypass_checks);
         std::apply([&](Models&... models){
             size_t index = 0;
             ([&]{
@@ -101,6 +129,8 @@ public:
                 index += Models::Dimension;
             }(), ...);
         }, models_);
+
+        UpdateVectorState();
     }
 
     template <size_t index>
@@ -115,6 +145,23 @@ public:
 
 private:
     std::tuple<Models...> models_;
+
+    void UpdateVectorState(){
+        std::apply([&](Models&... models){
+            size_t index = 0;
+            ([&]{
+                Base::position_.template block<Models::Dimension, 1>(index, 0) = models.GetPosition();
+                Base::old_position_.template block<Models::Dimension, 1>(index, 0) = models.GetOldPosition();
+                Base::velocity_.template block<Models::Dimension, 1>(index, 0) = models.GetVelocity();
+                Base::acceleration_.template block<Models::Dimension, 1>(index, 0) = models.GetAcceleration();
+                Base::soft_bound_restoring_force_.template block<Models::Dimension, 1>(index, 0) = models.GetSoftBoundRestoringForce();
+                index += Models::Dimension;
+            }(), ...);
+        }, models_);
+
+        // All the models should have the same pause state
+        Base::dynamics_paused_ = std::get<0>(models_).DynamicsArePaused();
+    }
 };
 
 }   // namespace gtfo

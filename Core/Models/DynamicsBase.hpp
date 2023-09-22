@@ -52,11 +52,11 @@ public:
     // bounds than the target model, the updated state is modified to satisfy the bounds. This may result in
     // discontinuities in the state if the target state is out of bounds
     virtual void SyncSystemTo(const DynamicsBase& model){
-        this->SetPositionAndVelocity(model.GetPosition(), model.GetVelocity(), false);
         acceleration_ = model.acceleration_;
         dynamics_paused_ = model.dynamics_paused_;
         soft_bound_restoring_force_ = model.soft_bound_restoring_force_;
         old_position_ = model.old_position_;
+        this->SetPositionAndVelocity(model.GetPosition(), model.GetVelocity(), false);
     }
 
     // Virtual function to be implemented by the subclass. The function should
@@ -76,7 +76,7 @@ public:
         }
 
         // Any modifications to the input force happen first
-        const VectorN modified_force = force_premodifier_ ? force_premodifier_(force_input, *this) : force_input;
+        const VectorN modified_force = PremodifyForce(force_input);
 
         // Dynamics are propagated with the modified and soft bound restoring forces
         soft_bound_restoring_force_ = this->EnforceSoftBound();
@@ -91,6 +91,14 @@ public:
 
     void SetForcePremodifier(const std::function<VectorN(const VectorN&, const DynamicsBase<Dimensions, Scalar>&)>& force_premodifier){
         force_premodifier_ = force_premodifier;
+    }
+
+    VectorN PremodifyForce(const VectorN& force_input) {
+        if(force_premodifier_){
+            return force_premodifier_(force_input, *this);
+        } else{
+            return force_input;
+        }
     }
 
     virtual void PauseDynamics(const bool& pause){
@@ -223,6 +231,18 @@ public:
             this->EnforceHardBound();
             this->EnforceVelocityLimit();
         }
+    }
+
+    void SetOldPosition(const VectorN& old_position){
+        old_position_ = old_position;
+    }
+
+    void SetAcceleration(const VectorN& acceleration){
+        acceleration_ = acceleration;
+    }
+
+    void SetSoftBoundRestoringForce(const VectorN& soft_bound_restoring_force){
+        soft_bound_restoring_force_ = soft_bound_restoring_force;
     }
 
 protected:
