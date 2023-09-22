@@ -4,6 +4,9 @@
 //----------------------------------------------------------------------------------------------------
 #pragma once
 
+// Standard libraries includes
+#include <memory>
+
 // Third-party dependencies
 #include <Eigen/Dense>
 
@@ -17,9 +20,15 @@ template <unsigned int Dimensions, typename Scalar = double>
 class BoundBase {
 public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
+    using BoundPtr = std::shared_ptr<BoundBase>;
 
     BoundBase(const Scalar& tol = GTFO_EQUALITY_COMPARISON_TOLERANCE) : tol_(tol) {}
     BoundBase(const BoundBase& other) = default;
+
+    // Deep copy functionality
+    [[nodiscard]] virtual BoundPtr DeepCopy(void) const {
+        return std::make_shared<BoundBase>(*this);
+    }
 
     // Returns whether the given point is contained in the bound
     [[nodiscard]] virtual bool Contains(const VectorN& point) const {

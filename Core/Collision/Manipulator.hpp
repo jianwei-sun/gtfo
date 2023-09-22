@@ -72,10 +72,10 @@ public:
         const VirtualVector constrained_virtual_velocity = joint_to_virtual_(GetSafeJointSpaceVelocity(virtual_to_joint_(velocity)));
         if(!IsEqual(constrained_virtual_velocity, velocity)){
             const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
-            model_ptr_->SetPositionAndVelocity(
+            model_ptr_->SetState(
                 position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal,
-                constrained_virtual_velocity,
-                false);
+                constrained_virtual_velocity
+            );
         }
     }
 

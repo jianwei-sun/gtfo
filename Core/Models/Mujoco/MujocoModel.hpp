@@ -82,7 +82,7 @@ public:
 
         // Set the initial position
         for(size_t i = 0; i < Dimensions; ++i){
-            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
+            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(initial_position[i]);
         }
     }
 
@@ -115,6 +115,8 @@ public:
             return *this;
         }
 
+        Base::operator=(other);
+
         mj_deleteModel(model_);
         mj_deleteData(data_);
         
@@ -132,6 +134,8 @@ public:
         if(this == &other){
             return *this;
         }
+
+        Base::operator=(other);
 
         mj_deleteModel(model_);
         mj_deleteData(data_);
@@ -153,39 +157,21 @@ public:
         mj_deleteData(data_);
     }
 
-    void SyncSystemTo(const Base& model) override{
-        Base::SyncSystemTo(model);
-        for(size_t i = 0; i < Dimensions; ++i){
-            *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
-            *(data_->qvel + velocity_offsets_[i]) = static_cast<mjtNum>(Base::velocity_[i]);
-            *(data_->qacc + velocity_offsets_[i]) = static_cast<mjtNum>(Base::acceleration_[i]);
-        }
-    }
-
     void PropagateDynamics(const VectorN& force_input) override{
+        // Copy the gtfo state into Mujoco's state
         for(size_t i = 0; i < Dimensions; ++i){
             *(data_->qpos + position_offsets_[i]) = static_cast<mjtNum>(Base::position_[i]);
             *(data_->qvel + velocity_offsets_[i]) = static_cast<mjtNum>(Base::velocity_[i]);
             *(data_->qacc + velocity_offsets_[i]) = static_cast<mjtNum>(Base::acceleration_[i]);
-        }
-
-        // Compute all intermediate results dependent on the state, but not the control
-        // Note that by using mj_step1 and mj_step2, the integrator must be the default Euler
-        mj_step1(model_, data_);
-
-        // Update the state variables
-        for(size_t i = 0; i < Dimensions; ++i){
-            Base::position_[i] = static_cast<Scalar>(*(data_->qpos + position_offsets_[i]));
-            Base::velocity_[i] = static_cast<Scalar>(*(data_->qvel + velocity_offsets_[i]));
         }
 
         // Apply the control
-        MujocoVectorN::Map(data_->ctrl) = (force_input + this->EnforceSoftBound()).template cast<mjtNum>();
+        MujocoVectorN::Map(data_->ctrl) = force_input.template cast<mjtNum>();
 
-        // Finish computing results that depend on the control input
-        mj_step2(model_, data_);
+        // Step the model
+        mj_step(model_, data_);
 
-        // Update the state variables after the second step
+        // Copy the updated state variables back
         for(size_t i = 0; i < Dimensions; ++i){
             Base::position_[i] = static_cast<Scalar>(*(data_->qpos + position_offsets_[i]));
             Base::velocity_[i] = static_cast<Scalar>(*(data_->qvel + velocity_offsets_[i]));

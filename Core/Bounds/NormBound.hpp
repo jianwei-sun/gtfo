@@ -13,6 +13,7 @@ template <unsigned int Dimensions, typename Scalar = double>
 class NormBound : public BoundBase<Dimensions, Scalar>{
 public:
     using Base = BoundBase<Dimensions, Scalar>;
+    using BoundPtr = std::shared_ptr<Base>;
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
     NormBound(const Scalar &radius, const VectorN &center = VectorN::Zero(), const Scalar &tol = GTFO_EQUALITY_COMPARISON_TOLERANCE)
@@ -21,6 +22,10 @@ public:
           center_(center)
     {
         assert(radius >= 0.0);
+    }
+
+    [[nodiscard]] BoundPtr DeepCopy(void) const override {
+        return std::make_shared<NormBound>(*this);
     }
 
     [[nodiscard]] bool Contains(const VectorN& point) const override {
