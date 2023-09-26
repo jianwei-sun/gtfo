@@ -437,7 +437,7 @@ TEST(ManifoldConstraintsTest, RotatedEllipticalPathConstraint)
     system.SetForcePremodifier([&](const VectorN& force, const gtfo::DynamicsBase<state_dimension>& system){
        return surface_constraint.Step(force, system.GetPosition(), system.GetVelocity());
     });
-    system.SetPositionAndVelocity(initial_position, initial_velocity);
+    system.SetState(initial_position, initial_velocity);
 
     // Step multiple iterations with external force and check if point goes to, and remains on, the elliptical path
     for(unsigned i = 0; i < trials; ++i){
