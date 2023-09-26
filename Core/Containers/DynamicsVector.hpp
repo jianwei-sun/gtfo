@@ -45,7 +45,7 @@ public:
     // Step calls the corresponding Step function on each of the models
     void Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{      
         // Any modifications to the input force happen first
-        const VectorN modified_force = PremodifyForce(force_input);
+        const VectorN modified_force = Base::PremodifyForce(force_input);
 
         std::apply([&](Models&... models){
             // Index is used to keep track of where each model's dimensions begin in the concatenated VectorN
