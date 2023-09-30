@@ -7,6 +7,7 @@
 // Standard libraries includes
 #include <string>
 #include <array>
+#include <iostream>
 
 // Third-party dependencies
 #include <mujoco/mujoco.h>
@@ -24,10 +25,10 @@ public:
     using MujocoVectorN = Eigen::Matrix<mjtNum, Dimensions, 1>;
 
     // group_id should match the group field for each joint in the XML
-    MujocoModel(const std::string& model_file, const int& group_id, const Scalar& timestep, const VectorN& initial_position = VectorN::Zero())
-        :   Base(initial_position),
-            model_(nullptr),
-            data_(nullptr)
+    MujocoModel(const std::string &model_file, const int &group_id, const Scalar &timestep, const VectorN &initial_position = VectorN::Zero())
+        : Base(initial_position),
+          model_(nullptr),
+          data_(nullptr)
     {
         // Ensure header and compiled library versions match
         assert(mjVERSION_HEADER == mj_version());
@@ -177,6 +178,12 @@ public:
             Base::velocity_[i] = static_cast<Scalar>(*(data_->qvel + velocity_offsets_[i]));
             Base::acceleration_[i] = static_cast<Scalar>(*(data_->qacc + velocity_offsets_[i]));
         }
+    }
+
+    // Getter for data
+    mjData *GetData()
+    {
+        return this->data_;
     }
 
 private:
