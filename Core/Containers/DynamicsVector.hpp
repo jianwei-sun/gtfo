@@ -111,7 +111,7 @@ public:
     }
 
     [[nodiscard]] bool DynamicsArePaused(void) const override{
-        bool dynamics_paused = false;
+        bool dynamics_paused = true;
         std::apply([&](const Models&... models){
             size_t index = 0;
             ([&]{
