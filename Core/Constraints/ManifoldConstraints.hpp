@@ -47,7 +47,7 @@ public:
     // Tranversal control
     using TransversalGain = Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension>;
 
-    ManifoldConstraints()
+    ManifoldConstraints(const Scalar &gamma = 1.0)
         : f_bottom_half_(nullptr),
           g_bottom_half_(nullptr),
           constraint_function_(nullptr),
@@ -55,13 +55,16 @@ public:
           constraint_function_hessian_slices_{},
           transversal_gain_(TransversalGain::Zero()),
           transversal_state_(Eigen::Matrix<Scalar, 2, ConstraintDimension>::Zero()),
+          gamma_(gamma),
           transversal_control_force_(VectorN::Zero()),
           tangential_force_(VectorN::Zero()),
           enable_(true)
-    {}
+    {
+        assert(!isnan(gamma_) && gamma_ >= 0 && gamma_ <= 1.0);
+    }
 
     // Calculate on each iteration after constraint function and gains have been set to create the new forces
-    VectorN Step(const VectorN &force, const VectorN &position, const VectorN &velocity, const Scalar &gamma = 1)
+    VectorN Step(const VectorN &force, const VectorN &position, const VectorN &velocity)
     {
         // When callbacks are unset, Step just passes through forces
         if (!enable_ || !constraint_function_ || !f_bottom_half_){
@@ -98,7 +101,7 @@ public:
         tangential_force_ = force;
         for(unsigned int i = 0; i < ConstraintDimension; ++i){
             if(row_is_nonzero[i]){
-                modified_force += pinv_decoupling_matrix.col(i) * (-gamma * decoupling_matrix.row(i) * force + sgn(gamma) * (transversal_control[i] - affine_term[i]));
+                modified_force += pinv_decoupling_matrix.col(i) * (-gamma_ * decoupling_matrix.row(i) * force + sgn(gamma_) * (transversal_control[i] - affine_term[i]));
                 transversal_control_force_ += pinv_decoupling_matrix.col(i) * (transversal_control[i] - affine_term[i]);
                 tangential_force_ += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force);
             }
@@ -148,6 +151,11 @@ public:
         return this->transversal_state_;
     }
 
+    [[nodiscard]] Scalar getGamma() const
+    {
+        return gamma_;
+    }
+
     void UpdateConstraintFunction(const ConstraintFunction& constraint_function){
         constraint_function_ = constraint_function;
     }
@@ -174,6 +182,9 @@ private:
     // Tranversal control
     TransversalGain transversal_gain_;
     Eigen::Matrix<Scalar, 2, ConstraintDimension> transversal_state_;
+
+    // Constraint strength
+    Scalar gamma_;
 
     // Modified forces
     VectorN transversal_control_force_;
