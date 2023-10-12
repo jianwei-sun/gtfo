@@ -46,6 +46,7 @@ public:
 
     // Tranversal control
     using TransversalGain = Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension>;
+    using TransversalState = Eigen::Matrix<Scalar, 2, ConstraintDimension>;
 
     ManifoldConstraints(const Scalar &gamma = 1.0)
         : f_bottom_half_(nullptr),
@@ -53,8 +54,10 @@ public:
           constraint_function_(nullptr),
           constraint_function_gradient_(nullptr),
           constraint_function_hessian_slices_{},
-          transversal_gain_(TransversalGain::Zero()),
-          transversal_state_(Eigen::Matrix<Scalar, 2, ConstraintDimension>::Zero()),
+          transversal_controller_([](const TransversalState& transversal_state){
+            return VectorK(VectorK::Zero());
+        }),
+          transversal_state_(TransversalState::Zero()),
           gamma_(gamma),
           transversal_control_force_(VectorN::Zero()),
           tangential_force_(VectorN::Zero()),
@@ -89,8 +92,8 @@ public:
 
         // Form the transversal state and compute its stabilizing control. 
         // Note transversal state is in the form [h_i; Lfh_i], so we need to interleave the constraint function and its Lie derivative
-        transversal_state_ = (Eigen::Matrix<Scalar, 2, ConstraintDimension>() << constraint_function_(position).transpose(), (constraint_function_gradient * velocity).transpose()).finished();
-        const VectorK transversal_control = -transversal_gain_ * Vector2K::Map(transversal_state_.data());
+        transversal_state_ = (TransversalState() << constraint_function_(position).transpose(), (constraint_function_gradient * velocity).transpose()).finished();
+        const VectorK transversal_control = transversal_controller_(transversal_state_);
 
         // Some rows of the decoupling matrix are zero, but may not appear so due to precision. 
         const MatrixNK pinv_decoupling_matrix = decoupling_matrix.completeOrthogonalDecomposition().pseudoInverse();
@@ -126,14 +129,22 @@ public:
     // Transversal gain in the general case where the whole matrix is entered. This is for when the gains are different in each constraint coordinate
     void SetTransversalGain(const Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension>& transversal_gain){
         assert((transversal_gain.array() >= 0).all());
-        transversal_gain_ = transversal_gain;
+        SetTransversalController([transversal_gain](const TransversalState& transversal_state){
+            return VectorK(-transversal_gain * Vector2K::Map(transversal_state.data()));
+        });
     }
 
     // Transversal Gain when the gains are similar for all constraint coordinates
     template<bool ConstraintDimensionGreaterThanOne = (ConstraintDimension > 1)>
     void SetTransversalGain(const std::enable_if_t<ConstraintDimensionGreaterThanOne, Eigen::Matrix<Scalar, 1, 2>>& transversal_gain_i){
         assert((transversal_gain_i.array() >= 0).all());
-        transversal_gain_ = Eigen::kroneckerProduct(Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
+        const Eigen::Matrix<Scalar, ConstraintDimension, 2*ConstraintDimension> transversal_gain = Eigen::kroneckerProduct(Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
+        SetTransversalGain(transversal_gain);
+    }
+
+    // Sets a transversal control law
+    void SetTransversalController(const std::function<VectorK(const TransversalState&)>& transversal_controller){
+        transversal_controller_ = transversal_controller;
     }
 
     [[nodiscard]] VectorN getTangentialForce() const
@@ -146,7 +157,7 @@ public:
         return this->transversal_control_force_;
     }
 
-    [[nodiscard]] Eigen::Matrix<Scalar, 2, ConstraintDimension> getTransversalState() const
+    [[nodiscard]] TransversalState getTransversalState() const
     {
         return this->transversal_state_;
     }
@@ -180,8 +191,8 @@ private:
     std::array<ConstraintFunctionHessianSlice, ConstraintDimension> constraint_function_hessian_slices_;
 
     // Tranversal control
-    TransversalGain transversal_gain_;
-    Eigen::Matrix<Scalar, 2, ConstraintDimension> transversal_state_;
+    std::function<VectorK(const TransversalState&)> transversal_controller_;
+    TransversalState transversal_state_;
 
     // Constraint strength
     Scalar gamma_;
