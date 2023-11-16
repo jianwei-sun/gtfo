@@ -15,8 +15,7 @@
 #include <Eigen/QR>
 
 // Project-specific
-#include "../Utils/Constants.hpp"
-#include "../Utils/Comparisons.hpp"
+#include "../Core/Utils/Constants.hpp"
 
 namespace gtfo{
 template<unsigned int StateDimension, unsigned int ConstraintDimension, typename Scalar = double>
