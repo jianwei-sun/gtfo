@@ -19,22 +19,23 @@
 
 namespace gtfo{
 
-template<unsigned int Dimensions, typename Scalar = double>
+template<unsigned int Dimensions, typename Scalar = double, unsigned int PositionDimensions = Dimensions>
 class DynamicsBase{
 public:
     static_assert(Dimensions > 0, "Dimensions must be at least 1.");
     static_assert(std::is_floating_point_v<Scalar>, "Template argument Scalar must be a floating-point type.");
 
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
+    using VectorP = Eigen::Matrix<Scalar, PositionDimensions, 1>;
     using Bound = BoundBase<Dimensions, Scalar>;
     using BoundPtr = std::shared_ptr<Bound>;
 
     const static unsigned int Dimension = Dimensions; 
     using ScalarType = Scalar;
 
-    DynamicsBase(const VectorN& initial_position = VectorN::Zero())
+    DynamicsBase(const VectorP& initial_position = VectorP::Zero())
         :   position_(initial_position),
-            old_position_(VectorN::Zero()),
+            old_position_(VectorP::Zero()),
             velocity_(VectorN::Zero()),
             acceleration_(VectorN::Zero()),
             dynamics_paused_(false),
@@ -50,7 +51,7 @@ public:
     // update the position, velocity, and acceleration states
     virtual void PropagateDynamics(const VectorN& force_input) = 0;
 
-    virtual void Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
+    virtual void Step(const VectorN& force_input, const VectorP& physical_position = VectorP::Constant(NAN)){
         // Store a history of the position
         old_position_ = position_;
 
@@ -77,11 +78,11 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------------
-    [[nodiscard]] virtual inline VectorN GetPosition(void) const{
+    [[nodiscard]] virtual inline VectorP GetPosition(void) const{
         return position_;
     }
 
-    [[nodiscard]] virtual inline VectorN GetOldPosition(void) const{
+    [[nodiscard]] virtual inline VectorP GetOldPosition(void) const{
         return old_position_;
     }
 
@@ -110,7 +111,7 @@ public:
         );
     }
 
-    virtual void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused){
+    virtual void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused){
         position_ = position;
         old_position_ = old_position;
         velocity_ = velocity;
@@ -119,7 +120,7 @@ public:
         EnforceStateConstraints();
     }
 
-    virtual void SetState(const VectorN& position, const VectorN& velocity, const VectorN& acceleration = VectorN::Zero()){
+    virtual void SetState(const VectorP& position, const VectorN& velocity, const VectorN& acceleration = VectorN::Zero()){
         position_ = position;
         velocity_ = velocity;
         acceleration_ = acceleration;
@@ -134,7 +135,9 @@ public:
     // Main function for enforcing all hard limits for states, which may result in discontinuous dynamics
     // TODO: Update with collision avoidance constraints
     void EnforceStateConstraints(void){
-        EnforceHardBound();
+        if constexpr(Dimensions == PositionDimensions){
+            EnforceHardBound();
+        }
         EnforceVelocityLimit();
     }
 
@@ -144,8 +147,10 @@ public:
     }
 
     // Hard bound logic modifies position_, velocity_, and acceleration_. This function
-    // should be called after the variables have been updated by Step
-    void EnforceHardBound(void){
+    // should be called after the variables have been updated by Step. Bounds are only
+    // available when the state space is Euclidean
+    template<bool Euclidean = (Dimensions == PositionDimensions)>
+    std::enable_if_t<Euclidean, void> EnforceHardBound(void){
         position_ = hard_bound_->GetNearestPointWithinBound(position_);
         const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
         if(surface_normals.HasPositiveDotProductWith(velocity_)){
@@ -166,8 +171,10 @@ public:
 
     // Since the soft bound only computes a restoring force, it should not modify the position
     // or velocity states. It should typically be called before Step updates position and
-    // velocity so that the restoring force can be used in Step
-    [[nodiscard]] VectorN EnforceSoftBound(void){
+    // velocity so that the restoring force can be used in Step. Bounds are only available
+    // when the state space is Euclidean
+    template<bool Euclidean = (Dimensions == PositionDimensions)>
+    [[nodiscard]] std::enable_if_t<Euclidean, VectorN> EnforceSoftBound(void){
         // Find your surface normals to so we can see if we are moving towards bounds or away
         const auto surface_normals = soft_bound_->GetSurfaceNormals(soft_bound_->GetNearestPointWithinBound(position_));
 
@@ -218,8 +225,8 @@ public:
 
 protected:
     // Addition states can be added by subclasses, but they should handle their updating
-    VectorN position_;
-    VectorN old_position_;
+    VectorP position_;
+    VectorP old_position_;
     VectorN velocity_;
     VectorN acceleration_;
 
