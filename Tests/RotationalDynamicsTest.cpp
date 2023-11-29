@@ -58,3 +58,14 @@ TEST(RotationalDynamicsTest, Damping)
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector3d::Zero()));
     EXPECT_NEAR(system.GetOrientation().norm(), 1.0, 1e-15);
 }
+
+TEST(RotationalDynamicsTest, SmallAngleApproximation)
+{
+    gtfo::RotationSecondOrder<double> system(0.01, Eigen::Vector3d::Ones(), 0.0);
+    for(unsigned i = 0; i < 10000; ++i){
+        system.Step(Eigen::Vector3d(0.001, 0, 0));
+    }
+    EXPECT_NEAR(system.GetOrientation().norm(), 1.0, 1e-15);
+    EXPECT_NEAR(system.GetOrientation().y(), 0.0, 1e-15);
+    EXPECT_NEAR(system.GetOrientation().z(), 0.0, 1e-15);
+}
