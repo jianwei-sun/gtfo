@@ -54,26 +54,23 @@ public:
         )).eval();
 
         // Current position interpreted as an orientation
-        Quaternion& orientation = Eigen::Map<Quaternion>(Base::position_.data());
+        const Quaternion orientation(Base::position_.data());
 
-        // Assume the angular velocity is constant over the period and integrate it to get a delta position.
-        // Then, apply the delta transformation to update the body orientation
-        const Scalar speed = Base::velocity_.norm();
-        if(speed >= GTFO_EQUALITY_COMPARISON_TOLERANCE){
-            const Scalar angle = 0.5 * speed * dt_;
-            const Scalar scale = std::sin(angle) / speed;
-            const Quaternion delta(std::cos(angle), scale * Base::velocity_[0], scale * Base::velocity_[1], scale * Base::velocity_[2]);
-            orientation = (delta * orientation).normalized().eval();
-        }
+        // Integrate angular velocity over period to get a delta position transformation in axis-angle format
+        // Then, convert to a delta quaternion, using sin(x)/x being approximately 1 for small angles
+        const Scalar angle = Base::velocity_.norm() * dt_;
+        const Scalar scale = (angle >= GTFO_EQUALITY_COMPARISON_TOLERANCE) ? std::sin(angle / 2) / angle : 0.5;
+        const Quaternion delta(std::cos(angle / 2), Base::velocity_[0] * scale, Base::velocity_[1] * scale, Base::velocity_[2] * scale);
+        Base::position_ = (delta * orientation).normalized().coeffs();
 
         // The following coarser approximation may work well for small timestamps.
         // TODO: compare the two approaches
-        // orientation = (orientation + 0.5 * orientation * Base::velocity_ * dt_).normalized().eval();
+        // Base::position_ = (orientation + 0.5 * orientation * Base::velocity_ * dt_).normalized().coeffs();
     }
 
     // Calling GetPosition returns the quaternion as a Vector4
     [[nodiscard]] inline Quaternion GetOrientation(void) const{
-        return Eigen::Map<Quaternion>(Base::position_.data());
+        return Quaternion(Base::position_.data());
     }
 
 private:
