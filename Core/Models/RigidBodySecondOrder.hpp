@@ -54,9 +54,8 @@ public:
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
     using Base = DynamicsVector<PointMassSecondOrder<3, Scalar>, RotationSecondOrder<Scalar>>;
     using PositionBound = BoundBase<3, Scalar>;
-    using Pose = Pose<Scalar>;
 
-    RigidBodySecondOrder(const Scalar& dt, const Scalar& mass, const Vector3& principal_inertia, const Scalar& translational_damping, const Scalar& rotational_damping, const Pose& initial_pose = Pose::Identity())
+    RigidBodySecondOrder(const Scalar& dt, const Scalar& mass, const Vector3& principal_inertia, const Scalar& translational_damping, const Scalar& rotational_damping, const Pose<Scalar>& initial_pose = Pose<Scalar>::Identity())
         :   Base(
                 PointMassSecondOrder<3, Scalar>(
                     SecondOrderParameters<Scalar>(
@@ -68,7 +67,7 @@ public:
             )
     {}
 
-    [[nodiscard]] Pose GetPose(void) const{
+    [[nodiscard]] Pose<Scalar> GetPose(void) const{
         return Pose(GetPosition(), GetOrientation());
     }
 
