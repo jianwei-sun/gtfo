@@ -61,7 +61,7 @@ public:
         const Scalar angle = Base::velocity_.norm() * dt_;
         const Scalar scale = (angle >= GTFO_EQUALITY_COMPARISON_TOLERANCE) ? std::sin(angle / 2) / angle : 0.5;
         const Quaternion delta(std::cos(angle / 2), Base::velocity_[0] * scale, Base::velocity_[1] * scale, Base::velocity_[2] * scale);
-        Base::position_ = (delta * orientation).normalized().coeffs();
+        Base::position_ = (orientation * delta).normalized().coeffs();
 
         // The following coarser approximation may work well for small timestamps.
         // TODO: compare the two approaches
