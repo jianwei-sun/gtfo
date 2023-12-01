@@ -12,7 +12,7 @@ TEST(RotationalDynamicsTest, QuaternionStorage)
     EXPECT_NEAR(system.GetOrientation().angularDistance(quaternion), 0.0, 1e-15);
 }
 
-TEST(RotationalDynamicsTest, RightAngleRotation)
+TEST(RotationalDynamicsTest, RotateAround)
 {
     // System starts at the identity
     gtfo::RotationSecondOrder<double> system(1.0, Eigen::Vector3d::Ones(), 0.0);
@@ -37,6 +37,23 @@ TEST(RotationalDynamicsTest, RightAngleRotation)
     system.Step(-Eigen::Vector3d::UnitX() * M_PI_2);
     EXPECT_NEAR(system.GetOrientation().norm(), 1.0, 1e-15);
     EXPECT_NEAR(system.GetOrientation().angularDistance(Eigen::Quaterniond::Identity()), 0.0, 1e-15);
+    EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector3d::Zero()));
+}
+
+TEST(RotationalDynamicsTest, RightAngleRotations)
+{
+    gtfo::RotationSecondOrder<double> system(1.0, Eigen::Vector3d::Ones(), 0.0);
+
+    // Rotate 90 degrees about X and stop
+    system.Step(Eigen::Vector3d::UnitX() * M_PI_2);
+    system.Step(-Eigen::Vector3d::UnitX() * M_PI_2);
+    EXPECT_TRUE(gtfo::IsEqual(system.GetOrientation().coeffs(), Eigen::Vector4d(std::sqrt(2) / 2, 0, 0, std::sqrt(2) / 2)));
+    EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector3d::Zero()));
+
+    // Now rotate 90 degrees about the body Y and stop
+    system.Step(Eigen::Vector3d::UnitY() * M_PI_2);
+    system.Step(-Eigen::Vector3d::UnitY() * M_PI_2);
+    EXPECT_TRUE(gtfo::IsEqual(system.GetOrientation().coeffs(), Eigen::Vector4d(0.5, 0.5, 0.5, 0.5)));
     EXPECT_TRUE(gtfo::IsEqual(system.GetVelocity(), Eigen::Vector3d::Zero()));
 }
 
