@@ -16,16 +16,21 @@
 namespace gtfo{
 
 template <typename... Models>
-class DynamicsSelector : public DynamicsBase<std::tuple_element<0, std::tuple<Models...>>::type::Dimension, typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType>{
+class DynamicsSelector : public DynamicsBase<
+    std::tuple_element<0, std::tuple<Models...>>::type::Dimension, 
+    typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType, 
+    std::tuple_element<0, std::tuple<Models...>>::type::PositionDimension>{
 public:
     using Scalar = typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType;
-    using Base = DynamicsBase<std::tuple_element<0, std::tuple<Models...>>::type::Dimension, Scalar>;
-    using Bound = BoundBase<std::tuple_element<0, std::tuple<Models...>>::type::Dimension, Scalar>;
+    using Base = DynamicsBase<std::tuple_element<0, std::tuple<Models...>>::type::Dimension, Scalar, std::tuple_element<0, std::tuple<Models...>>::type::PositionDimension>;
+    using Bound = BoundBase<std::tuple_element<0, std::tuple<Models...>>::type::PositionDimension, Scalar>;
     using VectorN = typename Base::VectorN;
+    using VectorP = typename Base::VectorP;
 
     static_assert(std::conjunction_v<std::is_base_of<Base, Models>...>, "Models must inherit from DynamicsBase");
     static_assert(std::conjunction_v<std::is_same<Scalar, typename Models::ScalarType>...>, "Models must have the same Scalar type");
     static_assert(((Base::Dimension == Models::Dimension) && ...), "Models must have the same dimension");
+    static_assert(((Base::PositionDimension == Models::PositionDimension) && ...), "Models must have the same position dimension");
 
     // Constructs a DynamicsSelector with the models passed in as arguments. Each model must inherit from DynamicsBase and have dimension equal to that of DynamicsSelector
     DynamicsSelector(const Models&... models)
@@ -40,15 +45,15 @@ public:
     }
 
     // Step ensures that only the dynamics of the selected model are propagated
-    void Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{     
+    void Step(const VectorN& force_input, const VectorP& physical_position = VectorP::Constant(NAN)) override{     
         GetActiveModel()->Step(force_input, physical_position);
     }
 
-    [[nodiscard]] VectorN GetPosition(void) const override{
+    [[nodiscard]] VectorP GetPosition(void) const override{
         return GetActiveModel()->GetPosition();
     }
 
-    [[nodiscard]] VectorN GetOldPosition(void) const override{
+    [[nodiscard]] VectorP GetOldPosition(void) const override{
         return GetActiveModel()->GetOldPosition();
     }
 
@@ -64,7 +69,7 @@ public:
         return GetActiveModel()->DynamicsArePaused();
     }
 
-    void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
+    void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
         GetActiveModel()->SetFullState(
             position, 
             old_position,
@@ -74,7 +79,7 @@ public:
         );
     }
 
-    void SetState(const VectorN& position, const VectorN& velocity, const VectorN& acceleration) override{
+    void SetState(const VectorP& position, const VectorN& velocity, const VectorN& acceleration) override{
         GetActiveModel()->SetState(position, velocity, acceleration);
     }
 
