@@ -35,6 +35,7 @@ public:
     using PositionBoundPtr = std::shared_ptr<PositionBound>;
 
     const static unsigned int Dimension = Dimensions; 
+    const static unsigned int PositionDimension = PositionDimensions; 
     const static bool Euclidean = (Dimensions == PositionDimensions);
 
     using ScalarType = Scalar;
