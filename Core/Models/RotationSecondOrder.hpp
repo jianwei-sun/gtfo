@@ -9,7 +9,7 @@
 
 // Project-specific
 #include "DynamicsBase.hpp"
-
+#include "../Utils/UtilityFunctions.hpp"
 namespace gtfo
 {
 
@@ -56,11 +56,10 @@ public:
         // Current position interpreted as an orientation
         const Quaternion orientation(Base::position_.data());
 
-        // Integrate angular velocity over period to get a delta position transformation in axis-angle format
-        // Then, convert to a delta quaternion, using sin(x)/x being approximately 1 for small angles
-        const Scalar angle = Base::velocity_.norm() * dt_;
-        const Scalar scale = (angle >= GTFO_EQUALITY_COMPARISON_TOLERANCE) ? std::sin(angle / 2) / angle : 0.5;
-        const Quaternion delta(std::cos(angle / 2), Base::velocity_[0] * scale, Base::velocity_[1] * scale, Base::velocity_[2] * scale);
+        // Integrate angular velocity to get a delta quaternion transformation
+        const Scalar half_angle = 0.5 * dt_ * Base::velocity_.norm();
+        const Scalar scale = 0.5 * dt_ * sinc(half_angle);
+        const Quaternion delta(std::cos(half_angle), Base::velocity_[0] * scale, Base::velocity_[1] * scale, Base::velocity_[2] * scale);
         Base::position_ = (orientation * delta).normalized().coeffs();
     }
 
