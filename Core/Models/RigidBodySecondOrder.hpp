@@ -24,6 +24,11 @@ public:
             orientation_(orientation)
     {}
 
+    Pose(const Eigen::Matrix<Scalar, 7, 1>& coeffs)
+        :   position_(coeffs.template head<3>()),
+            orientation_(coeffs.template tail<4>())
+    {}
+
     static Pose Identity(void){
         return Pose(Position::Zero(), Orientation::Identity());
     }
@@ -40,6 +45,12 @@ public:
         return (Eigen::Matrix<Scalar, 4, 4>() <<
             orientation_.toRotationMatrix(), position_.transpose(),
             Eigen::RowVector<Scalar, 4>::UnitW()
+        ).finished();
+    }
+
+    [[nodiscard]] Eigen::Matrix<Scalar, 7, 1> coeffs(void) const{
+        return (Eigen::Matrix<Scalar, 7, 1>() << 
+            position_, orientation_.coeffs()
         ).finished();
     }
 
@@ -68,15 +79,7 @@ public:
     {}
 
     [[nodiscard]] Pose<Scalar> GetPose(void) const{
-        return Pose(GetPosition(), GetOrientation());
-    }
-
-    [[nodiscard]] Vector3 GetPosition(void) const{
-        return Base::template GetModel<0>().GetPosition();
-    }
-
-    [[nodiscard]] Vector3 GetOrientation(void) const{
-        return Base::template GetModel<1>().GetOrientation();
+        return Pose(GetPosition());
     }
 
     void SetPositionHardBound(const PositionBound& bound){
