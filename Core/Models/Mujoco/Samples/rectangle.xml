@@ -1,0 +1,30 @@
+<mujoco>
+    <compiler angle="radian"/>
+    <option timestep="0.01" gravity="0 0 0"/>
+
+    <worldbody>
+      <body pos="0 0 0" quat="1 0 0 0">
+        <inertial pos="0 0 0" xyaxes="1 0 0 0 1 0" mass="1.5" diaginertia="0.3 0.4 0.5"/>
+
+        <joint name="trans_x" type="slide" axis="1 0 0" damping="5"/>
+        <joint name="trans_y" type="slide" axis="0 1 0" damping="5"/>
+        <joint name="trans_z" type="slide" axis="0 0 1" damping="5"/>
+
+        <joint name="rot_x" type="hinge" axis="1 0 0" damping="2"/>
+        <joint name="rot_y" type="hinge" axis="0 1 0" damping="2"/>
+        <joint name="rot_z" type="hinge" axis="0 0 1" damping="2"/>
+
+        <geom type="box" size=".3 .2 .1" rgba="0.9 0 0 1"/>
+      </body>
+    </worldbody>
+
+    <actuator>
+        <motor name="trans_x" joint="trans_x"/>
+        <motor name="trans_y" joint="trans_y"/>
+        <motor name="trans_z" joint="trans_z"/>
+
+        <motor name="rot_x" joint="rot_x"/>
+        <motor name="rot_y" joint="rot_y"/>
+        <motor name="rot_z" joint="rot_z"/>
+    </actuator>
+</mujoco>
