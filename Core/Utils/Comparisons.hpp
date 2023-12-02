@@ -19,9 +19,4 @@ template <typename DerivedA, typename DerivedB>
     return ((a.derived() - b.derived()).array().abs() <= tol).all();
 }
 
-template <typename Scalar> 
-int sgn(Scalar val) {
-    return (Scalar(0) < val) - (val < Scalar(0));
-}
-
 }   // namespace gtfo
