@@ -9,7 +9,7 @@
 
 // Project-specific
 #include "DynamicsBase.hpp"
-#include "../Utils/UtilityFunctions.hpp"
+#include "../Utils/Functions.hpp"
 namespace gtfo
 {
 
@@ -57,8 +57,8 @@ public:
         const Quaternion orientation(Base::position_.data());
 
         // Integrate angular velocity to get a delta quaternion transformation
-        const Scalar half_angle = 0.5 * dt_ * Base::velocity_.norm();
-        const Scalar scale = 0.5 * dt_ * sinc(half_angle);
+        const Scalar half_angle = Scalar(0.5) * dt_ * Base::velocity_.norm();
+        const Scalar scale = Scalar(0.5) * dt_ * sinc(half_angle);
         const Quaternion delta(std::cos(half_angle), Base::velocity_[0] * scale, Base::velocity_[1] * scale, Base::velocity_[2] * scale);
         Base::position_ = (orientation * delta).normalized().coeffs();
     }

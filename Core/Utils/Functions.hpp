@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------
-// File: UtiiltyFunctions.hpp
+// File: Functions.hpp
 // Desc: Utility class for math and simple functions
 //----------------------------------------------------------------------------------------------------
 #pragma once
@@ -21,7 +21,7 @@ int sgn(const Scalar& x) {
 template<typename Scalar>
 Scalar sinc(const Scalar& x){
     if(std::abs(x) < GTFO_EQUALITY_COMPARISON_TOLERANCE){
-        return 1.0 - x * x / 6.0;
+        return Scalar(1.0) - x * x / Scalar(6.0);
     } else{
         return std::sin(x) / x;
     }
