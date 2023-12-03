@@ -25,9 +25,9 @@
 #include "../Core/Filters/ButterworthLowPassFilter.hpp"
 #include "../Core/Filters/RateLimiter.hpp"
 
-#include "../Core/Collision/Segment.hpp"
-#include "../Core/Collision/Manipulator.hpp"
-#include "../Core/Collision/Obstacle.hpp"
-#include "../Core/Collision/Scene.hpp"
+#include "../Collision/Segment.hpp"
+#include "../Collision/Manipulator.hpp"
+#include "../Collision/Obstacle.hpp"
+#include "../Collision/Scene.hpp"
 
-#include "../Core/Constraints/ManifoldConstraints.hpp"
+#include "../Constraints/ManifoldConstraints.hpp"

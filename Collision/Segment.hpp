@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 
 // Project-specific
-#include "../Utils/Comparisons.hpp"
+#include "../Core/Utils/Comparisons.hpp"
 
 namespace gtfo{
 namespace collision{
