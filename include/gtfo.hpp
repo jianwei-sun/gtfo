@@ -7,7 +7,7 @@
 #include "../Core/Utils/ClosestVector.hpp"
 #include "../Core/Utils/Constants.hpp"
 #include "../Core/Utils/Comparisons.hpp"
-#include "../Core/Utils/UtilityFunctions.hpp"
+#include "../Core/Utils/Functions.hpp"
 #include "../Core/Utils/Containers.hpp"
 
 #include "../Core/Models/PointMassFirstOrder.hpp"

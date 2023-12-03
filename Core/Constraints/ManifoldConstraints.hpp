@@ -16,7 +16,7 @@
 
 // Project-specific
 #include "../Utils/Constants.hpp"
-#include "../Utils/UtilityFunctions.hpp"
+#include "../Utils/Functions.hpp"
 
 namespace gtfo{
 template<unsigned int StateDimension, unsigned int ConstraintDimension, typename Scalar = double>
