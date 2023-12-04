@@ -79,7 +79,7 @@ public:
     {}
 
     [[nodiscard]] Pose<Scalar> GetPose(void) const{
-        return Pose(GetPosition());
+        return Pose(Base::GetPosition());
     }
 
     void SetPositionHardBound(const PositionBound& bound){
