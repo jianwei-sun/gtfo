@@ -21,14 +21,18 @@
 namespace gtfo{
 
 template <typename... Models>
-class DynamicsVector : public DynamicsBase<(Models::Dimension + ...), typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType>{
+class DynamicsVector : public DynamicsBase<
+    (Models::Dimension + ...), 
+    typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType, 
+    (Models::PositionDimension + ...)>{
 public:
     using Scalar = typename std::tuple_element<0, std::tuple<Models...>>::type::ScalarType;
-    using Base = DynamicsBase<(Models::Dimension + ...), Scalar>;
-    using Bound = BoundBase<(Models::Dimension + ...), Scalar>;
+    using Base = DynamicsBase<(Models::Dimension + ...), Scalar, (Models::PositionDimension + ...)>;
+    using Bound = BoundBase<(Models::PositionDimension + ...), Scalar>;
     using VectorN = typename Base::VectorN;
+    using VectorP = typename Base::VectorP;
 
-    static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Models::Dimension, Scalar>, Models>...>, "Models must inherit from DynamicsBase");
+    static_assert(std::conjunction_v<std::is_base_of<DynamicsBase<Models::Dimension, Scalar, Models::PositionDimension>, Models>...>, "Models must inherit from DynamicsBase");
     static_assert(std::conjunction_v<std::is_same<Scalar, typename Models::ScalarType>...>, "Models must have the same Scalar type");
 
     // Constructs a DynamicsVector with the models passed in as arguments. Each model must inherit from DynamicsBase. 
@@ -43,44 +47,46 @@ public:
     }
 
     // Step calls the corresponding Step function on each of the models
-    void Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)) override{      
+    void Step(const VectorN& force_input, const VectorP& physical_position = VectorP::Constant(NAN)) override{      
         // Any modifications to the input force happen first
         const VectorN modified_force = Base::PremodifyForce(force_input);
 
         std::apply([&](Models&... models){
             // Index is used to keep track of where each model's dimensions begin in the concatenated VectorN
-            size_t index = 0;
+            size_t index_n = 0;
+            size_t index_p = 0;
             
             // First, step all the models with the appropriate coordinates of the inputs
             ([&]{
                 models.Step(
-                    modified_force.template block<Models::Dimension, 1>(index, 0),
-                    physical_position.template block<Models::Dimension, 1>(index, 0)
+                    modified_force.template block<Models::Dimension, 1>(index_n, 0),
+                    physical_position.template block<Models::PositionDimension, 1>(index_p, 0)
                 );
-                index += Models::Dimension;
+                index_n += Models::Dimension;
+                index_p += Models::PositionDimension;
             }(), ...);
         }, models_);
     }
 
-    [[nodiscard]] VectorN GetPosition(void) const override{
-        VectorN position;
+    [[nodiscard]] VectorP GetPosition(void) const override{
+        VectorP position;
         std::apply([&](const Models&... models){
             size_t index = 0;
             ([&]{
-                position.template block<Models::Dimension, 1>(index, 0) = models.GetPosition();
-                index += Models::Dimension;
+                position.template block<Models::PositionDimension, 1>(index, 0) = models.GetPosition();
+                index += Models::PositionDimension;
             }(), ...);
         }, models_);
         return position;
     }
 
-    [[nodiscard]] VectorN GetOldPosition(void) const override{
-        VectorN old_position;
+    [[nodiscard]] VectorP GetOldPosition(void) const override{
+        VectorP old_position;
         std::apply([&](const Models&... models){
             size_t index = 0;
             ([&]{
-                old_position.template block<Models::Dimension, 1>(index, 0) = models.GetOldPosition();
-                index += Models::Dimension;
+                old_position.template block<Models::PositionDimension, 1>(index, 0) = models.GetOldPosition();
+                index += Models::PositionDimension;
             }(), ...);
         }, models_);
         return old_position;
@@ -122,32 +128,36 @@ public:
         return dynamics_paused;
     }
 
-    void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
+    void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
         std::apply([&](Models&... models){
-            size_t index = 0;
+            size_t index_n = 0;
+            size_t index_p = 0;
             ([&]{
                 models.SetFullState(
-                    position.template block<Models::Dimension, 1>(index, 0),
-                    old_position.template block<Models::Dimension, 1>(index, 0), 
-                    velocity.template block<Models::Dimension, 1>(index, 0),
-                    acceleration.template block<Models::Dimension, 1>(index, 0),
+                    position.template block<Models::PositionDimension, 1>(index_p, 0),
+                    old_position.template block<Models::PositionDimension, 1>(index_p, 0), 
+                    velocity.template block<Models::Dimension, 1>(index_n, 0),
+                    acceleration.template block<Models::Dimension, 1>(index_n, 0),
                     dynamics_paused
                 );
-                index += Models::Dimension;
+                index_n += Models::Dimension;
+                index_p += Models::PositionDimension;
             }(), ...);
         }, models_);
     }
 
-    void SetState(const VectorN& position, const VectorN& velocity, const VectorN& acceleration) override{
+    void SetState(const VectorP& position, const VectorN& velocity, const VectorN& acceleration) override{
         std::apply([&](Models&... models){
-            size_t index = 0;
+            size_t index_n = 0;
+            size_t index_p = 0;
             ([&]{
                 models.SetState(
-                    position.template block<Models::Dimension, 1>(index, 0), 
-                    velocity.template block<Models::Dimension, 1>(index, 0), 
-                    acceleration.template block<Models::Dimension, 1>(index, 0)
+                    position.template block<Models::PositionDimension, 1>(index_p, 0), 
+                    velocity.template block<Models::Dimension, 1>(index_n, 0), 
+                    acceleration.template block<Models::Dimension, 1>(index_n, 0)
                 );
-                index += Models::Dimension;
+                index_n += Models::Dimension;
+                index_p += Models::PositionDimension;
             }(), ...);
         }, models_);
     }
