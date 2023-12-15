@@ -16,7 +16,10 @@
 #include "../Core/Models/RigidBodySecondOrder.hpp"
 #include "../Core/Models/HomingModel.hpp"
 #include "../Core/Models/ConstantVelocityModel.hpp"
-#include "../Core/Models/Mujoco/MujocoModel.hpp"
+
+#ifdef MUJOCO_EXISTS
+    #include "../Core/Models/Mujoco/MujocoModel.hpp"
+#endif
 
 #include "../Core/Bounds/NormBound.hpp"
 #include "../Core/Bounds/RectangleBound.hpp"
