@@ -17,7 +17,7 @@
 #include "../Core/Models/HomingModel.hpp"
 #include "../Core/Models/ConstantVelocityModel.hpp"
 
-#ifdef MUJOCO_EXISTS
+#if __has_include(<mujoco/mujoco.h>)
     #include "../Core/Models/Mujoco/MujocoModel.hpp"
 #endif
 
