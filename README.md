@@ -7,7 +7,7 @@ Written by the [Bionics Lab](http://bionics.seas.ucla.edu/index.html) at UCLA.
 ## Installation
 
 ### Dependencies
-This project requires `Eigen` version `3.4.0`, `MuJoCo` version `2.3.1`, and `OSQP` version `0.6.2` as dependencies. Ensure that they are already installed on your computer. If not, their source code can be made available in the `External` subdirectory as git submodules after updating:
+This project requires `Eigen` version `3.4.0` and `OSQP` version `0.6.2` as dependencies. `MuJoCo` version `2.3.1` is an optional dependency, and if present, will enable additional features and tests. Ensure that the required dependencies are already installed on your computer. If not, their source code can be made available in the `External` subdirectory as git submodules after updating:
 ```
 git submodule update --init --recursive
 ```

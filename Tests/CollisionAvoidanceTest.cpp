@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include "gtfo.hpp"
-#include <osqp.h>
 
 TEST(CollisionAvoidanceTest, Unconstrained)
 {

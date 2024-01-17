@@ -43,7 +43,7 @@ option(GTFO_BUILD_TESTS "Build tests for GTFO" ON)
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 
 # MuJoCo 2.3.1
-find_package(mujoco 2.3.1 REQUIRED)
+find_package(mujoco 2.3.1)
 
 # osqp 0.6.2
 find_package(osqp REQUIRED)
@@ -60,9 +60,14 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 target_link_libraries(${PROJECT_NAME} INTERFACE
     ${CMAKE_DL_LIBS}
     Eigen3::Eigen
-    mujoco::mujoco
     osqp::osqpstatic
 )
+
+if(mujoco_FOUND)
+    target_link_libraries(${PROJECT_NAME} INTERFACE
+        mujoco::mujoco
+    )
+endif()
 
 #----------------------------------------------------------------------------------------------------
 # Testing
