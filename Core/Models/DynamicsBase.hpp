@@ -33,7 +33,7 @@ public:
 
     using PositionBound = BoundBase<PositionDimensions, Scalar>;
     using PositionBoundPtr = std::shared_ptr<PositionBound>;
-
+    using Quaternion = Eigen::Quaternion<Scalar>;
     const static unsigned int Dimension = Dimensions; 
     const static unsigned int PositionDimension = PositionDimensions; 
     const static bool Euclidean = (Dimensions == PositionDimensions);
@@ -107,6 +107,11 @@ public:
 
     [[nodiscard]] virtual inline bool DynamicsArePaused(void) const{
         return dynamics_paused_;
+    }
+    // Calling GetPosition returns the quaternion as a Vector4
+    [[nodiscard]] virtual inline Quaternion GetOrientation(void) const
+    {
+        return Quaternion(position_.data());
     }
 
     // Sets the current model's state to that of the target model. Since the current model may have different
