@@ -129,28 +129,21 @@ public:
         return std::get<I>(models_);
     }
 
-    // private:
-    // Helper function for retrieving the currently active model at runtime, by indexing the tuple
-    // using template recursion. Since all models inherit from the same base type under this class,
-    // their pointers can be casted to the base type
+
     template <size_t I = 0>
-    Base *GetActiveModel()
-    {
-        if (I == index_)
-        {
+    Base* GetActiveModel(){
+        if(I == index_){
             return &std::get<I>(models_);
-        }
-        else if constexpr (I + 1 < std::tuple_size_v<std::tuple<Models...>>)
-        {
+        } else if constexpr(I + 1 < std::tuple_size_v<std::tuple<Models...>>){
             return GetActiveModel<I + 1>();
-        }
-        else
-        {
+        } else{
             return nullptr;
         }
     }
-
 private:
+    // Helper function for retrieving the currently active model at runtime, by indexing the tuple
+    // using template recursion. Since all models inherit from the same base type under this class,
+    // their pointers can be casted to the base type
     template <size_t I = 0>
     const Base* GetActiveModel() const{
         if(I == index_){
