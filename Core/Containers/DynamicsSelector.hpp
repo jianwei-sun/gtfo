@@ -26,7 +26,6 @@ public:
     using Bound = BoundBase<std::tuple_element<0, std::tuple<Models...>>::type::PositionDimension, Scalar>;
     using VectorN = typename Base::VectorN;
     using VectorP = typename Base::VectorP;
-    using Quaternion = Eigen::Quaternion<Scalar>;
 
     static_assert(std::conjunction_v<std::is_base_of<Base, Models>...>, "Models must inherit from DynamicsBase");
     static_assert(std::conjunction_v<std::is_same<Scalar, typename Models::ScalarType>...>, "Models must have the same Scalar type");
@@ -68,11 +67,6 @@ public:
 
     [[nodiscard]] bool DynamicsArePaused(void) const override{
         return GetActiveModel()->DynamicsArePaused();
-    }
-    // Calling GetPosition returns the quaternion as a Vector4
-    [[nodiscard]] inline Quaternion GetOrientation(void) const
-    {
-        return GetActiveModel()->GetOrientation();
     }
 
     void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
@@ -156,7 +150,7 @@ public:
         }
     }
 
-    // private:
+private:
     template <size_t I = 0>
     const Base* GetActiveModel() const{
         if(I == index_){
