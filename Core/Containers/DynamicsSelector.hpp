@@ -129,7 +129,6 @@ public:
         return std::get<I>(models_);
     }
 
-private:
     // Helper function for retrieving the currently active model at runtime, by indexing the tuple
     // using template recursion. Since all models inherit from the same base type under this class,
     // their pointers can be casted to the base type
@@ -155,6 +154,7 @@ private:
         }
     }
 
+private:
     std::tuple<Models...> models_;
     size_t index_;
 };
