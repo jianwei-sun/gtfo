@@ -15,7 +15,8 @@
 #include <Eigen/QR>
 
 // Project-specific
-#include "../Utils/Constants.hpp"
+#include "../Core/Utils/Constants.hpp"
+#include "../Core/Utils/Functions.hpp"
 
 namespace gtfo{
 template<unsigned int StateDimension, unsigned int ConstraintDimension, typename Scalar = double>
@@ -52,7 +53,8 @@ public:
         constraint_function_(nullptr),
         constraint_function_gradient_(nullptr),
         constraint_function_hessian_slices_{},
-        transversal_gain_(TransversalGain::Zero())
+        transversal_gain_(TransversalGain::Zero()),
+        gamma_(1.0)
     {}
 
     // Calculate on each iteration after constraint function and gains have been set to create the new forces
@@ -90,7 +92,7 @@ public:
         VectorN modified_force = force;
         for(unsigned int i = 0; i < ConstraintDimension; ++i){
             if(row_is_nonzero[i]){
-                modified_force += pinv_decoupling_matrix.col(i) * (-decoupling_matrix.row(i) * force + transversal_control[i] - affine_term[i]);
+                modified_force += pinv_decoupling_matrix.col(i) * (-gamma_ * decoupling_matrix.row(i) * force + sgn(gamma_) * (transversal_control[i] - affine_term[i]));
             }
         }
 
@@ -123,6 +125,20 @@ public:
         transversal_gain_ = Eigen::kroneckerProduct(Eigen::Matrix<Scalar, ConstraintDimension, ConstraintDimension>::Identity(), transversal_gain_i);
     }
 
+    // Getters and setters for constraint strength
+    [[nodiscard]] Scalar GetConstraintStrength() const {
+        return gamma_;
+    }
+
+    void SetConstraintStrength(const Scalar& gamma) {
+        if(isnan(gamma)){
+            return; 
+        } else{
+            // Constraint to [0,1]
+            gamma_ = (gamma > 1.0) ? 1.0 : (gamma < 0.0) ? 0.0 : gamma;
+        }
+    }
+
 private:
     // Second-order dynamics
     StateFunctionBottomHalf f_bottom_half_;
@@ -135,6 +151,9 @@ private:
 
     // Tranversal control
     TransversalGain transversal_gain_;
+
+    // Constraint strength
+    Scalar gamma_;
 };
 
 } // namespace gtfo

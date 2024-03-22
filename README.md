@@ -7,7 +7,7 @@ Written by the [Bionics Lab](http://bionics.seas.ucla.edu/index.html) at UCLA.
 ## Installation
 
 ### Dependencies
-This project requires `Eigen` version `3.4.0`, `MuJoCo` version `2.3.1`, and `OSQP` version `0.6.2` as dependencies. Ensure that they are already installed on your computer. If not, their source code can be made available in the `External` subdirectory as git submodules after updating:
+This project requires `Eigen` version `3.4.0` and `OSQP` version `0.6.2` as dependencies. `MuJoCo` version `2.3.1` is an optional dependency, and if present, will enable additional features and tests. Ensure that the required dependencies are already installed on your computer. If not, their source code can be made available in the `External` subdirectory as git submodules after updating:
 ```
 git submodule update --init --recursive
 ```
@@ -126,16 +126,18 @@ while(going_home){
     system.Step(...);
 }
 ```
-Switching between systems automatically updates the new system's state to the old one's at the time of the switch, so discontinuities are avoided. Since `DynamicsVector` and `DynamicsSelector` are both considered dynamics models, they can be nested within each other to any arbitrary degree. 
+Switching between systems automatically updates the new system's state to that of the old one at the time of the switch, so discontinuities are avoided. Since `DynamicsVector` and `DynamicsSelector` are both considered dynamics models, they can be nested within each other to any arbitrary degree. 
 ## Custom Dynamics
 In addition to the provided models:
-- `PointMassSecondOrder`: second-order mass-damper system
-- `PointMassFirstOrder`: first-order time-constant and dc-gain system
-- `HomingModel`: creates continuous homing trajectories with constant acceleration in first and last 10%
-- `ConstantVelocityModel`: constant velocity motions, useful for simple gui-commanded motions
-- `MujocoModel`: a MuJoCo-compatible model, which uses MuJoCo to propagate dynamics
+- `PointMassSecondOrder`: second-order mass-damper system,
+- `PointMassFirstOrder`: first-order time-constant and dc-gain system,
+- `RotationSecondOrder`: second-order rotational dynamics following Euler's equations, implemented with unit quaternions,
+- `RigidBodySecondOrder`: second-order rigid body dynamics driven with a wrench,
+- `HomingModel`: creates continuous homing trajectories with constant acceleration in first and last 10%,
+- `ConstantVelocityModel`: constant velocity motions, useful for simple gui-commanded motions,
+- `MujocoModel`: a MuJoCo-compatible model, which uses MuJoCo to propagate dynamics,
 
-custom models for your application can also be created. All dynamics models inherit from `gtfo::DynamicsBase`, so custom models should extend the class and override the `Step` function. 
+custom models for your application can also be created. All dynamics models inherit from `gtfo::DynamicsBase`, so custom models should extend the class and implement the `PropagateDynamics` function. 
 
 ## Settings Bounds
 `gtfo` allows for both soft and hard convex bounds to constrain the dynamics. The bound behavior (soft vs. hard) is independent of the bound's geometry. The `Core/Bounds` subdirectory contains two commonly used bound shapes: `NormBound` and `RectangleBound`.
@@ -165,7 +167,7 @@ system.SetSoftBound(norm_bound, spring_constant, damping_constant)
 ```
 A system does not require any bounds in order to operate. Typically, when both bound types are set, the soft bound is contained within the hard bound, otherwise the soft bound would never be reached.
 
-If more complex bound behaviors are desired, such as different types of bounds in different coordinates or the ability to dynamically switch between bounds, `DynamicsVector` and/or `DynamicsSelector` should be used:
+If more complex bound behaviors are desired, such as different types of bounds in different coordinates or the ability to dynamically switch between bounds, `DynamicsVector` and/or `DynamicsSelector` should be used. Note that bounds are applied to the individual models, and not at the container level.
 ```c++
 // Construct a system from two subsystems. Note that they are copied into system, so any bounds already associated with them are also copied
 gtfo::DynamicsSelector<

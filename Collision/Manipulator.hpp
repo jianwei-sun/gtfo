@@ -15,8 +15,8 @@
 
 // Project-specific
 #include "Entity.hpp"
-#include "../Utils/ClosestVector.hpp"
-#include "../Models/DynamicsBase.hpp"
+#include "../Core/Utils/ClosestVector.hpp"
+#include "../Core/Models/DynamicsBase.hpp"
 
 namespace gtfo{
 namespace collision{

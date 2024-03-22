@@ -19,30 +19,38 @@
 
 namespace gtfo{
 
-template<unsigned int Dimensions, typename Scalar = double>
+template<unsigned int Dimensions, typename Scalar = double, unsigned int PositionDimensions = Dimensions>
 class DynamicsBase{
 public:
     static_assert(Dimensions > 0, "Dimensions must be at least 1.");
     static_assert(std::is_floating_point_v<Scalar>, "Template argument Scalar must be a floating-point type.");
 
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
-    using Bound = BoundBase<Dimensions, Scalar>;
-    using BoundPtr = std::shared_ptr<Bound>;
+    using VectorP = Eigen::Matrix<Scalar, PositionDimensions, 1>;
+
+    using VelocityBound = BoundBase<Dimensions, Scalar>;
+    using VelocityBoundPtr = std::shared_ptr<VelocityBound>;
+
+    using PositionBound = BoundBase<PositionDimensions, Scalar>;
+    using PositionBoundPtr = std::shared_ptr<PositionBound>;
 
     const static unsigned int Dimension = Dimensions; 
+    const static unsigned int PositionDimension = PositionDimensions; 
+    const static bool Euclidean = (Dimensions == PositionDimensions);
+
     using ScalarType = Scalar;
 
-    DynamicsBase(const VectorN& initial_position = VectorN::Zero())
+    DynamicsBase(const VectorP& initial_position = VectorP::Zero())
         :   position_(initial_position),
-            old_position_(VectorN::Zero()),
+            old_position_(VectorP::Zero()),
             velocity_(VectorN::Zero()),
             acceleration_(VectorN::Zero()),
             dynamics_paused_(false),
-            hard_bound_(new BoundBase<Dimensions, Scalar>()),
-            soft_bound_(new BoundBase<Dimensions, Scalar>()),
+            hard_bound_(new PositionBound()),
+            soft_bound_(new PositionBound()),
             soft_bound_spring_constant_(0.0),
             soft_bound_damping_constant_(0.0),
-            velocity_bound_(new BoundBase<Dimensions, Scalar>()),
+            velocity_bound_(new VelocityBound()),
             force_premodifier_(nullptr)
     {}
 
@@ -50,7 +58,7 @@ public:
     // update the position, velocity, and acceleration states
     virtual void PropagateDynamics(const VectorN& force_input) = 0;
 
-    virtual void Step(const VectorN& force_input, const VectorN& physical_position = VectorN::Constant(NAN)){
+    virtual void Step(const VectorN& force_input, const VectorP& physical_position = VectorP::Constant(NAN)){
         // Store a history of the position
         old_position_ = position_;
 
@@ -67,9 +75,13 @@ public:
             // When paused, acceleration is also zeroed to prevent an impulse, even though the actual instantaneous acceleration is -velocity / dt
             velocity_.setZero();
             acceleration_.setZero();
-        } else{            
-            const VectorN soft_bound_restoring_force = this->EnforceSoftBound();
-            this->PropagateDynamics(modified_force + soft_bound_restoring_force);
+        } else{
+            if constexpr(Euclidean){
+                const VectorN soft_bound_restoring_force = this->EnforceSoftBound();
+                this->PropagateDynamics(modified_force + soft_bound_restoring_force);
+            } else{
+                this->PropagateDynamics(modified_force);
+            }            
         }
 
         // Perform the dynamically discontinuous actions, such as enforcing hard bounds
@@ -77,11 +89,11 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------------
-    [[nodiscard]] virtual inline VectorN GetPosition(void) const{
+    [[nodiscard]] virtual inline VectorP GetPosition(void) const{
         return position_;
     }
 
-    [[nodiscard]] virtual inline VectorN GetOldPosition(void) const{
+    [[nodiscard]] virtual inline VectorP GetOldPosition(void) const{
         return old_position_;
     }
 
@@ -110,7 +122,7 @@ public:
         );
     }
 
-    virtual void SetFullState(const VectorN& position, const VectorN& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused){
+    virtual void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused){
         position_ = position;
         old_position_ = old_position;
         velocity_ = velocity;
@@ -119,7 +131,7 @@ public:
         EnforceStateConstraints();
     }
 
-    virtual void SetState(const VectorN& position, const VectorN& velocity, const VectorN& acceleration = VectorN::Zero()){
+    virtual void SetState(const VectorP& position, const VectorN& velocity, const VectorN& acceleration = VectorN::Zero()){
         position_ = position;
         velocity_ = velocity;
         acceleration_ = acceleration;
@@ -134,18 +146,22 @@ public:
     // Main function for enforcing all hard limits for states, which may result in discontinuous dynamics
     // TODO: Update with collision avoidance constraints
     void EnforceStateConstraints(void){
-        EnforceHardBound();
+        if constexpr(Euclidean){
+            EnforceHardBound();
+        }
         EnforceVelocityLimit();
     }
 
-    virtual void SetHardBound(const Bound& bound){
+    virtual void SetHardBound(const PositionBound& bound){
         hard_bound_ = bound.DeepCopy();
         assert(hard_bound_->Contains(position_));
     }
 
     // Hard bound logic modifies position_, velocity_, and acceleration_. This function
-    // should be called after the variables have been updated by Step
-    void EnforceHardBound(void){
+    // should be called after the variables have been updated by Step. Bounds are only
+    // available when the state space is Euclidean
+    template<bool IsEuclidean = Euclidean>
+    std::enable_if_t<IsEuclidean, void> EnforceHardBound(void){
         position_ = hard_bound_->GetNearestPointWithinBound(position_);
         const auto surface_normals = hard_bound_->GetSurfaceNormals(position_);
         if(surface_normals.HasPositiveDotProductWith(velocity_)){
@@ -158,7 +174,7 @@ public:
         }
     }
 
-    virtual void SetSoftBound(const Bound& bound, const Scalar &spring_constant, const Scalar &damping_constant){
+    virtual void SetSoftBound(const PositionBound& bound, const Scalar &spring_constant, const Scalar &damping_constant){
         soft_bound_ = bound.DeepCopy();
         soft_bound_spring_constant_ = spring_constant;
         soft_bound_damping_constant_ = damping_constant;
@@ -166,8 +182,10 @@ public:
 
     // Since the soft bound only computes a restoring force, it should not modify the position
     // or velocity states. It should typically be called before Step updates position and
-    // velocity so that the restoring force can be used in Step
-    [[nodiscard]] VectorN EnforceSoftBound(void){
+    // velocity so that the restoring force can be used in Step. Bounds are only available
+    // when the state space is Euclidean
+    template<bool IsEuclidean = Euclidean>
+    [[nodiscard]] std::enable_if_t<IsEuclidean, VectorN> EnforceSoftBound(void){
         // Find your surface normals to so we can see if we are moving towards bounds or away
         const auto surface_normals = soft_bound_->GetSurfaceNormals(soft_bound_->GetNearestPointWithinBound(position_));
 
@@ -204,7 +222,7 @@ public:
         }
     }
 
-    void SetForcePremodifier(const std::function<VectorN(const VectorN&, const DynamicsBase<Dimensions, Scalar>&)>& force_premodifier){
+    void SetForcePremodifier(const std::function<VectorN(const VectorN&, const DynamicsBase&)>& force_premodifier){
         force_premodifier_ = force_premodifier;
     }
 
@@ -218,8 +236,8 @@ public:
 
 protected:
     // Addition states can be added by subclasses, but they should handle their updating
-    VectorN position_;
-    VectorN old_position_;
+    VectorP position_;
+    VectorP old_position_;
     VectorN velocity_;
     VectorN acceleration_;
 
@@ -227,18 +245,16 @@ protected:
 
 private:
     // Hard and soft bounds are included for convenience, but do not have to be used
-    BoundPtr hard_bound_;
-    BoundPtr soft_bound_;
+    PositionBoundPtr hard_bound_;
+    PositionBoundPtr soft_bound_;
     Scalar soft_bound_spring_constant_;
     Scalar soft_bound_damping_constant_;
 
     // Same goes for velocity limit
-    BoundPtr velocity_bound_;
+    VelocityBoundPtr velocity_bound_;
 
     // Lambda for force premodifier
-    std::function<VectorN(const VectorN&, const DynamicsBase<Dimensions, Scalar>&)> force_premodifier_;
+    std::function<VectorN(const VectorN&, const DynamicsBase&)> force_premodifier_;
 };
 
 }
-
-
