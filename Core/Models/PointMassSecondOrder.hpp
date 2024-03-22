@@ -3,7 +3,7 @@
 // Desc: a second-order dynamics model
 //----------------------------------------------------------------------------------------------------
 #pragma once
-
+#include <cmath>
 // Project-specific
 #include "PointMassBase.hpp"
 
@@ -14,28 +14,31 @@ namespace gtfo{
     {
         Scalar mass;
         Scalar damping;
+        Scalar stiffness;
 
         SecondOrderParameters()
-            : ParametersBase<Scalar>(), mass(1.0), damping(1.0)
+            : ParametersBase<Scalar>(), mass(1.0), damping(1.0), stiffness(1.0)
         {
         }
 
-        SecondOrderParameters(const Scalar &dt, const Scalar &mass, const Scalar &damping)
-            : ParametersBase<Scalar>(dt), mass(mass), damping(damping)
+        SecondOrderParameters(const Scalar &dt, const Scalar &mass, const Scalar &damping, const Scalar &stiffness)
+            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness)
         {
-            assert(mass > 0.0 && damping > 0.0);
+            assert(mass > 0.0 && damping > 0.0 && stiffness > 0.0);
         }
 
         SecondOrderParameters operator+(const SecondOrderParameters& other){
             return SecondOrderParameters(ParametersBase<Scalar>::dt, 
                 mass + other.mass, 
-                damping + other.damping);
+                damping + other.damping,
+                stiffness + other.stiffness);
         }
 
         SecondOrderParameters operator*(const Scalar& scalar){
             return SecondOrderParameters(ParametersBase<Scalar>::dt, 
                 scalar * mass, 
-                scalar * damping);
+                scalar * damping,
+                scalar * stiffness);
         }
     };
 
@@ -58,7 +61,8 @@ namespace gtfo{
             Base::PropagateDynamics(force_input);
             
             // Calculate the acceleration using the more accurate continuous equations with the current velocity
-            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + force_input / Base::parameters_.mass;
+            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness \
+            / Base:: parameters_.mass) * Base::position_ +force_input / Base::parameters_.mass;
         }
 
     private:
