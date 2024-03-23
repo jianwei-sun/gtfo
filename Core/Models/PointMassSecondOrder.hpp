@@ -15,30 +15,33 @@ namespace gtfo{
         Scalar mass;
         Scalar damping;
         Scalar stiffness;
+        Scalar virtual_initial_position;
 
         SecondOrderParameters()
-            : ParametersBase<Scalar>(), mass(1.0), damping(1.0), stiffness(1.0)
+            : ParametersBase<Scalar>(), mass(1.0), damping(1.0), stiffness(1.0), virtual_initial_position(1.0)
         {
         }
 
-        SecondOrderParameters(const Scalar &dt, const Scalar &mass, const Scalar &damping, const Scalar &stiffness)
-            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness)
+        SecondOrderParameters(const Scalar &dt, const Scalar &mass, const Scalar &damping, const Scalar &stiffness, const Scalar &virtual_initial_position)
+            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness), virtual_initial_position(virtual_initial_position)
         {
-            assert(mass > 0.0 && damping > 0.0 && stiffness >= 0.0);
+            assert(mass > 0.0 && damping > 0.0 && stiffness >= 0.0 && virtual_initial_position >= -90 && virtual_initial_position <= 90);
         }
 
         SecondOrderParameters operator+(const SecondOrderParameters& other){
             return SecondOrderParameters(ParametersBase<Scalar>::dt, 
                 mass + other.mass, 
                 damping + other.damping,
-                stiffness + other.stiffness);
+                stiffness + other.stiffness,
+                virtual_initial_position + other.virtual_initial_position);
         }
 
         SecondOrderParameters operator*(const Scalar& scalar){
             return SecondOrderParameters(ParametersBase<Scalar>::dt, 
                 scalar * mass, 
                 scalar * damping,
-                scalar * stiffness);
+                scalar * stiffness,
+                scalar * virtual_initial_position);
         }
     };
 
@@ -50,8 +53,7 @@ namespace gtfo{
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
         PointMassSecondOrder(const SecondOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
-            : Base(parameters, initial_position),
-            initial_position_(initial_position)
+            : Base(parameters, initial_position)
         {
             SetStateTransitionMatrices(parameters);
         }
@@ -63,11 +65,10 @@ namespace gtfo{
             
             // Calculate the acceleration using the more accurate continuous equations with the current velocity
             Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness \
-            / Base:: parameters_.mass) * (Base::position_ - this->initial_position_) +force_input / Base::parameters_.mass;
+            / Base:: parameters_.mass) * (Base::position_) + force_input / Base::parameters_.mass;
         }
 
     private:
-        VectorN initial_position_;
         void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
         {
             const Scalar &dt = parameters.dt;
