@@ -24,7 +24,7 @@ namespace gtfo{
         SecondOrderParameters(const Scalar &dt, const Scalar &mass, const Scalar &damping, const Scalar &stiffness)
             : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness)
         {
-            assert(mass > 0.0 && damping > 0.0 && stiffness > 0.0);
+            assert(mass > 0.0 && damping > 0.0 && stiffness >= 0.0);
         }
 
         SecondOrderParameters operator+(const SecondOrderParameters& other){
@@ -50,7 +50,8 @@ namespace gtfo{
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
         PointMassSecondOrder(const SecondOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
-            : Base(parameters, initial_position)
+            : Base(parameters, initial_position),
+            initial_position_(initial_position)
         {
             SetStateTransitionMatrices(parameters);
         }
@@ -62,22 +63,33 @@ namespace gtfo{
             
             // Calculate the acceleration using the more accurate continuous equations with the current velocity
             Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness \
-            / Base:: parameters_.mass) * Base::position_ +force_input / Base::parameters_.mass;
+            / Base:: parameters_.mass) * (Base::position_ - this->initial_position_) +force_input / Base::parameters_.mass;
         }
 
     private:
+        VectorN initial_position_;
         void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
         {
             const Scalar &dt = parameters.dt;
             const Scalar &mass = parameters.mass;
             const Scalar &damping = parameters.damping;
+            const Scalar &stiffness = parameters.stiffness;
 
             // Update the discrete-time state transition matrices, which are computed using exact discretization
-            const Scalar exponent = std::exp(-damping / mass * dt);
-            Base::A_discrete_ << static_cast<Scalar>(1.0), (static_cast<Scalar>(1.0) - exponent) * mass / damping,
-                static_cast<Scalar>(0.0), exponent;
-            Base::B_discrete_ << (damping * dt - (static_cast<Scalar>(1.0) - exponent) * mass) / (damping * damping),
-                (static_cast<Scalar>(1.0) - exponent) / damping;
+            if (stiffness == 0){
+                const Scalar exponent = std::exp(-damping / mass * dt);
+                Base::A_discrete_ << static_cast<Scalar>(1.0), (static_cast<Scalar>(1.0) - exponent) * mass / damping,
+                    static_cast<Scalar>(0.0), exponent;
+                Base::B_discrete_ << (damping * dt - (static_cast<Scalar>(1.0) - exponent) * mass) / (damping * damping),
+                    (static_cast<Scalar>(1.0) - exponent) / damping;}
+            else {
+            // here we used a first order approximation
+                Base::A_discrete_ << static_cast<Scalar>(1.0), dt,
+                    - (dt * stiffness) / mass, static_cast<Scalar>(1.0) - (damping * dt) / mass;
+                Base::B_discrete_ << static_cast<Scalar>(0.0),
+                    dt/mass;
+                }
+            Base::C_discrete_ << static_cast<Scalar>(0.0), stiffness;
         }
     };
 
