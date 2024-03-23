@@ -35,8 +35,7 @@ namespace gtfo
               B_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
               C_discrete_(Eigen::Matrix<Scalar, 2, 1>::Zero()),
               soft_start_duration_(0.0),
-              soft_start_timer_(0.0),
-              initial_position_(initial_position)
+              soft_start_timer_(0.0)
         {
 
         }

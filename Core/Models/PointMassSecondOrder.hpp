@@ -31,7 +31,7 @@ namespace gtfo{
         SecondOrderParameters(const Scalar& dt, const Scalar& mass, const Scalar& damping, const Scalar& stiffness, const Scalar& virtual_spring_zero_position)
             : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness), virtual_spring_zero_position(virtual_spring_zero_position)
         {
-            assert(mass > 0.0 && damping > 0.0 && stiffness >= 0.0);
+            assert(mass > 0.0 && damping > 0.0 && stiffness >= 0.0 && virtual_initial_position >= -90 && virtual_initial_position <= 90);
         }
 
         SecondOrderParameters operator+(const SecondOrderParameters& other){
@@ -59,8 +59,7 @@ namespace gtfo{
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
         PointMassSecondOrder(const SecondOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
-            : Base(parameters, initial_position),
-            initial_position_(initial_position)
+            : Base(parameters, initial_position)
         {
             SetStateTransitionMatrices(parameters);
         }
@@ -76,7 +75,6 @@ namespace gtfo{
         }
 
     private:
-        VectorN initial_position_;
         void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
         {
             const Scalar& dt = parameters.dt;
