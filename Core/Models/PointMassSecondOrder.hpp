@@ -65,7 +65,7 @@ namespace gtfo{
             
             // Calculate the acceleration using the more accurate continuous equations with the current velocity
             Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness \
-            / Base:: parameters_.mass) * (Base::position_) + force_input / Base::parameters_.mass;
+            / Base:: parameters_.mass) * (Base::position_ - VectorN(Base::parameters_.virtual_initial_position)) + force_input / Base::parameters_.mass;
         }
 
     private:
