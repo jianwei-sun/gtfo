@@ -3,7 +3,6 @@
 // Desc: a second-order dynamics model
 //----------------------------------------------------------------------------------------------------
 #pragma once
-#include <cmath>
 // Project-specific
 #include "PointMassBase.hpp"
 
@@ -15,17 +14,24 @@ namespace gtfo{
         Scalar mass;
         Scalar damping;
         Scalar stiffness;
-        Scalar virtual_initial_position;
+        Scalar virtual_spring_zero_position;
 
         SecondOrderParameters()
-            : ParametersBase<Scalar>(), mass(1.0), damping(1.0), stiffness(1.0), virtual_initial_position(1.0)
+            : ParametersBase<Scalar>(), mass(1.0), damping(1.0), stiffness(0.0), virtual_spring_zero_position(0.0)
         {
         }
 
-        SecondOrderParameters(const Scalar &dt, const Scalar &mass, const Scalar &damping, const Scalar &stiffness, const Scalar &virtual_initial_position)
-            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness), virtual_initial_position(virtual_initial_position)
+        // overloaded constructor
+        SecondOrderParameters(const Scalar& dt, const Scalar& mass, const Scalar& damping)
+            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(0.0), virtual_spring_zero_position(0.0)
         {
-            assert(mass > 0.0 && damping > 0.0 && stiffness >= 0.0 && virtual_initial_position >= -90 && virtual_initial_position <= 90);
+            assert(mass > 0.0 && damping > 0.0);
+        }
+
+        SecondOrderParameters(const Scalar& dt, const Scalar& mass, const Scalar& damping, const Scalar& stiffness, const Scalar& virtual_spring_zero_position)
+            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness), virtual_spring_zero_position(virtual_spring_zero_position)
+        {
+            assert(mass > 0.0 && damping > 0.0);
         }
 
         SecondOrderParameters operator+(const SecondOrderParameters& other){
@@ -33,7 +39,7 @@ namespace gtfo{
                 mass + other.mass, 
                 damping + other.damping,
                 stiffness + other.stiffness,
-                virtual_initial_position + other.virtual_initial_position);
+                virtual_spring_zero_position + other.virtual_spring_zero_position);
         }
 
         SecondOrderParameters operator*(const Scalar& scalar){
@@ -41,7 +47,7 @@ namespace gtfo{
                 scalar * mass, 
                 scalar * damping,
                 scalar * stiffness,
-                scalar * virtual_initial_position);
+                scalar * virtual_spring_zero_position);
         }
     };
 
@@ -64,17 +70,18 @@ namespace gtfo{
             Base::PropagateDynamics(force_input);
             
             // Calculate the acceleration using the more accurate continuous equations with the current velocity
-            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness \
-            / Base:: parameters_.mass) * (Base::position_ - VectorN(Base::parameters_.virtual_initial_position)) + force_input / Base::parameters_.mass;
+            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness 
+            / Base:: parameters_.mass) * (Base::position_ - VectorN(Base::parameters_.virtual_spring_zero_position)) + force_input / Base::parameters_.mass;
         }
 
     private:
         void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
         {
-            const Scalar &dt = parameters.dt;
-            const Scalar &mass = parameters.mass;
-            const Scalar &damping = parameters.damping;
-            const Scalar &stiffness = parameters.stiffness;
+            const Scalar& dt = parameters.dt;
+            const Scalar& mass = parameters.mass;
+            const Scalar& damping = parameters.damping;
+            const Scalar& stiffness = parameters.stiffness;
+            const Scalar& virtual_spring_zero_position = parameters.virtual_spring_zero_position;
 
             // Update the discrete-time state transition matrices, which are computed using exact discretization
             if (stiffness == 0){
@@ -90,7 +97,7 @@ namespace gtfo{
                 Base::B_discrete_ << static_cast<Scalar>(0.0),
                     dt/mass;
                 }
-            Base::C_discrete_ << static_cast<Scalar>(0.0), stiffness;
+            Base::C_discrete_ << static_cast<Scalar>(0.0), (stiffness * dt * virtual_spring_zero_position)/ mass; // the affine term
         }
     };
 

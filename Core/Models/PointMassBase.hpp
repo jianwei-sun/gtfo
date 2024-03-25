@@ -92,7 +92,7 @@ namespace gtfo
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << DynamicsModelBase::position_.transpose(), DynamicsModelBase::velocity_.transpose()).finished();
 
             // Step the dynamics to determine our next state
-            const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose() + C_discrete_ * parameters_.virtual_initial_position;
+            const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose() + C_discrete_;
 
             // Update states
             DynamicsModelBase::position_ = new_state.row(0);
@@ -105,9 +105,9 @@ namespace gtfo
 
         Parameters parameters_;
         Parameters soft_start_parameters_;
-        Eigen::Matrix<Scalar, 2, 2> A_discrete_;
-        Eigen::Matrix<Scalar, 2, 1> B_discrete_;
-        Eigen::Matrix<Scalar, 2, 1> C_discrete_;
+        Eigen::Matrix<Scalar, 2, 2> A_discrete_;    // this is discretized A matrix
+        Eigen::Matrix<Scalar, 2, 1> B_discrete_;    // this is discretized B matrix
+        Eigen::Matrix<Scalar, 2, 1> C_discrete_;    // this is discretized affine term 
 
     private:
         Scalar soft_start_duration_;
