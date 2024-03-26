@@ -61,6 +61,7 @@ private:
         const Scalar exponent = std::exp(-dt / time_constant);
         Base::A_discrete_ << exponent, 0.0, -1.0 / time_constant, 0.0;
         Base::B_discrete_ << (1.0 - exponent) * dc_gain, dc_gain / time_constant;
+        Base::C_discrete_ << 0.0, 0.0;
     }
 };
 
