@@ -92,7 +92,7 @@ namespace gtfo
             const Eigen::Matrix<Scalar, 2, Dimensions> state = (Eigen::Matrix<Scalar, 2, Dimensions>() << DynamicsModelBase::position_.transpose(), DynamicsModelBase::velocity_.transpose()).finished();
 
             // Step the dynamics to determine our next state
-            const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose() + C_discrete_;
+            const Eigen::Matrix<Scalar, 2, Dimensions> new_state = A_discrete_ * state + B_discrete_ * force_input.transpose() + C_discrete_.rowwise().replicate(Dimensions);
 
             // Update states
             DynamicsModelBase::position_ = new_state.row(0);
