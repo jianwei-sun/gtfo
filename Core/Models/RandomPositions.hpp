@@ -39,12 +39,9 @@ public:
     // Generate a random goal position
     void SetGoalPositions(const Eigen::Matrix<bool, Dimensions, 1>& joint_locked, const VectorN& starting_position){
         // generate random goal position
-        for (int i = 0; i < Dimensions; ++i) {
-            if (joint_locked[i]){
-                goal_position_[i] = starting_position[i];
-            } else {
-            goal_position_[i] = (joint_limits_upper_[i] - joint_limits_lower_[i]) * ((double)rand() / RAND_MAX) + joint_limits_lower_[i];}
-        }
+        const VectorN half_difference = (joint_limits_upper_ - joint_limits_lower_) / 2;
+        const VectorN half_sum = (joint_limits_upper_ + joint_limits_lower_) / 2;
+        goal_position_ = joint_locked.select(starting_position, VectorN::Random().cwiseProduct(half_difference) + half_sum);
     }
 
     // GenerateTrajectoryProperties is called to compute a new trajectory from the passed-in starting_position
