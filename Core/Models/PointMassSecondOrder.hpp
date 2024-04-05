@@ -34,18 +34,6 @@ namespace gtfo{
             assert(mass > 0.0 && damping > 0.0);
         }
 
-        SecondOrderParameters(const Scalar& dt, const Scalar& mass, const Scalar& damping, const Scalar& stiffness, const Scalar& virtual_spring_zero_position)
-            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness), virtual_spring_zero_position(virtual_spring_zero_position)
-        {
-            assert(mass > 0.0 && damping > 0.0);
-        }
-
-        SecondOrderParameters(const Scalar& dt, const Scalar& mass, const Scalar& damping, const Scalar& stiffness, const Scalar& virtual_spring_zero_position)
-            : ParametersBase<Scalar>(dt), mass(mass), damping(damping), stiffness(stiffness), virtual_spring_zero_position(virtual_spring_zero_position)
-        {
-            assert(mass > 0.0 && damping > 0.0);
-        }
-
         SecondOrderParameters operator+(const SecondOrderParameters& other){
             return SecondOrderParameters(ParametersBase<Scalar>::dt, 
                 mass + other.mass, 
