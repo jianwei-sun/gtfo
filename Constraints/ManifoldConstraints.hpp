@@ -129,6 +129,31 @@ public:
     [[nodiscard]] Scalar GetConstraintStrength() const {
         return gamma_;
     }
+    // Sets a transversal control law
+    void SetTransversalController(const std::function<VectorK(const TransversalState &)> &transversal_controller)
+    {
+        transversal_controller_ = transversal_controller;
+    }
+
+    [[nodiscard]] VectorN getTangentialForce() const
+    {
+        return this->tangential_force_;
+    }
+
+    [[nodiscard]] VectorN getTransversalControlForce() const
+    {
+        return this->transversal_control_force_;
+    }
+
+    [[nodiscard]] TransversalState getTransversalState() const
+    {
+        return this->transversal_state_;
+    }
+
+    [[nodiscard]] Scalar getGamma() const
+    {
+        return gamma_;
+    }
 
     void SetConstraintStrength(const Scalar& gamma) {
         if(isnan(gamma)){
