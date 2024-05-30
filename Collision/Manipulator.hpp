@@ -57,7 +57,8 @@ public:
         partial_jacobian_updater_ = partial_jacobian_updater;
     }
 
-    void SetVirtualDynamics(DynamicsBase<VirtualDimension, Scalar>* model_ptr, const std::function<JointVector(const VirtualVector&)>& virtual_to_joint, const std::function<VirtualVector(const JointVector&)>& joint_to_virtual){
+    void SetVirtualDynamics(DynamicsBase<VirtualDimension, Scalar, VirtualDimension + 1> *model_ptr, const std::function<JointVector(const VirtualVector &)> &virtual_to_joint, const std::function<VirtualVector(const JointVector &)> &joint_to_virtual)
+    {
         model_ptr_ = model_ptr;
         virtual_to_joint_ = virtual_to_joint;
         joint_to_virtual_ = joint_to_virtual;
@@ -115,7 +116,8 @@ private:
     ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment, Scalar> solver_;
 
     // Virtual dynamics related
-    DynamicsBase<VirtualDimension, Scalar>* model_ptr_;
+    DynamicsBase<VirtualDimension, Scalar, VirtualDimension + 1> *model_ptr_;
+    // DynamicsBase<7, Scalar, 4> *model_ptr_;
     std::function<JointVector(const VirtualVector&)> virtual_to_joint_;
     std::function<VirtualVector(const JointVector&)> joint_to_virtual_;
 };
