@@ -74,6 +74,16 @@ namespace gtfo{
             / Base:: parameters_.mass) * (Base::position_ - VectorN::Constant(Base::parameters_.virtual_spring_zero_position)) + force_input / Base::parameters_.mass;
         }
 
+        void UpdateParameters(const Scalar& mass, const Scalar& damping, const Scalar& stiffness, const Scalar& virtual_spring_zero_position) {
+            Base::parameters_.mass = mass;
+            Base::parameters_.damping = damping;
+            Base::parameters_.stiffness = stiffness;
+            Base::parameters_.virtual_spring_zero_position = virtual_spring_zero_position;
+            // Update the state transition matrices with the new parameters
+            // SetStateTransitionMatrices(Base::parameters_);
+        }
+
+
     private:
         void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
         {
