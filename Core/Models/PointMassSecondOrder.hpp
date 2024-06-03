@@ -79,8 +79,6 @@ namespace gtfo{
             Base::parameters_.damping = damping;
             Base::parameters_.stiffness = stiffness;
             Base::parameters_.virtual_spring_zero_position = virtual_spring_zero_position;
-            // Update the state transition matrices with the new parameters
-            // SetStateTransitionMatrices(Base::parameters_);
         }
 
 
