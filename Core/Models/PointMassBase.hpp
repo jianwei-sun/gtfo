@@ -101,10 +101,7 @@ namespace gtfo
         }
 
         void UpdateParameters(const Parameters &new_parameters) {
-            parameters_.mass = new_parameters.mass;
-            parameters_.damping = new_parameters.damping;
-            parameters_.stiffness = new_parameters.stiffness;
-            parameters_.virtual_spring_zero_position = new_parameters.virtual_spring_zero_position;
+            parameters_ = new_parameters;
             this->SetStateTransitionMatrices(parameters_);
         }
 
