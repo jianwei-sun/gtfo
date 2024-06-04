@@ -100,6 +100,11 @@ namespace gtfo
             DynamicsModelBase::acceleration_ = (new_state.row(1) - state.row(1)) / parameters_.dt;
         }
 
+        void UpdateParameters(const Parameters &new_parameters) {
+            parameters_ = new_parameters;
+            this->SetStateTransitionMatrices(parameters_);
+        }
+
     protected:
         virtual void SetStateTransitionMatrices(const Parameters &parameters) = 0;
 

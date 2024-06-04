@@ -74,6 +74,8 @@ namespace gtfo{
             / Base:: parameters_.mass) * (Base::position_ - VectorN::Constant(Base::parameters_.virtual_spring_zero_position)) + force_input / Base::parameters_.mass;
         }
 
+
+
     private:
         void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
         {
