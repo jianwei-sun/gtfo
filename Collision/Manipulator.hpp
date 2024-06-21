@@ -64,17 +64,23 @@ public:
         joint_to_virtual_ = joint_to_virtual;
     }
 
-    void UpdateVirtualState(void) override{
+    void  UpdateVirtualState(void) override{
         if(!model_ptr_ || !virtual_to_joint_ || !joint_to_virtual_){
             return;
         }
-        const VirtualVector& position = model_ptr_->GetPosition();
+        // const VirtualVector& position = model_ptr_->GetPosition();
+        const Eigen::Matrix<Scalar, VirtualDimension + 1, 1>& position = model_ptr_->GetPosition();
         const VirtualVector& velocity = model_ptr_->GetVelocity();
         const VirtualVector constrained_virtual_velocity = joint_to_virtual_(GetSafeJointSpaceVelocity(virtual_to_joint_(velocity)));
         if(!IsEqual(constrained_virtual_velocity, velocity)){
             const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
+            Eigen::Matrix<Scalar, VirtualDimension + 1, 1> normal_expand;
+            normal_expand.setZero();
+            normal_expand.block(0, 0, 3, 1) = normal.block(0, 0, 3, 1);
+            normal_expand.block(4, 0, 3, 1) = normal.block(3, 0, 3, 1);
+
             model_ptr_->SetState(
-                position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal,
+                position - (position - model_ptr_->GetOldPosition()).dot(normal_expand) * normal_expand,
                 constrained_virtual_velocity
             );
         }
