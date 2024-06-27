@@ -14,6 +14,7 @@
 // Project-specific
 #include "Segment.hpp"
 
+#include <iostream>
 namespace gtfo{
 namespace collision{
     
@@ -81,6 +82,8 @@ public:
         for(size_t i = 0; i < segments_.size(); ++i){
             for(const Segment<Scalar>& segment_other : other.segments_){
                 const Segment<Scalar> potential_collision_vector = segments_[i].MinDistanceVectorTo(segment_other);
+                // std::cout << potential_collision_vector.Length() << "----" << i << std::endl;
+                // std::cout << " _______________________________" << std::endl;
                 if(potential_collision_vector.Length() <= tol){
                     collisions_.emplace_back(i, potential_collision_vector.Start(), potential_collision_vector.End() - potential_collision_vector.Start());
                 }
