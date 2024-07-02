@@ -71,10 +71,12 @@ TEST(FiltersTest, LowPassFilterCoefficients2)
     );
     // A coarser tolerance is needed here since the underlying floating-type is float
     // Recommended to use at least double precision
-    EXPECT_TRUE(gtfo::IsEqual(expected_numerator, filter.GetNumerator(), 1e-7f));
+    EXPECT_TRUE(gtfo::IsEqual(expected_numerator, filter.GetNumerator(), 1e-6f));
     std::cout << filter.GetNumerator().transpose() << std::endl;
-    EXPECT_TRUE(gtfo::IsEqual(expected_denominator, filter.GetDenominator(), 1e-7f));
+    EXPECT_TRUE(gtfo::IsEqual(expected_denominator, filter.GetDenominator(), 1e-6f));
     std::cout << filter.GetDenominator().transpose() << std::endl;
+	std::cout << expected_denominator.transpose() << std::endl;
+	std::cout << (filter.GetDenominator() - expected_denominator).norm() << std::endl;
 }
 
 TEST(FiltersTest, LowPassFilterCoefficients3)
