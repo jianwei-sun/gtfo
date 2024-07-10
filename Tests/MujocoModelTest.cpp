@@ -4,7 +4,6 @@
 // Verifies that MuJoCo is compiled and linked correctly
 TEST(CMakeSmokeTest, MuJoCoVersion){
   EXPECT_TRUE(mjVERSION_HEADER == mj_version());
-  EXPECT_EQ(mjVERSION_HEADER, 231);
 }
 
 // Verifies that MujocoModel can be built
