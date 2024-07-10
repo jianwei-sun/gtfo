@@ -75,8 +75,6 @@ TEST(FiltersTest, LowPassFilterCoefficients2)
     std::cout << filter.GetNumerator().transpose() << std::endl;
     EXPECT_TRUE(gtfo::IsEqual(expected_denominator, filter.GetDenominator(), 1e-6f));
     std::cout << filter.GetDenominator().transpose() << std::endl;
-	std::cout << expected_denominator.transpose() << std::endl;
-	std::cout << (filter.GetDenominator() - expected_denominator).norm() << std::endl;
 }
 
 TEST(FiltersTest, LowPassFilterCoefficients3)
