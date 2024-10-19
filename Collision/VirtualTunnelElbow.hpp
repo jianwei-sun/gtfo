@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------
-// File: VirtualTunnel.hpp
+// File: VirtualTunnelElbow.hpp
 // Desc: class representing a virtual tunnel
 //----------------------------------------------------------------------------------------------------
 // Standard libraries includes
@@ -19,19 +19,15 @@
 namespace gtfo{
 namespace collision{
 
-struct PointCloud {
-	Eigen::MatrixXd elbow;
-	Eigen::MatrixXd wrist;
-};
-
 template<typename Scalar = double>
-class VirtualTunnel : public EntityPointTunnel<Scalar>{
+class VirtualTunnelElbow : public EntityPointTunnel<Scalar>{
 public:
 
     using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
   
-    VirtualTunnel(const std::vector<Vector3>& vertices, const TunnelParameters &tunnel_parameters)  // the vertices are actually dots along the reference trajectory
-        :   Entity<Scalar>(vertices, true)
+    VirtualTunnelElbow(const TunnelParameters &tunnel_parameters)  // the vertices are actually dots along the reference trajectory
+        :   EntityPointTunnel<Scalar>(std::vector<Vector3>{Vector3::Zero()}, true),
+        number_of_vertices_(tunnel_parameters.num_of_points)
     {
         // generate trajectory in joint space first
         Eigen::Matrix<double, Eigen::Dynamic, 1> pct = Eigen::VectorXd::LinSpaced(tunnel_parameters.num_of_points, 0.0, 1.0);
@@ -59,24 +55,29 @@ public:
         Eigen::RowVectorXd elbow_y = tunnel_parameters.lu * t2.array().sin();
         Eigen::RowVectorXd elbow_z = -tunnel_parameters.lu * (t1.array().cos() * t2.array().cos());
         
-        Eigen::RowVectorXd wrist_x = tunnel_parameters.lf * (t4.array().sin() * (t1.array().cos() * t3.array().sin() + t3.array().cos() * t1.array().sin() * t2.array().sin()) - t2.array().cos() * t4.array().cos() * t1.array().sin()) - tunnel_parameters.lu * t2.array().cos() * t1.array().sin();
-        Eigen::RowVectorXd wrist_y = tunnel_parameters.lf * (t4.array().cos() * t2.array().sin() + t2.array().cos() * t3.array().cos() * t4.array().sin()) + tunnel_parameters.lu * t2.array().sin();
-        Eigen::RowVectorXd wrist_z = -tunnel_parameters.lf * (t4.array().sin() * (t1.array().sin() * t3.array().sin() - t1.array().cos() * t3.array().cos() * t2.array().sin()) + t1.array().cos() * t2.array().cos() * t4.array().cos()) - tunnel_parameters.lu * t1.array().cos() * t2.array().cos();
+        Eigen::MatrixXd elbow;
+        elbow.col(0) = elbow_x.transpose();
+        elbow.col(1) = elbow_y.transpose();
+        elbow.col(2) = elbow_z.transpose();
 
-        point_cloud_.elbow.col(0) = elbow_x.transpose();
-        point_cloud_.elbow.col(1) = elbow_y.transpose();
-        point_cloud_.elbow.col(2) = elbow_z.transpose();
-
-        point_cloud_.wrist.col(0) = wrist_x.transpose();
-        point_cloud_.wrist.col(1) = wrist_y.transpose();
-        point_cloud_.wrist.col(2) = wrist_z.transpose();
-    }
-}
-
+        std::vector<Eigen::Vector3d> elbow_position;
     
+        for (int i = 0; i < elbow.rows(); ++i) {
+            elbow_position.push_back(elbow.row(i)); 
+        }
+
+        UpdateVertices(elbow_position);
+    }
+
+    void UpdateVertices(const std::vector<Vector3>& vertices) override{
+        assert(vertices.size() == number_of_vertices_);
+        EntityPointTunnel<Scalar>::vertices_ = vertices;
+    }
+
 private:
 
-    PointCloud point_cloud_;
+    const size_t number_of_vertices_;
 
+};
 }   // namespace collision
 }   // namespace gtfo
