@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------
-// File: Manipulator.hpp
+// File: ManipulatorPoints.hpp
 // Desc: class representing a physical manipulator
 //----------------------------------------------------------------------------------------------------
 #pragma once
@@ -22,7 +22,7 @@ namespace gtfo{
 namespace collision{
 
 template<unsigned int JointSpaceDimension, unsigned int MaxCollisionsPerSegment, unsigned int VirtualDimension = JointSpaceDimension, typename Scalar = double>
-class Manipulator : public EntityPointTunnel<Scalar>{
+class ManipulatorPoints : public EntityPointTunnel<Scalar>{
 public:
     static_assert(JointSpaceDimension >= 1, "JointSpaceDimension must be at least 1");
     static_assert(MaxCollisionsPerSegment >= 1, "MaxCollisionsPerSegment must be at least 1");
@@ -33,7 +33,7 @@ public:
     using PartialJacobian = Eigen::Matrix<Scalar, 3, JointSpaceDimension, Eigen::RowMajor>;
     using VirtualVector = Eigen::Matrix<Scalar, VirtualDimension, 1>;
 
-    Manipulator(const std::vector<Vector3>& vertices)
+    ManipulatorPoints(const std::vector<Vector3>& vertices)
         :   EntityPointTunnel<Scalar>(vertices, false),
             number_of_vertices_(vertices.size()),
             partial_jacobian_updater_(nullptr),
@@ -52,7 +52,7 @@ public:
 
     // To enable collision avoidance, a partial jacobian (first three rows) which can be evaluated at any arbitrary point
     // is needed
-    void EnableTunnelCollisionAvoidance(const std::function<void(PartialJacobian&, const size_t&, const Vector3&)>& partial_jacobian_updater){
+    void EnableTunnelCollisionAvoidance(const std::function<void(PartialJacobian&, const Vector3&)>& partial_jacobian_updater){
         partial_jacobian_updater_ = partial_jacobian_updater;
     }
 
@@ -87,9 +87,9 @@ public:
         if(partial_jacobian_updater_){
             Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension>::Zero();
 
-            for(unsigned i = 0; i < std::min<size_t>(Entity<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
-                const Collision<Scalar>& collision = Entity<Scalar>::collisions_[i];
-                partial_jacobian_updater_(partial_jacobian_, collision.point_index_, collision.location_);
+            for(unsigned i = 0; i < std::min<size_t>(EntityPointTunnel<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
+                const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_[i];
+                partial_jacobian_updater_(partial_jacobian_, collision.location_);
                 constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
             }
             solver_.UpdateConstraintMatrix(constraint_matrix);
@@ -107,7 +107,7 @@ private:
     const size_t number_of_vertices_;
 
     // A callback for computing the first three rows of the Jacobian along any arbitrary point
-    std::function<void(PartialJacobian&, const size_t&, const Vector3&)> partial_jacobian_updater_;
+    std::function<void(PartialJacobian&, const Vector3&)> partial_jacobian_updater_;
     PartialJacobian partial_jacobian_;
 
     ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment, Scalar> solver_;

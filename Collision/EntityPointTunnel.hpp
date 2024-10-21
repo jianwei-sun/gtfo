@@ -26,6 +26,7 @@ struct CollisionVector{
     Vector3 normal_contact_direction = Vector3::Zero();
     bool hit_end_wall = 0;
 };
+
 template<typename Scalar = double>
 struct Collision{
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
@@ -58,6 +59,13 @@ public:
         assert(vertices_.size() >= 1);
     }
 
+    EntityPointTunnel(const bool& fixed)
+        :   vertices_(),
+            fixed_(fixed)
+    {
+        
+    }
+
     bool IsFixed(void) const{
         return fixed_;
     }
@@ -69,18 +77,20 @@ public:
     }
 
     void ComputeCollisions(const EntityPointTunnel& other, const Scalar& radius){
-
-        MinDistanceVectorTo(CollisionVector& potential_collision_vector, vertices_[0], other.vertices_, radius);
+        CollisionVector<Scalar> potential_collision_vector;
+        MinDistanceVectorTo(potential_collision_vector, vertices_[0], other.vertices_, radius);
         if(potential_collision_vector.has_normal_contact){
             collisions_.emplace_back(vertices_[0], - potential_collision_vector.normal_contact_direction);
         }
         if(potential_collision_vector.has_tangential_contact){
             collisions_.emplace_back(vertices_[0], - potential_collision_vector.tangential_contact_direction);
         }
-        
+        // std::cout << "normal " << potential_collision_vector.has_normal_contact << std::endl;
+        // std::cout << "tan " << potential_collision_vector.has_tangential_contact << std::endl;
+        // std::cout << "size " << collisions_.size() << std::endl;
     }
 
-    void MinDistanceVectorTo(CollisionVector& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Scalar& radius) const {
+    void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Scalar& radius) const {
 
         double min_dist_sq = std::numeric_limits<double>::max();  
         int index = -1;

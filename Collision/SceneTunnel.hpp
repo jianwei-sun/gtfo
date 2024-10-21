@@ -40,7 +40,7 @@ public:
 
     template<typename T>
     void AddEntity(const T& entity){
-        static_assert(std::is_base_of_v<Entity<Scalar>, T>, "Entities must inherit from Entity");
+        static_assert(std::is_base_of_v<EntityPointTunnel<Scalar>, T>, "Entities must inherit from Entity");
         if(entity.IsFixed()){
             fixed_entities_.push_back(std::make_shared<T>(entity));
         } else{
@@ -52,8 +52,9 @@ public:
 
     void ComputeCollisions(const Scalar& radius){
         // For each free entity
-        for (i==0;i<free_entities_;i++){
-        free_entities_[i]->ComputeCollisions(*fixed_entities_[i], radius);
+        for (int i = 0; i < free_entities_.size(); i ++){
+            free_entities_[i]->ClearCollisions();
+            free_entities_[i]->ComputeCollisions(*fixed_entities_[i], radius);
         }
     }
 

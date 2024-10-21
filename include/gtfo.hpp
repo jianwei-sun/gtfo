@@ -32,9 +32,13 @@
 #include "../Core/Filters/ButterworthLowPassFilter.hpp"
 #include "../Core/Filters/RateLimiter.hpp"
 
-#include "../Collision/Segment.hpp"
-#include "../Collision/Manipulator.hpp"
+// #include "../Collision/Segment.hpp"
+// #include "../Collision/Manipulator.hpp"
 #include "../Collision/Obstacle.hpp"
-#include "../Collision/Scene.hpp"
+// #include "../Collision/Scene.hpp"
+#include "../Collision/ManipulatorPoints.hpp"
+#include "../Collision/SceneTunnel.hpp"
+#include "../Collision/VirtualTunnelElbow.hpp"
+#include "../Collision/VirtualTunnelWrist.hpp"
 
 #include "../Constraints/ManifoldConstraints.hpp"
