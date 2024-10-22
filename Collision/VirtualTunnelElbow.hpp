@@ -58,14 +58,12 @@ public:
         elbow.row(0) = elbow_x;
         elbow.row(1) = elbow_y;
         elbow.row(2) = elbow_z;
-
-        std::vector<Eigen::Vector3d> elbow_position;
     
         for (int i = 0; i < elbow.cols(); ++i) {
-            elbow_position.push_back(elbow.col(i)); 
+            elbow_position_.push_back(elbow.col(i)); 
         }
 
-        UpdateVertices(elbow_position);
+        UpdateVertices(elbow_position_);
     }
 
     void UpdateVirtualState() override {
@@ -77,8 +75,12 @@ public:
         EntityPointTunnel<Scalar>::vertices_ = vertices;
     }
 
-private:
+    std::vector<Vector3> GetTrajectory(void) const{
+        return elbow_position_;
+    }
 
+private:
+    std::vector<Vector3> elbow_position_;
     const size_t number_of_vertices_;
 
 };

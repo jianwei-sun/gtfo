@@ -59,13 +59,12 @@ public:
         wrist.row(1) = wrist_y;
         wrist.row(2) = wrist_z;
 
-        std::vector<Eigen::Vector3d> wrist_position;
     
         for (int i = 0; i < wrist.cols(); ++i) {
-            wrist_position.push_back(wrist.col(i)); 
+            wrist_position_.push_back(wrist.col(i)); 
         }
 
-        UpdateVertices(wrist_position);
+        UpdateVertices(wrist_position_);
     }
 
     void UpdateVirtualState() override {
@@ -77,8 +76,12 @@ public:
         EntityPointTunnel<Scalar>::vertices_ = vertices;
     }
 
+    std::vector<Vector3> GetTrajectory(void) const{
+        return wrist_position_;
+    }
+    
 private:
-
+    std::vector<Vector3> wrist_position_;    
     const size_t number_of_vertices_;
 
 };
