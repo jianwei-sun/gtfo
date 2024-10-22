@@ -66,6 +66,10 @@ public:
         return free_entities_.at(free_entities_index)->GetCollisions();
     }
 
+    CollisionVector<Scalar> GetCollisionVector(const size_t& free_entities_index) const{
+        return free_entities_.at(free_entities_index)->GetCollisionVector();
+    }
+
     void UpdateVertices(const size_t& free_entities_index, const std::vector<Vector3>& vertices){
         free_entities_.at(free_entities_index)->UpdateVertices(vertices);
     }

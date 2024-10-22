@@ -77,13 +77,12 @@ public:
     }
 
     void ComputeCollisions(const EntityPointTunnel& other, const Scalar& radius){
-        CollisionVector<Scalar> potential_collision_vector;
-        MinDistanceVectorTo(potential_collision_vector, vertices_[0], other.vertices_, radius);
-        if(potential_collision_vector.has_normal_contact){
-            collisions_.emplace_back(vertices_[0], - potential_collision_vector.normal_contact_direction);
+        MinDistanceVectorTo(potential_collision_vector_, vertices_[0], other.vertices_, radius);
+        if(potential_collision_vector_.has_normal_contact){
+            collisions_.emplace_back(vertices_[0], - potential_collision_vector_.normal_contact_direction);
         }
-        if(potential_collision_vector.has_tangential_contact){
-            collisions_.emplace_back(vertices_[0], - potential_collision_vector.tangential_contact_direction);
+        if(potential_collision_vector_.has_tangential_contact){
+            collisions_.emplace_back(vertices_[0], - potential_collision_vector_.tangential_contact_direction);
         }
         // std::cout << "normal " << potential_collision_vector.has_normal_contact << std::endl;
         // std::cout << "tan " << potential_collision_vector.has_tangential_contact << std::endl;
@@ -166,12 +165,16 @@ public:
         return collisions_;
     }
 
+    CollisionVector<Scalar> GetCollisionVector(void) const{
+        return potential_collision_vector_;
+    }
+
     virtual void UpdateVirtualState(void) = 0;
 
 protected:
     std::vector<Vector3> vertices_;
     std::vector<Collision<Scalar>> collisions_;
-
+    CollisionVector<Scalar> potential_collision_vector_;
 private:
     const bool fixed_;
 };
