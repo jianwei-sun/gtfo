@@ -42,7 +42,10 @@ public:
     void AddEntity(const T& entity){
         static_assert(std::is_base_of_v<EntityPointTunnel<Scalar>, T>, "Entities must inherit from Entity");
         if(entity.IsFixed()){
-            fixed_entities_.push_back(std::make_shared<T>(entity));
+            if (fixed_entities_.size() > 2) {
+                fixed_entities_.clear(); // clear fixed_entities_
+            }
+            fixed_entities_.push_back(std::make_shared<T>(entity)); 
         } else{
             free_entities_.push_back(std::make_shared<T>(entity));
         }
