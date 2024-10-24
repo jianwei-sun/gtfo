@@ -58,6 +58,7 @@ public:
     // update the position, velocity, and acceleration states
     virtual void PropagateDynamics(const VectorN& force_input) = 0;
 
+
     virtual void Step(const VectorN& force_input, const VectorP& physical_position = VectorP::Constant(NAN)){
         // Store a history of the position
         old_position_ = position_;

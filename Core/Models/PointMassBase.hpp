@@ -51,6 +51,12 @@ namespace gtfo
             ResetSoftStartTimer();
         }
 
+        void ChangeMassDamping(const Parameters &p)
+        {
+
+            parameters_ = p;
+            this->SetStateTransitionMatrices(parameters_);
+        }
         // Restarts the soft start timer. This is needed when motion of the system needs to be temporarily stopped and
         // soft start needs to be active when the system starts again
         void ResetSoftStartTimer(){
