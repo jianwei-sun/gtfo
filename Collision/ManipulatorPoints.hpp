@@ -21,102 +21,113 @@
 namespace gtfo{
 namespace collision{
 
-template<unsigned int JointSpaceDimension, unsigned int MaxCollisionsPerSegment, unsigned int VirtualDimension = JointSpaceDimension, typename Scalar = double>
-class ManipulatorPoints : public EntityPointTunnel<Scalar>{
-public:
-    static_assert(JointSpaceDimension >= 1, "JointSpaceDimension must be at least 1");
-    static_assert(MaxCollisionsPerSegment >= 1, "MaxCollisionsPerSegment must be at least 1");
-    static_assert(VirtualDimension >= 1, "VirtualDimension must be at least 1");
+    template <unsigned int JointSpaceDimension, unsigned int MaxCollisionsPerSegment, unsigned int VirtualDimension = JointSpaceDimension, typename Scalar = float> // 6 2 3 float
+    class ManipulatorPoints : public EntityPointTunnel<Scalar>
+    {
+    public:
+        static_assert(JointSpaceDimension >= 1, "JointSpaceDimension must be at least 1");
+        static_assert(MaxCollisionsPerSegment >= 1, "MaxCollisionsPerSegment must be at least 1");
+        static_assert(VirtualDimension >= 1, "VirtualDimension must be at least 1");
 
-    using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
-    using JointVector = Eigen::Matrix<Scalar, JointSpaceDimension, 1>;
-    using PartialJacobian = Eigen::Matrix<Scalar, 3, JointSpaceDimension, Eigen::RowMajor>;
-    using VirtualVector = Eigen::Matrix<Scalar, VirtualDimension, 1>;
+        using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
+        using JointVector = Eigen::Matrix<Scalar, JointSpaceDimension, 1>;
+        using PartialJacobian = Eigen::Matrix<Scalar, 3, JointSpaceDimension, Eigen::RowMajor>;
+        using VirtualVector = Eigen::Matrix<Scalar, VirtualDimension, 1>;
 
-    ManipulatorPoints(const std::vector<Vector3>& vertices)
-        :   EntityPointTunnel<Scalar>(vertices, false),
-            number_of_vertices_(vertices.size()),
-            partial_jacobian_updater_(nullptr),
-            partial_jacobian_(PartialJacobian::Zero()),
-            model_ptr_(nullptr),
-            virtual_to_joint_(nullptr),
-            joint_to_virtual_(nullptr)
-    {}
-
-    // Updates the locations of the collision points. Verifies that the number of vertices matches the number
-    // of vertices given at construction
-    void UpdateVertices(const std::vector<Vector3>& vertices) override{
-        assert(vertices.size() == number_of_vertices_);
-        EntityPointTunnel<Scalar>::vertices_ = vertices;
-    }
-
-    // To enable collision avoidance, a partial jacobian (first three rows) which can be evaluated at any arbitrary point
-    // is needed
-    void EnableTunnelCollisionAvoidance(const std::function<void(PartialJacobian&, const Vector3&)>& partial_jacobian_updater){
-        partial_jacobian_updater_ = partial_jacobian_updater;
-    }
-
-    void SetVirtualDynamics(DynamicsBase<VirtualDimension, Scalar>* model_ptr, const std::function<JointVector(const VirtualVector&)>& virtual_to_joint, const std::function<VirtualVector(const JointVector&)>& joint_to_virtual){
-        model_ptr_ = model_ptr;
-        virtual_to_joint_ = virtual_to_joint;
-        joint_to_virtual_ = joint_to_virtual;
-    }
-
-    void UpdateVirtualState(void) override{
-        if(!model_ptr_ || !virtual_to_joint_ || !joint_to_virtual_){
-            return;
+        ManipulatorPoints(const std::vector<Vector3> &vertices)
+            : EntityPointTunnel<Scalar>(vertices, false),
+              number_of_vertices_(vertices.size()),
+              partial_jacobian_updater_(nullptr),
+              partial_jacobian_(PartialJacobian::Zero()),
+              model_ptr_(nullptr),
+              virtual_to_joint_(nullptr),
+              joint_to_virtual_(nullptr)
+        {
         }
-        const VirtualVector& position = model_ptr_->GetPosition();
-        const VirtualVector& velocity = model_ptr_->GetVelocity();
-        const VirtualVector constrained_virtual_velocity = joint_to_virtual_(GetSafeJointSpaceVelocity(virtual_to_joint_(velocity)));
-        if(!IsEqual(constrained_virtual_velocity, velocity)){
-            const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
-            model_ptr_->SetState(
-                position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal,
-                constrained_virtual_velocity
-            );
+
+        // Updates the locations of the collision points. Verifies that the number of vertices matches the number
+        // of vertices given at construction
+        void UpdateVertices(const std::vector<Vector3> &vertices) override
+        {
+            assert(vertices.size() == number_of_vertices_);
+            EntityPointTunnel<Scalar>::vertices_ = vertices;
         }
-    }
 
-    // Returns the closest joint-space velocity to desired_velocity while still avoiding collisions. 
-    // Note that all calls to ComputeCollisions should be completed before calling this function, 
-    // if collision avoidance is enabled
-    JointVector GetSafeJointSpaceVelocity(const JointVector& desired_velocity){
-        // If collision avoidance is enabled, update the constraint matrix to avoid velocities
-        // that move farther into the collision
-        if(partial_jacobian_updater_){
-            Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension>::Zero();
+        // To enable collision avoidance, a partial jacobian (first three rows) which can be evaluated at any arbitrary point
+        // is needed
+        void EnableTunnelCollisionAvoidance(const std::function<void(PartialJacobian &, const Vector3 &)> &partial_jacobian_updater)
+        {
+            partial_jacobian_updater_ = partial_jacobian_updater;
+        }
 
-            for(unsigned i = 0; i < std::min<size_t>(EntityPointTunnel<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
-                const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_[i];
-                partial_jacobian_updater_(partial_jacobian_, collision.location_);
-                constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
+        void SetVirtualDynamics(DynamicsBase<VirtualDimension, Scalar> *model_ptr, const std::function<JointVector(const VirtualVector &)> &virtual_to_joint, const std::function<VirtualVector(const JointVector &)> &joint_to_virtual)
+        {
+            model_ptr_ = model_ptr;
+            // virtual_to_joint_ = virtual_to_joint;
+            // joint_to_virtual_ = joint_to_virtual;
+        }
+
+        void UpdateVirtualState(void) override
+        {
+            if (!model_ptr_ || !virtual_to_joint_ || !joint_to_virtual_)
+            {
+                return;
             }
-            solver_.UpdateConstraintMatrix(constraint_matrix);
+            const VirtualVector &position = model_ptr_->GetPosition();
+            const VirtualVector &velocity = model_ptr_->GetVelocity();
+            const VirtualVector constrained_virtual_velocity = joint_to_virtual_(GetSafeJointSpaceVelocity(virtual_to_joint_(velocity)));
+            if (!IsEqual(constrained_virtual_velocity, velocity))
+            {
+                const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
+                model_ptr_->SetState(
+                    position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal,
+                    constrained_virtual_velocity);
+            }
         }
 
-        // If the jacobians are not available, then only solve with velocity constraints
-        return solver_.SolveForVector(desired_velocity);
-    }
+        // Returns the closest joint-space velocity to desired_velocity while still avoiding collisions.
+        // Note that all calls to ComputeCollisions should be completed before calling this function,
+        // if collision avoidance is enabled
+        JointVector GetSafeJointSpaceVelocity(const JointVector &desired_velocity)
+        {
+            // If collision avoidance is enabled, update the constraint matrix to avoid velocities
+            // that move farther into the collision
+            if (partial_jacobian_updater_)
+            {
+                Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension>::Zero();
 
-    void SetJointFixed(const size_t& joint, const bool& fixed){
-        solver_.SetDimensionFixed(joint, fixed);
-    }
+                for (unsigned i = 0; i < std::min<size_t>(EntityPointTunnel<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i)
+                {
+                    const Collision<Scalar> &collision = EntityPointTunnel<Scalar>::collisions_[i];
+                    partial_jacobian_updater_(partial_jacobian_, collision.location_);
+                    constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
+                }
+                solver_.UpdateConstraintMatrix(constraint_matrix);
+            }
 
-private:
-    const size_t number_of_vertices_;
+            // If the jacobians are not available, then only solve with velocity constraints
+            return solver_.SolveForVector(desired_velocity);
+        }
 
-    // A callback for computing the first three rows of the Jacobian along any arbitrary point
-    std::function<void(PartialJacobian&, const Vector3&)> partial_jacobian_updater_;
-    PartialJacobian partial_jacobian_;
+        void SetJointFixed(const size_t &joint, const bool &fixed)
+        {
+            solver_.SetDimensionFixed(joint, fixed);
+        }
 
-    ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment, Scalar> solver_;
+    private:
+        const size_t number_of_vertices_;
 
-    // Virtual dynamics related
-    DynamicsBase<VirtualDimension, Scalar>* model_ptr_;
-    std::function<JointVector(const VirtualVector&)> virtual_to_joint_;
-    std::function<VirtualVector(const JointVector&)> joint_to_virtual_;
-};
+        // A callback for computing the first three rows of the Jacobian along any arbitrary point
+        std::function<void(PartialJacobian &, const Vector3 &)> partial_jacobian_updater_;
+        PartialJacobian partial_jacobian_;
+
+        ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment, Scalar> solver_;
+
+        // Virtual dynamics related
+        DynamicsBase<VirtualDimension, Scalar> *model_ptr_;
+        std::function<JointVector(const VirtualVector &)> virtual_to_joint_;
+        std::function<VirtualVector(const JointVector &)> joint_to_virtual_;
+    };
 
 }   // namespace collision
 }   // namespace gtfo

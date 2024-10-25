@@ -16,7 +16,7 @@
 
 namespace gtfo {
 
-template<unsigned Dimension, unsigned NumConstraints, typename Scalar = double>
+template<unsigned Dimension, unsigned NumConstraints, typename Scalar = float>
 class ClosestVector{
 public:
     static_assert(std::is_same_v<c_float, Scalar>, "OSQP's c_float must be of same type as template argument Scalar");

@@ -16,7 +16,7 @@
 // namespace gtfo{
 // namespace collision{
 
-// template<typename Scalar = double>
+// template<typename Scalar = float>
 // class Obstacle : public Entity<Scalar>{
 // public:
 //     using Vector3 = typename Entity<Scalar>::Vector3;

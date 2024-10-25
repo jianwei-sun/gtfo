@@ -16,19 +16,21 @@
 
 namespace gtfo{
 namespace collision{
-    
-template<typename Scalar = double>
-struct CollisionVector{
-    using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
-    bool has_tangential_contact = 0;
-    bool has_normal_contact = 0;
-    Vector3 tangential_contact_direction = Vector3::Zero();
-    Vector3 normal_contact_direction = Vector3::Zero();
-    bool hit_end_wall = 0;
-};
 
-template<typename Scalar = double>
-struct Collision{
+    template <typename Scalar = float>
+    struct CollisionVector
+    {
+        using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
+        bool has_tangential_contact = 0;
+        bool has_normal_contact = 0;
+        Vector3 tangential_contact_direction = Vector3::Zero();
+        Vector3 normal_contact_direction = Vector3::Zero();
+        bool hit_end_wall = 0;
+    };
+
+template <typename Scalar = float>
+struct Collision
+{
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
     Vector3 location_;
     Vector3 direction_;
@@ -46,8 +48,9 @@ struct Collision{
     {}
 };
 
-template<typename Scalar = double>
-class EntityPointTunnel{
+template <typename Scalar = float>
+class EntityPointTunnel
+{
 public:
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
 
@@ -91,14 +94,14 @@ public:
 
     void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Scalar& radius) const {
 
-        double min_dist_sq = std::numeric_limits<double>::max();  
+        float min_dist_sq = std::numeric_limits<float>::max();
         int index = -1;
 
         #pragma omp parallel for
         for (int i = 0; i < other.size(); ++i) {
-            double dist_sq = (other[i] - point_of_interest).squaredNorm();  
+            float dist_sq = (other[i] - point_of_interest).squaredNorm();
 
-            #pragma omp critical
+#pragma omp critical
             {
                 if (dist_sq < min_dist_sq) {
                     min_dist_sq = dist_sq;
@@ -114,8 +117,8 @@ public:
             potential_collision_vector.normal_contact_direction = Vector3::Zero();
             potential_collision_vector.hit_end_wall = 0;
 
-            double normal_distance;
-            Eigen::Vector3d tan = Eigen::Vector3d::Zero();
+            float normal_distance;
+            Eigen::Vector3f tan = Eigen::Vector3f::Zero();
             // when there is no contact on the ends
             if (index == other.size() - 1) { 
                 tan = (other[index-1] - other[index]).normalized();
@@ -133,9 +136,9 @@ public:
                 return; 
             }
             // when there is contact on the ends
-            Eigen::Vector3d displacement = other[index] - point_of_interest;
-            double tangential_displacement = displacement.dot(tan);
-            Eigen::Vector3d normal_displacement = displacement - tangential_displacement * tan;
+            Eigen::Vector3f displacement = other[index] - point_of_interest;
+            float tangential_displacement = displacement.dot(tan);
+            Eigen::Vector3f normal_displacement = displacement - tangential_displacement * tan;
 
             if (tangential_displacement >= 0) { // 
                 potential_collision_vector.has_tangential_contact = 1;

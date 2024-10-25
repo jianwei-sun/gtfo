@@ -18,7 +18,7 @@
 namespace gtfo{
 namespace collision{
 
-template<typename Scalar = double>
+template<typename Scalar = float>
 class SceneTunnel{
 public:
     using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
