@@ -91,12 +91,12 @@ public:
 
     void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Scalar& radius) const {
 
-        double min_dist_sq = std::numeric_limits<double>::max();  
+        Scalar min_dist_sq = std::numeric_limits<Scalar>::max();  
         int index = -1;
 
         #pragma omp parallel for
         for (int i = 0; i < other.size(); ++i) {
-            double dist_sq = (other[i] - point_of_interest).squaredNorm();  
+            Scalar dist_sq = (other[i] - point_of_interest).squaredNorm();  
 
             #pragma omp critical
             {
@@ -114,8 +114,8 @@ public:
             potential_collision_vector.normal_contact_direction = Vector3::Zero();
             potential_collision_vector.hit_end_wall = 0;
 
-            double normal_distance;
-            Eigen::Vector3d tan = Eigen::Vector3d::Zero();
+            Scalar normal_distance;
+            Vector3 tan = Vector3::Zero();
             // when there is no contact on the ends
             if (index == other.size() - 1) { 
                 tan = (other[index-1] - other[index]).normalized();
@@ -133,9 +133,9 @@ public:
                 return; 
             }
             // when there is contact on the ends
-            Eigen::Vector3d displacement = other[index] - point_of_interest;
-            double tangential_displacement = displacement.dot(tan);
-            Eigen::Vector3d normal_displacement = displacement - tangential_displacement * tan;
+            Vector3 displacement = other[index] - point_of_interest;
+            Scalar tangential_displacement = displacement.dot(tan);
+            Vector3 normal_displacement = displacement - tangential_displacement * tan;
 
             if (tangential_displacement >= 0) { // 
                 potential_collision_vector.has_tangential_contact = 1;
