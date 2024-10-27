@@ -50,17 +50,20 @@ template<typename Scalar = double>
 class EntityPointTunnel{
 public:
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
-
+    // for arm
     EntityPointTunnel(const std::vector<Vector3>& vertices, const bool& fixed)
-        :   vertices_(vertices),
+        :   vertices_elbow_(std::vector<Vector3> {vertices[0]}),
+            vertices_wrist_(std::vector<Vector3> {vertices[1]}),
             fixed_(fixed)
     {
         // Ensure at least one vertex exists
-        assert(vertices_.size() >= 1);
+        assert(vertices.size() >= 1);
     }
 
+    // for tunnel
     EntityPointTunnel(const bool& fixed)
-        :   vertices_(),
+        :   vertices_elbow_(),
+            vertices_wrist_(),
             fixed_(fixed)
     {
         
@@ -73,36 +76,51 @@ public:
     virtual void UpdateVertices(const std::vector<Vector3>& vertices) = 0;
 
     void ClearCollisions(void){
-        collisions_.clear();
+        collisions_elbow_.clear();
+        collisions_wrist_.clear();
     }
 
     void ComputeCollisions(const EntityPointTunnel& other, const Scalar& radius){
-        MinDistanceVectorTo(potential_collision_vector_, vertices_[0], other.vertices_, radius);
-        if(potential_collision_vector_.has_normal_contact){
-            collisions_.emplace_back(vertices_[0], - potential_collision_vector_.normal_contact_direction);
+        MinDistanceVectorTo(potential_collision_vector_elbow_, vertices_elbow_[0], other.vertices_elbow_, radius);
+        if(potential_collision_vector_elbow_.has_normal_contact){
+            collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction);
         }
-        if(potential_collision_vector_.has_tangential_contact){
-            collisions_.emplace_back(vertices_[0], - potential_collision_vector_.tangential_contact_direction);
+        if(potential_collision_vector_elbow_.has_tangential_contact){
+            collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.tangential_contact_direction);
         }
-        // std::cout << "normal " << potential_collision_vector.has_normal_contact << std::endl;
-        // std::cout << "tan " << potential_collision_vector.has_tangential_contact << std::endl;
-        // std::cout << "size " << collisions_.size() << std::endl;
+
+        MinDistanceVectorTo(potential_collision_vector_wrist_, vertices_wrist_[0], other.vertices_wrist_, radius);
+        if(potential_collision_vector_wrist_.has_normal_contact){
+            collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.normal_contact_direction);
+        }
+        if(potential_collision_vector_wrist_.has_tangential_contact){
+            collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.tangential_contact_direction);
+        }
     }
 
     void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Scalar& radius) const {
-
-        Scalar min_dist_sq = std::numeric_limits<Scalar>::max();  
+        Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
         int index = -1;
+        #pragma omp parallel
+        {
+            Scalar local_min_dist_sq = std::numeric_limits<Scalar>::max();
+            int local_index = -1;
 
-        #pragma omp parallel for
-        for (int i = 0; i < other.size(); ++i) {
-            Scalar dist_sq = (other[i] - point_of_interest).squaredNorm();  
+            #pragma omp for
+            for (int i = 0; i < other.size(); ++i) {
+                Scalar dist_sq = (other[i] - point_of_interest).squaredNorm();
+
+                if (dist_sq < local_min_dist_sq) {
+                    local_min_dist_sq = dist_sq;
+                    local_index = i;
+                }
+            }
 
             #pragma omp critical
             {
-                if (dist_sq < min_dist_sq) {
-                    min_dist_sq = dist_sq;
-                    index = i;
+                if (local_min_dist_sq < min_dist_sq) {
+                    min_dist_sq = local_min_dist_sq;
+                    index = local_index;
                 }
             }
         }
@@ -161,20 +179,31 @@ public:
         }
     }
 
-    std::vector<Collision<Scalar>> GetCollisions(void) const{
-        return collisions_;
+    std::vector<Collision<Scalar>> GetElbowCollisions(void) const{
+        return collisions_elbow_;
     }
 
-    CollisionVector<Scalar> GetCollisionVector(void) const{
-        return potential_collision_vector_;
+    std::vector<Collision<Scalar>> GetWristCollisions(void) const{
+        return collisions_wrist_;
+    }
+
+    CollisionVector<Scalar> GetElbowCollisionVector(void) const{
+        return potential_collision_vector_elbow_;
+    }
+
+    CollisionVector<Scalar> GetWristCollisionVector(void) const{
+        return potential_collision_vector_wrist_;
     }
 
     virtual void UpdateVirtualState(void) = 0;
 
 protected:
-    std::vector<Vector3> vertices_;
-    std::vector<Collision<Scalar>> collisions_;
-    CollisionVector<Scalar> potential_collision_vector_;
+    std::vector<Vector3> vertices_elbow_;
+    std::vector<Vector3> vertices_wrist_;
+    std::vector<Collision<Scalar>> collisions_elbow_;
+    std::vector<Collision<Scalar>> collisions_wrist_;
+    CollisionVector<Scalar> potential_collision_vector_elbow_;
+    CollisionVector<Scalar> potential_collision_vector_wrist_;
 private:
     const bool fixed_;
 };

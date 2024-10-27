@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------
-// File: VirtualTunnelWrist.hpp
+// File: VirtualTunnel.hpp
 // Desc: class representing a virtual tunnel
 //----------------------------------------------------------------------------------------------------
 // Standard libraries includes
@@ -20,12 +20,12 @@ namespace gtfo{
 namespace collision{
 
 template< typename TunnelParameters, typename Scalar = double>
-class VirtualTunnelWrist : public EntityPointTunnel<Scalar>{
+class VirtualTunnel : public EntityPointTunnel<Scalar>{
 public:
 
     using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
-  
-    VirtualTunnelWrist(const TunnelParameters &tunnel_parameters)  // the vertices are actually dots along the reference trajectory
+    
+    VirtualTunnel(const TunnelParameters &tunnel_parameters)  // the vertices are actually dots along the reference trajectory
     :   EntityPointTunnel<Scalar>(true),
         number_of_vertices_(tunnel_parameters.num_of_points)
     {
@@ -49,7 +49,20 @@ public:
         Eigen::Matrix<Scalar, 1, -1> t3 = theta.row(2);
         Eigen::Matrix<Scalar, 1, -1> t4 = theta.row(3);
 
+        // convert to task space
+        Eigen::Matrix<Scalar, 1, -1> elbow_x = -tunnel_parameters.lu * (t2.array().cos() * t1.array().sin());
+        Eigen::Matrix<Scalar, 1, -1> elbow_y = tunnel_parameters.lu * t2.array().sin();
+        Eigen::Matrix<Scalar, 1, -1> elbow_z = -tunnel_parameters.lu * (t1.array().cos() * t2.array().cos());
         
+        Eigen::Matrix<Scalar, 3, Eigen::Dynamic> elbow(3, tunnel_parameters.num_of_points);
+        elbow.row(0) = elbow_x;
+        elbow.row(1) = elbow_y;
+        elbow.row(2) = elbow_z;
+    
+        for (int i = 0; i < elbow.cols(); ++i) {
+            elbow_position_.push_back(elbow.col(i)); 
+        }
+
         Eigen::Matrix<Scalar, 1, -1> wrist_x = tunnel_parameters.lf * (t4.array().sin() * (t1.array().cos() * t3.array().sin() + t3.array().cos() * t1.array().sin() * t2.array().sin()) - t2.array().cos() * t4.array().cos() * t1.array().sin()) - tunnel_parameters.lu * t2.array().cos() * t1.array().sin();
         Eigen::Matrix<Scalar, 1, -1> wrist_y = tunnel_parameters.lf * (t4.array().cos() * t2.array().sin() + t2.array().cos() * t3.array().cos() * t4.array().sin()) + tunnel_parameters.lu * t2.array().sin();
         Eigen::Matrix<Scalar, 1, -1> wrist_z = -tunnel_parameters.lf * (t4.array().sin() * (t1.array().sin() * t3.array().sin() - t1.array().cos() * t3.array().cos() * t2.array().sin()) + t1.array().cos() * t2.array().cos() * t4.array().cos()) - tunnel_parameters.lu * t1.array().cos() * t2.array().cos();
@@ -64,24 +77,35 @@ public:
             wrist_position_.push_back(wrist.col(i)); 
         }
 
-        UpdateVertices(wrist_position_);
+        UpdateTunnelVertices(elbow_position_, wrist_position_);
+
     }
 
     void UpdateVirtualState() override {
     }
 
-    void UpdateVertices(const std::vector<Vector3>& vertices) override{
-        assert(vertices.size() == number_of_vertices_);
-        assert(vertices.size() >= 1);
-        EntityPointTunnel<Scalar>::vertices_ = vertices;
+    void UpdateVertices(const std::vector<Vector3>& vertices) override{}
+
+    void UpdateTunnelVertices(const std::vector<Vector3>& vertices_elbow, const std::vector<Vector3>& vertices_wrist) {
+        assert(vertices_elbow.size() == number_of_vertices_);
+        assert(vertices_elbow.size() >= 1);
+        assert(vertices_wrist.size() == number_of_vertices_);
+        assert(vertices_wrist.size() >= 1);
+        EntityPointTunnel<Scalar>::vertices_elbow_ = vertices_elbow;
+        EntityPointTunnel<Scalar>::vertices_wrist_ = vertices_wrist;
     }
 
-    std::vector<Vector3> GetTrajectory(void) const{
+    std::vector<Vector3> GetElbowTrajectory(void) const{
+        return elbow_position_;
+    }
+
+    std::vector<Vector3> GetWristTrajectory(void) const{
         return wrist_position_;
     }
-    
+
 private:
-    std::vector<Vector3> wrist_position_;    
+    std::vector<Vector3> elbow_position_;
+    std::vector<Vector3> wrist_position_;
     const size_t number_of_vertices_;
 
 };

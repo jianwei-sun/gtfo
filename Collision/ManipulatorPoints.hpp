@@ -21,11 +21,11 @@
 namespace gtfo{
 namespace collision{
 
-template<unsigned int JointSpaceDimension, unsigned int MaxCollisionsPerSegment, unsigned int VirtualDimension = JointSpaceDimension, typename Scalar = double>
+template<unsigned int JointSpaceDimension, unsigned int MaxCollisionsPerArm, unsigned int VirtualDimension = JointSpaceDimension, typename Scalar = double>
 class ManipulatorPoints : public EntityPointTunnel<Scalar>{
 public:
     static_assert(JointSpaceDimension >= 1, "JointSpaceDimension must be at least 1");
-    static_assert(MaxCollisionsPerSegment >= 1, "MaxCollisionsPerSegment must be at least 1");
+    static_assert(MaxCollisionsPerArm >= 1, "MaxCollisionsPerArm must be at least 1");
     static_assert(VirtualDimension >= 1, "VirtualDimension must be at least 1");
 
     using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
@@ -37,7 +37,8 @@ public:
         :   EntityPointTunnel<Scalar>(vertices, false),
             number_of_vertices_(vertices.size()),
             partial_jacobian_updater_(nullptr),
-            partial_jacobian_(PartialJacobian::Zero()),
+            partial_jacobian_elbow_(PartialJacobian::Zero()),
+            partial_jacobian_wrist_(PartialJacobian::Zero()),
             model_ptr_(nullptr),
             virtual_to_joint_(nullptr),
             joint_to_virtual_(nullptr)
@@ -47,12 +48,13 @@ public:
     // of vertices given at construction
     void UpdateVertices(const std::vector<Vector3>& vertices) override{
         assert(vertices.size() == number_of_vertices_);
-        EntityPointTunnel<Scalar>::vertices_ = vertices;
+        EntityPointTunnel<Scalar>::vertices_elbow_ = std::vector<Vector3>{vertices[0]};
+        EntityPointTunnel<Scalar>::vertices_wrist_ = std::vector<Vector3>{vertices[1]};
     }
 
     // To enable collision avoidance, a partial jacobian (first three rows) which can be evaluated at any arbitrary point
     // is needed
-    void EnableTunnelCollisionAvoidance(const std::function<void(PartialJacobian&, const Vector3&)>& partial_jacobian_updater){
+    void EnableTunnelCollisionAvoidance(const std::function<void(PartialJacobian&, const size_t&, const Vector3&)>& partial_jacobian_updater){
         partial_jacobian_updater_ = partial_jacobian_updater;
     }
 
@@ -85,16 +87,22 @@ public:
         // If collision avoidance is enabled, update the constraint matrix to avoid velocities
         // that move farther into the collision
         if(partial_jacobian_updater_){
-            Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerSegment, JointSpaceDimension>::Zero();
-
-            for(unsigned i = 0; i < std::min<size_t>(EntityPointTunnel<Scalar>::collisions_.size(), MaxCollisionsPerSegment); ++i){
-                const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_[i];
-                partial_jacobian_updater_(partial_jacobian_, collision.location_);
-                constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_;
+            Eigen::Matrix<Scalar, MaxCollisionsPerArm, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerArm, JointSpaceDimension>::Zero();
+            unsigned k = 0;
+            for(unsigned i = 0; i < std::min<size_t>(EntityPointTunnel<Scalar>::collisions_elbow_.size(), MaxCollisionsPerArm/2); ++i){
+                const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_elbow_[i];
+                partial_jacobian_updater_(partial_jacobian_elbow_, 0, collision.location_);
+                constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_elbow_;
+                k ++;
+            }
+            
+            for(unsigned i = k; i < k + std::min<size_t>(EntityPointTunnel<Scalar>::collisions_wrist_.size(), MaxCollisionsPerArm/2); ++i){
+                const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_wrist_[i-k];
+                partial_jacobian_updater_(partial_jacobian_wrist_, 1, collision.location_);
+                constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_wrist_;
             }
             solver_.UpdateConstraintMatrix(constraint_matrix);
         }
-
         // If the jacobians are not available, then only solve with velocity constraints
         return solver_.SolveForVector(desired_velocity);
     }
@@ -107,10 +115,11 @@ private:
     const size_t number_of_vertices_;
 
     // A callback for computing the first three rows of the Jacobian along any arbitrary point
-    std::function<void(PartialJacobian&, const Vector3&)> partial_jacobian_updater_;
-    PartialJacobian partial_jacobian_;
+    std::function<void(PartialJacobian&, const size_t&, const Vector3&)> partial_jacobian_updater_;
+    PartialJacobian partial_jacobian_elbow_;
+    PartialJacobian partial_jacobian_wrist_;
 
-    ClosestVector<JointSpaceDimension, MaxCollisionsPerSegment, Scalar> solver_;
+    ClosestVector<JointSpaceDimension, MaxCollisionsPerArm, Scalar> solver_;
 
     // Virtual dynamics related
     DynamicsBase<VirtualDimension, Scalar>* model_ptr_;

@@ -42,7 +42,7 @@ public:
     void AddEntity(const T& entity){
         static_assert(std::is_base_of_v<EntityPointTunnel<Scalar>, T>, "Entities must inherit from Entity");
         if(entity.IsFixed()){
-            if (fixed_entities_.size() > 2) {
+            if (fixed_entities_.size() > 0) { //specific to project. only want one fixed entity which is the pair of tunnels
                 fixed_entities_.clear(); // clear fixed_entities_
             }
             fixed_entities_.push_back(std::make_shared<T>(entity)); 
@@ -65,12 +65,20 @@ public:
         return free_entities_.at(free_entities_index);
     }
 
-    std::vector<Collision<Scalar>> GetCollisions(const size_t& free_entities_index) const{
-        return free_entities_.at(free_entities_index)->GetCollisions();
+    std::vector<Collision<Scalar>> GetElbowCollisions(const size_t& free_entities_index) const{
+        return free_entities_.at(free_entities_index)->GetElbowCollisions();
     }
 
-    CollisionVector<Scalar> GetCollisionVector(const size_t& free_entities_index) const{
-        return free_entities_.at(free_entities_index)->GetCollisionVector();
+    std::vector<Collision<Scalar>> GetWristCollisions(const size_t& free_entities_index) const{
+        return free_entities_.at(free_entities_index)->GetWristCollisions();
+    }
+
+    CollisionVector<Scalar> GetElbowCollisionVector(const size_t& free_entities_index) const{
+        return free_entities_.at(free_entities_index)->GetElbowCollisionVector();
+    }
+
+    CollisionVector<Scalar> GetWristCollisionVector(const size_t& free_entities_index) const{
+        return free_entities_.at(free_entities_index)->GetWristCollisionVector();
     }
 
     void UpdateVertices(const size_t& free_entities_index, const std::vector<Vector3>& vertices){
