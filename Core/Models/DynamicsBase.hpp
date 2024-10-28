@@ -34,6 +34,9 @@ public:
     using PositionBound = BoundBase<PositionDimensions, Scalar>;
     using PositionBoundPtr = std::shared_ptr<PositionBound>;
 
+    using OrientationBound = BoundBase<Dimensions, Scalar>;
+    using OrientationBoundPtr = std::shared_ptr<OrientationBound>;
+
     const static unsigned int Dimension = Dimensions; 
     const static unsigned int PositionDimension = PositionDimensions; 
     const static bool Euclidean = (Dimensions == PositionDimensions);
@@ -42,6 +45,7 @@ public:
 
     DynamicsBase(const VectorP& initial_position = VectorP::Zero())
         :   position_(initial_position),
+            eulerAngles_(VectorN::Zero()),
             old_position_(VectorP::Zero()),
             velocity_(VectorN::Zero()),
             acceleration_(VectorN::Zero()),
@@ -174,6 +178,45 @@ public:
         }
     }
 
+    virtual void SetOrientationHardBound(const OrientationBound& bound){
+        orientation_hard_bound_ = bound.DeepCopy();
+        assert(orientation_hard_bound_->Contains(position_));
+    }
+
+    template<bool IsEuclidean = Euclidean>
+    std::enable_if_t<IsEuclidean, void> EnforceOrientationHardBound(void){
+        Quaternion2Euler(position_, eulerAngles_);
+        eulerAngles_ = orientation_hard_bound_->GetNearestPointWithinBound(eulerAngles_);
+        position_ = EulerToQuaternion(eulerAngles_).coeffs();
+        const auto surface_normals = orientation_hard_bound_->GetSurfaceNormals(eulerAngles_);
+        if(surface_normals.HasPositiveDotProductWith(velocity_)){
+            surface_normals.RemoveComponentIn(velocity_);
+
+            // Also remove acceleration components that try to make velocity point out the bound
+            if(surface_normals.HasPositiveDotProductWith(acceleration_)){
+                surface_normals.RemoveComponentIn(acceleration_);
+            }
+        }
+    }
+
+    void Quaternion2Euler(VectorP position, VectorN &eulerAngles){
+        Eigen::Quaternion<Scalar> orientation(position[0], position[1], position[2], position[3]);
+        eulerAngles[0] = atan2(2.0 * (orientation.y() * orientation.z() + orientation.w() * orientation.x()), 1.0 - 2.0 * (orientation.y() * orientation.y() + orientation.z() * orientation.z())); // Roll
+        eulerAngles[1] = asin(2.0 * (orientation.w() * orientation.y() - orientation.x() * orientation.z())); // Pitch
+        eulerAngles[2] = atan2(2.0 * (orientation.x() * orientation.y() + orientation.w() * orientation.z()), 1.0 - 2.0 * (orientation.x() * orientation.x() + orientation.y() * orientation.y())); // Yaw
+    }
+    
+
+    Eigen::Quaternion<Scalar> EulerToQuaternion(const VectorN &eulerAngles) {
+        // create roll pitch yaw quaternion 
+        Eigen::AngleAxisd rollAngle(eulerAngles[0], Eigen::Vector3d::UnitX());
+        Eigen::AngleAxisd pitchAngle(eulerAngles[1], Eigen::Vector3d::UnitY());
+        Eigen::AngleAxisd yawAngle(eulerAngles[2], Eigen::Vector3d::UnitZ());
+
+        Eigen::Quaternion<Scalar> q = yawAngle * pitchAngle * rollAngle;
+        return q;
+    }
+
     virtual void SetSoftBound(const PositionBound& bound, const Scalar &spring_constant, const Scalar &damping_constant){
         soft_bound_ = bound.DeepCopy();
         soft_bound_spring_constant_ = spring_constant;
@@ -249,7 +292,7 @@ private:
     PositionBoundPtr soft_bound_;
     Scalar soft_bound_spring_constant_;
     Scalar soft_bound_damping_constant_;
-
+    VectorN eulerAngles_;
     // Same goes for velocity limit
     VelocityBoundPtr velocity_bound_;
 
