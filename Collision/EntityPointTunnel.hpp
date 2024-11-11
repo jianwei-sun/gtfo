@@ -21,9 +21,11 @@ template<typename Scalar = double>
 struct CollisionVector{
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
     bool has_tangential_contact = 0;
-    bool has_normal_contact = 0;
+    bool has_normal_contact_tan = 0;
+    bool has_normal_contact_nor = 0;
     Vector3 tangential_contact_direction = Vector3::Zero();
-    Vector3 normal_contact_direction = Vector3::Zero();
+    Vector3 normal_contact_direction_tan = Vector3::Zero();
+    Vector3 normal_contact_direction_nor = Vector3::Zero();
     bool hit_end_wall = 0;
 };
 
@@ -54,7 +56,8 @@ public:
     EntityPointTunnel(const std::vector<Vector3>& vertices, const bool& fixed)
         :   vertices_elbow_(std::vector<Vector3> {vertices[0]}),
             vertices_wrist_(std::vector<Vector3> {vertices[1]}),
-            fixed_(fixed)
+            fixed_(fixed),
+            dir_nor_()
     {
         // Ensure at least one vertex exists
         assert(vertices.size() >= 1);
@@ -64,7 +67,8 @@ public:
     EntityPointTunnel(const bool& fixed)
         :   vertices_elbow_(),
             vertices_wrist_(),
-            fixed_(fixed)
+            fixed_(fixed),
+            dir_nor_()
     {
         
     }
@@ -81,24 +85,34 @@ public:
     }
 
     void ComputeCollisions(const EntityPointTunnel& other, const Scalar& radius){
-        MinDistanceVectorTo(potential_collision_vector_elbow_, vertices_elbow_[0], other.vertices_elbow_, radius);
-        if(potential_collision_vector_elbow_.has_normal_contact){
-            collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction);
+        MinDistanceVectorTo(potential_collision_vector_elbow_, vertices_elbow_[0], other.vertices_elbow_, other.dir_nor_, radius);
+        if(potential_collision_vector_elbow_.has_normal_contact_tan){
+            collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction_tan);
         }
+
+        if(potential_collision_vector_elbow_.has_normal_contact_nor){
+            collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction_nor);
+        }
+
         if(potential_collision_vector_elbow_.has_tangential_contact){
             collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.tangential_contact_direction);
         }
 
-        MinDistanceVectorTo(potential_collision_vector_wrist_, vertices_wrist_[0], other.vertices_wrist_, radius);
-        if(potential_collision_vector_wrist_.has_normal_contact){
-            collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.normal_contact_direction);
+        MinDistanceVectorTo(potential_collision_vector_wrist_, vertices_wrist_[0], other.vertices_wrist_, other.dir_nor_, radius);
+        if(potential_collision_vector_wrist_.has_normal_contact_tan){
+            collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.normal_contact_direction_tan);
         }
+
+        if(potential_collision_vector_wrist_.has_normal_contact_nor){
+            collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.normal_contact_direction_nor);
+        }
+
         if(potential_collision_vector_wrist_.has_tangential_contact){
             collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.tangential_contact_direction);
         }
     }
 
-    void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Scalar& radius) const {
+    void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Vector3& dir_nor, const Scalar& radius) const {
         Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
         int index = -1;
         #pragma omp parallel
@@ -127,28 +141,43 @@ public:
 
         if (index != -1) {
             potential_collision_vector.has_tangential_contact = 0;
-            potential_collision_vector.has_normal_contact = 0;
+            potential_collision_vector.has_normal_contact_tan = 0;
+            potential_collision_vector.has_normal_contact_nor = 0;
             potential_collision_vector.tangential_contact_direction = Vector3::Zero();
-            potential_collision_vector.normal_contact_direction = Vector3::Zero();
+            potential_collision_vector.normal_contact_direction_tan = Vector3::Zero();
+            potential_collision_vector.normal_contact_direction_nor = Vector3::Zero();
             potential_collision_vector.hit_end_wall = 0;
 
+            Scalar tangent_distance;
             Scalar normal_distance;
             Vector3 tan = Vector3::Zero();
+            std::cout << dir_nor << std::endl;
+            potential_collision_vector.normal_contact_direction_nor = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).normalized();
+            potential_collision_vector.normal_contact_direction_tan = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).normalized();
+            
+            normal_distance = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).norm();
+            tangent_distance = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).norm();
+            
+            if (normal_distance > 0) {
+                potential_collision_vector.has_normal_contact_nor = 1;
+            } else {
+                potential_collision_vector.has_normal_contact_nor = 0;
+                potential_collision_vector.normal_contact_direction_nor.setZero(); 
+            }
+
+            if (radius - tangent_distance <= 0) {
+                potential_collision_vector.has_normal_contact_tan = 1;
+            } else {
+                potential_collision_vector.has_normal_contact_tan = 0;
+                potential_collision_vector.normal_contact_direction_tan.setZero(); 
+            }
+
             // when there is no contact on the ends
             if (index == other.size() - 1) { 
                 tan = (other[index-1] - other[index]).normalized();
             } else if (index == 0) { 
                 tan = (other[index+1] - other[index]).normalized();
             } else {
-                potential_collision_vector.normal_contact_direction = (other[index] - point_of_interest).normalized();
-                normal_distance = (other[index] - point_of_interest).norm();
-                
-                if (radius - normal_distance <= 0) {
-                    potential_collision_vector.has_normal_contact = 1;
-                } else {
-                    potential_collision_vector.has_normal_contact = 0;
-                }
-                return; 
             }
             // when there is contact on the ends
             Vector3 displacement = other[index] - point_of_interest;
@@ -165,15 +194,6 @@ public:
             } else {
                 potential_collision_vector.has_tangential_contact = 0;
                 potential_collision_vector.tangential_contact_direction.setZero(); 
-            }
-
-            potential_collision_vector.normal_contact_direction = normal_displacement.normalized();
-            normal_distance = normal_displacement.norm();
-
-            if (radius - normal_distance <= 0) {
-                potential_collision_vector.has_normal_contact = 1;
-            } else {
-                potential_collision_vector.has_normal_contact = 0;
             }
 
         }
@@ -204,6 +224,7 @@ protected:
     std::vector<Collision<Scalar>> collisions_wrist_;
     CollisionVector<Scalar> potential_collision_vector_elbow_;
     CollisionVector<Scalar> potential_collision_vector_wrist_;
+    Vector3 dir_nor_;
 private:
     const bool fixed_;
 };

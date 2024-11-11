@@ -95,7 +95,7 @@ public:
                 constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_elbow_;
                 k ++;
             }
-            
+            // std::cout << EntityPointTunnel<Scalar>::collisions_wrist_.size() << std::endl;
             for(unsigned i = k; i < k + std::min<size_t>(EntityPointTunnel<Scalar>::collisions_wrist_.size(), MaxCollisionsPerArm/2); ++i){
                 const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_wrist_[i-k];
                 partial_jacobian_updater_(partial_jacobian_wrist_, 1, collision.location_);

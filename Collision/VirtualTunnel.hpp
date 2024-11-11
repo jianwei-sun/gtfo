@@ -77,7 +77,14 @@ public:
             wrist_position_.push_back(wrist.col(i)); 
         }
 
-        UpdateTunnelVertices(elbow_position_, wrist_position_);
+        Vector3 dir_nor;
+        if (std::abs((elbow_position_[0].normalized()).dot((wrist_position_[0] - elbow_position_[0]).normalized())) < 0.98) {
+            dir_nor = ((elbow_position_[0].normalized()).cross((wrist_position_[0] - elbow_position_[0]).normalized())).normalized();
+        } else {
+            dir_nor = ((elbow_position_.back().normalized()).cross((wrist_position_.back() - elbow_position_.back())).normalized());
+        }
+
+        UpdateTunnelVertices(elbow_position_, wrist_position_, dir_nor);
 
     }
 
@@ -86,13 +93,14 @@ public:
 
     void UpdateVertices(const std::vector<Vector3>& vertices) override{}
 
-    void UpdateTunnelVertices(const std::vector<Vector3>& vertices_elbow, const std::vector<Vector3>& vertices_wrist) {
+    void UpdateTunnelVertices(const std::vector<Vector3>& vertices_elbow, const std::vector<Vector3>& vertices_wrist, const Vector3& dir_nor) {
         assert(vertices_elbow.size() == number_of_vertices_);
         assert(vertices_elbow.size() >= 1);
         assert(vertices_wrist.size() == number_of_vertices_);
         assert(vertices_wrist.size() >= 1);
         EntityPointTunnel<Scalar>::vertices_elbow_ = vertices_elbow;
         EntityPointTunnel<Scalar>::vertices_wrist_ = vertices_wrist;
+        EntityPointTunnel<Scalar>::dir_nor_ = dir_nor;
     }
 
     std::vector<Vector3> GetElbowTrajectory(void) const{
