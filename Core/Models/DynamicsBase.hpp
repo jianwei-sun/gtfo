@@ -51,7 +51,10 @@ public:
             soft_bound_spring_constant_(0.0),
             soft_bound_damping_constant_(0.0),
             velocity_bound_(new VelocityBound()),
-            force_premodifier_(nullptr)
+            force_premodifier_(nullptr),
+            velocity_limit_set_(false),
+            hardbound_set_(false)
+            
     {}
 
     // Virtual function to be implemented by the subclass. The function should
@@ -156,6 +159,7 @@ public:
     virtual void SetHardBound(const PositionBound& bound){
         hard_bound_ = bound.DeepCopy();
         assert(hard_bound_->Contains(position_));
+        this->hardbound_set_ = true;
     }
 
     // Hard bound logic modifies position_, velocity_, and acceleration_. This function
@@ -210,7 +214,9 @@ public:
     // Sets a norm-bound for the velocity
     void SetVelocityLimit(const Scalar& limit){
         assert(limit >= 0.0);
+        this->velocity_limit_ = limit;
         velocity_bound_ = std::make_shared<NormBound<Dimensions, Scalar>>(limit);
+        this->velocity_limit_set_ = true;
     }
 
     // Modifies the current velocity to the closest point within the velocity bound, and prevent
@@ -235,6 +241,32 @@ public:
         }
     }
 
+    virtual bool IsHardboundSet() {
+        return this->hardbound_set_;
+    }
+
+    virtual bool IsVelocityLimitSet() {
+        return this->velocity_limit_set_;
+    }
+    virtual Scalar getVelocityLimit(){
+        if(this->velocity_limit_set_)
+            return this->velocity_limit_;
+        else    
+            return 0.0f;
+    }
+
+    virtual VectorP getBoundUpperLimit(){
+        if(this->hardbound_set_)
+            return hard_bound_->getUpperLimits();
+        else
+            return VectorP::Zero();
+    }
+    virtual VectorP getBoundLowerLimit(){
+        if(this->hardbound_set_)
+            return hard_bound_->getLowerLimits();
+        else
+            return VectorP::Zero();
+    }
 protected:
     // Addition states can be added by subclasses, but they should handle their updating
     VectorP position_;
@@ -243,6 +275,10 @@ protected:
     VectorN acceleration_;
 
     bool dynamics_paused_;
+    bool hardbound_set_;
+    bool velocity_limit_set_;
+    Scalar velocity_limit_;
+
 
 private:
     // Hard and soft bounds are included for convenience, but do not have to be used

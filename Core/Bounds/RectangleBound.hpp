@@ -87,7 +87,14 @@ namespace gtfo
             }
             return surface_normals;
         }
-
+        VectorN getLowerLimits()
+        {
+            return lower_limits_;
+        }
+        VectorN getUpperLimits()
+        {
+            return upper_limits_;
+        }
     private:
         const VectorN lower_limits_; // Relative coordinates from the center to the minimum corner point of the N dimensional rectangle
         const VectorN upper_limits_; // Relative coordinates from the center the maximum corner point of the N dimensional rectangle

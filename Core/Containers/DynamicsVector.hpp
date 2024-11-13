@@ -91,7 +91,6 @@ public:
         }, models_);
         return old_position;
     }
-
     [[nodiscard]] VectorN GetVelocity(void) const override{
         VectorN velocity;
         std::apply([&](const Models&... models){
@@ -200,6 +199,11 @@ public:
         return std::get<index>(models_);
     }
 
+    const size_t getTupleSize()
+    {
+        constexpr std::size_t tupleLength = std::tuple_size<decltype(models_)>::value;
+        return tupleLength;
+    }
 private:
     std::tuple<Models...> models_;
 };

@@ -54,6 +54,18 @@ public:
         return SurfaceNormals<VectorN>();
     }
 
+
+    virtual VectorN getLowerLimits()
+    {
+        return VectorN::Zero();
+    }
+
+    virtual VectorN getUpperLimits()
+    {
+        return VectorN::Zero();
+    }
+
+
 protected:
     const Scalar tol_;
 };
