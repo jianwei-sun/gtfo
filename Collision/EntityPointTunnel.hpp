@@ -151,35 +151,35 @@ public:
             Scalar tangent_distance;
             Scalar normal_distance;
             Vector3 tan = Vector3::Zero();
-            potential_collision_vector.normal_contact_direction_nor = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).normalized();
-            potential_collision_vector.normal_contact_direction_tan = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).normalized();
-            
-            normal_distance = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).norm();
-            tangent_distance = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).norm();
-            
-            if (normal_distance > 0) {
-                potential_collision_vector.has_normal_contact_nor = 1;
-            } else {
-                potential_collision_vector.has_normal_contact_nor = 0;
-                potential_collision_vector.normal_contact_direction_nor.setZero(); 
-            }
+            if (!(index == other.size() - 1) || (index == 0)){
+                potential_collision_vector.normal_contact_direction_nor = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).normalized();
+                potential_collision_vector.normal_contact_direction_tan = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).normalized();
+                
+                normal_distance = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).norm();
+                tangent_distance = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).norm();
+                
+                if (normal_distance > 0) {
+                    potential_collision_vector.has_normal_contact_nor = 1;
+                } else {
+                    potential_collision_vector.has_normal_contact_nor = 0;
+                    potential_collision_vector.normal_contact_direction_nor.setZero(); 
+                }
 
-            if (radius - tangent_distance <= 0) {
-                potential_collision_vector.has_normal_contact_tan = 1;
-            } else {
-                potential_collision_vector.has_normal_contact_tan = 0;
-                potential_collision_vector.normal_contact_direction_tan.setZero(); 
-            }
-
+                if (radius - tangent_distance <= 0) {
+                    potential_collision_vector.has_normal_contact_tan = 1;
+                } else {
+                    potential_collision_vector.has_normal_contact_tan = 0;
+                    potential_collision_vector.normal_contact_direction_tan.setZero(); 
+                }
             // when there is contact on the ends
-            if ((index == other.size() - 1) || (index == 0)){
+            } else {
                 if (index == other.size() - 1) { 
                     tan = (other[index-1] - other[index]).normalized();
                 } else { 
                     tan = (other[index+1] - other[index]).normalized();
                 } 
             
-                Vector3 displacement = other[index] - point_of_interest;
+                Vector3 displacement = other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor;
                 Scalar tangential_displacement = displacement.dot(tan);
                 Vector3 normal_displacement = displacement - tangential_displacement * tan;
 
