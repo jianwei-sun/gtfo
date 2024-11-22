@@ -151,7 +151,6 @@ public:
             Scalar tangent_distance;
             Scalar normal_distance;
             Vector3 tan = Vector3::Zero();
-            std::cout << dir_nor << std::endl;
             potential_collision_vector.normal_contact_direction_nor = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).normalized();
             potential_collision_vector.normal_contact_direction_tan = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).normalized();
             
