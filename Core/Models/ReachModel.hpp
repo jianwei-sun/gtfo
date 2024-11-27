@@ -51,7 +51,6 @@ public:
             joint_limits_upper_(VectorN::Zero())
     {
         assert(max_speed_ > 0.0);
-        srand(time(0));
     }
 
     // Generate a random goal position
@@ -90,10 +89,6 @@ public:
     // is selected
     void SyncModelTo(const Base& model) override{
         Base::SyncModelTo(model);
-        Eigen::Matrix<bool, Dimensions, 1> ones;
-        ones.setConstant(true);
-        SetGoalPositions(ones, model.GetPosition());
-        GenerateTrajectoryProperties(model.GetPosition());
     }
 
     void PauseDynamics(const bool& pause) override{
