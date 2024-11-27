@@ -13,17 +13,17 @@
 namespace gtfo{
 
 template <unsigned int Dimensions, typename Scalar = double>
-class RandomPositionsModel : public DynamicsBase<Dimensions, Scalar>{
+class ReachModel : public DynamicsBase<Dimensions, Scalar>{
 public:
     using Base = DynamicsBase<Dimensions, Scalar>;
     using VectorN = typename Base::VectorN;
 
-    RandomPositionsModel(const Scalar& dt, const Scalar& max_speed, const VectorN& joint_limits_lower, const VectorN& joint_limits_upper)
+    ReachModel(const Scalar& dt, const Scalar& max_speed, const VectorN& joint_limits_lower, const VectorN& joint_limits_upper)
         :   Base(VectorN::Zero()),
             dt_(dt),
             time_(0.0),
             duration_(0.0),
-            starting_position_(VectorN::Zero()),
+            start_position_(VectorN::Zero()),
             first_bend_position_(VectorN::Zero()),
             second_bend_position_(VectorN::Zero()),
             goal_position_(VectorN::Zero()),
@@ -36,34 +36,57 @@ public:
         srand(time(0));
     }
 
+    ReachModel(const Scalar& dt, const Scalar& max_speed)
+        :   Base(VectorN::Zero()),
+            dt_(dt),
+            time_(0.0),
+            duration_(0.0),
+            start_position_(VectorN::Zero()),
+            first_bend_position_(VectorN::Zero()),
+            second_bend_position_(VectorN::Zero()),
+            goal_position_(VectorN::Zero()),
+            direction_(VectorN::Zero()),
+            max_speed_(max_speed),
+            joint_limits_lower_(VectorN::Zero()),
+            joint_limits_upper_(VectorN::Zero())
+    {
+        assert(max_speed_ > 0.0);
+        srand(time(0));
+    }
+
     // Generate a random goal position
-    void SetGoalPositions(const Eigen::Matrix<bool, Dimensions, 1>& joint_locked, const VectorN& starting_position){
+    void SetGoalPositions(const Eigen::Matrix<bool, Dimensions, 1>& joint_locked, const VectorN& start_position){
         // generate random goal position
         const VectorN half_difference = (joint_limits_upper_ - joint_limits_lower_) / 2;
         const VectorN half_sum = (joint_limits_upper_ + joint_limits_lower_) / 2;
-        goal_position_ = joint_locked.select(starting_position, VectorN::Random().cwiseProduct(half_difference) + half_sum);
+        goal_position_ = joint_locked.select(start_position, VectorN::Random().cwiseProduct(half_difference) + half_sum);
     }
 
-    // GenerateTrajectoryProperties is called to compute a new trajectory from the passed-in starting_position
+    // Set a definite goal position
+    void SetGoalPositions(const Eigen::Matrix<bool, Dimensions, 1>& joint_locked, const VectorN& start_position, const VectorN& goal_position){
+        goal_position_ = joint_locked.select(start_position, goal_position);
+    }
+
+    // GenerateTrajectoryProperties is called to compute a new trajectory from the passed-in start_position
     // to goal_position, such that the trajectory moves at max_speed_ for 80% of the time
-    void GenerateTrajectoryProperties(const VectorN& starting_position){
+    void GenerateTrajectoryProperties(const VectorN& start_position){
         // Restart the timer and compute the overall duration based on max_speed
         time_ = 0.0;
-        duration_ = (goal_position_ - starting_position).norm() * (2.0 / 1.8) / max_speed_;
-        direction_ = (goal_position_ - starting_position).normalized();
+        duration_ = (goal_position_ - start_position).norm() * (2.0 / 1.8) / max_speed_;
+        direction_ = (goal_position_ - start_position).normalized();
 
         // Compute the key positions in the trajectory
-        starting_position_ = starting_position;
-        first_bend_position_ = starting_position_ + (0.05 * max_speed_ * duration_) * direction_;
+        start_position_ = start_position;
+        first_bend_position_ = start_position_ + (0.05 * max_speed_ * duration_) * direction_;
         second_bend_position_ = first_bend_position_ + (max_speed_ * 0.8 * duration_) * direction_;
 
         // Set the state to the starting state
-        Base::position_ = starting_position_;
+        Base::position_ = start_position_;
         Base::velocity_.setZero();
         Base::acceleration_.setZero();
     }
 
-    // If RandomPositionsModel is used in DynamicsSelector, then tracking is automatically reset when the model
+    // If ReachModel is used in DynamicsSelector, then tracking is automatically reset when the model
     // is selected
     void SyncModelTo(const Base& model) override{
         Base::SyncModelTo(model);
@@ -94,7 +117,7 @@ public:
             const Scalar acceleration = max_speed_ / (0.1 * duration_);
             const Scalar speed = acceleration * time_;
 
-            Base::position_ = starting_position_ + (0.5 * speed * time_) * direction_;
+            Base::position_ = start_position_ + (0.5 * speed * time_) * direction_;
             Base::velocity_ = speed * direction_;
             Base::acceleration_ = acceleration * direction_;
         } 
@@ -144,7 +167,7 @@ private:
     Scalar duration_;
 
     // Position-related
-    VectorN starting_position_;
+    VectorN start_position_;
     VectorN first_bend_position_;
     VectorN second_bend_position_;
     VectorN goal_position_;
