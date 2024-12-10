@@ -105,6 +105,12 @@ namespace gtfo
             this->SetStateTransitionMatrices(parameters_);
         }
 
+        void getStateSpaceMatrix(Eigen::Matrix<Scalar, 2, 2> & A_discrete, Eigen::Matrix<Scalar, 2, 1> & B_discrete,Eigen::Matrix<Scalar, 2, 1> & C_discrete){
+            A_discrete = A_discrete_;
+            B_discrete = B_discrete_;
+            C_discrete = C_discrete_;
+        }
+
     protected:
         virtual void SetStateTransitionMatrices(const Parameters &parameters) = 0;
 
