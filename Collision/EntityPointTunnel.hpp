@@ -57,7 +57,8 @@ public:
         :   vertices_elbow_(std::vector<Vector3> {vertices[0]}),
             vertices_wrist_(std::vector<Vector3> {vertices[1]}),
             fixed_(fixed),
-            dir_nor_()
+            dir_nor_(),
+            index_(-1)
     {
         // Ensure at least one vertex exists
         assert(vertices.size() >= 1);
@@ -68,7 +69,8 @@ public:
         :   vertices_elbow_(),
             vertices_wrist_(),
             fixed_(fixed),
-            dir_nor_()
+            dir_nor_(),
+            index_(-1)
     {
         
     }
@@ -112,9 +114,9 @@ public:
         }
     }
 
-    void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Vector3& dir_nor, const Scalar& radius) const {
+    void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Vector3& dir_nor, const Scalar& radius) {
         Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
-        int index = -1;
+        index_ = -1;
         #pragma omp parallel
         {
             Scalar local_min_dist_sq = std::numeric_limits<Scalar>::max();
@@ -134,12 +136,12 @@ public:
             {
                 if (local_min_dist_sq < min_dist_sq) {
                     min_dist_sq = local_min_dist_sq;
-                    index = local_index;
+                    index_ = local_index;
                 }
             }
         }
 
-        if (index != -1) {
+        if (index_ != -1) {
             potential_collision_vector.has_tangential_contact = 0;
             potential_collision_vector.has_normal_contact_tan = 0;
             potential_collision_vector.has_normal_contact_nor = 0;
@@ -151,12 +153,12 @@ public:
             Scalar tangent_distance;
             Scalar normal_distance;
             Vector3 tan = Vector3::Zero();
-            if (!(index == other.size() - 1) || (index == 0)){
-                potential_collision_vector.normal_contact_direction_nor = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).normalized();
-                potential_collision_vector.normal_contact_direction_tan = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).normalized();
+            if (!(index_ == other.size() - 1) || (index_ == 0)){
+                potential_collision_vector.normal_contact_direction_nor = ((other[index_] - point_of_interest).dot(dir_nor) * dir_nor).normalized();
+                potential_collision_vector.normal_contact_direction_tan = (other[index_] - point_of_interest - (other[index_] - point_of_interest).dot(dir_nor)* dir_nor).normalized();
                 
-                normal_distance = ((other[index] - point_of_interest).dot(dir_nor) * dir_nor).norm();
-                tangent_distance = (other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor).norm();
+                normal_distance = ((other[index_] - point_of_interest).dot(dir_nor) * dir_nor).norm();
+                tangent_distance = (other[index_] - point_of_interest - (other[index_] - point_of_interest).dot(dir_nor)* dir_nor).norm();
                 
                 if (normal_distance > 0) {
                     potential_collision_vector.has_normal_contact_nor = 1;
@@ -173,13 +175,13 @@ public:
                 }
             // when there is contact on the ends
             } else {
-                if (index == other.size() - 1) { 
-                    tan = (other[index-1] - other[index]).normalized();
+                if (index_ == other.size() - 1) { 
+                    tan = (other[index_-1] - other[index_]).normalized();
                 } else { 
-                    tan = (other[index+1] - other[index]).normalized();
+                    tan = (other[index_+1] - other[index_]).normalized();
                 } 
             
-                Vector3 displacement = other[index] - point_of_interest - (other[index] - point_of_interest).dot(dir_nor)* dir_nor;
+                Vector3 displacement = other[index_] - point_of_interest - (other[index_] - point_of_interest).dot(dir_nor)* dir_nor;
                 Scalar tangential_displacement = displacement.dot(tan);
                 Vector3 normal_displacement = displacement - tangential_displacement * tan;
 
@@ -187,7 +189,7 @@ public:
                     potential_collision_vector.has_tangential_contact = 1;
                     potential_collision_vector.tangential_contact_direction = tan;
 
-                    if (index == other.size() - 1) {
+                    if (index_ == other.size() - 1) {
                         potential_collision_vector.hit_end_wall = 1; 
                     }
                 } else {
@@ -216,6 +218,10 @@ public:
         return potential_collision_vector_wrist_;
     }
 
+    int GetCurrentPointIndex(void) const{
+        return index_;
+    }
+
     virtual void UpdateVirtualState(void) = 0;
 
 protected:
@@ -226,6 +232,7 @@ protected:
     CollisionVector<Scalar> potential_collision_vector_elbow_;
     CollisionVector<Scalar> potential_collision_vector_wrist_;
     Vector3 dir_nor_;
+    int index_;
 private:
     const bool fixed_;
 };
