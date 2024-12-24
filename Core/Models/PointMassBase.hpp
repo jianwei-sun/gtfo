@@ -37,7 +37,7 @@ namespace gtfo
               soft_start_duration_(0.0),
               soft_start_timer_(0.0)
         {
-
+            DynamicsModelBase::dt_ = parameters_.dt;
         }
 
         // Soft start can be configured by passing in a parameter set, which contains parameters that soft start begins

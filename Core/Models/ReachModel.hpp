@@ -34,6 +34,7 @@ public:
     {
         assert(max_speed_ > 0.0);
         srand(time(0));
+        Base::dt_ = dt_;
     }
 
     ReachModel(const Scalar& dt, const Scalar& max_speed)
@@ -51,6 +52,7 @@ public:
             joint_limits_upper_(VectorN::Zero())
     {
         assert(max_speed_ > 0.0);
+        Base::dt_ = dt_;
     }
 
     // Generate a random goal position

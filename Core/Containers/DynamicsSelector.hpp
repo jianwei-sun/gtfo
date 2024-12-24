@@ -61,19 +61,28 @@ public:
         return GetActiveModel()->GetVelocity();
     }
 
+    [[nodiscard]] VectorN GetOldVelocity(void) const override{
+        return GetActiveModel()->GetOldVelocity();
+    }
+
     [[nodiscard]] VectorN GetAcceleration(void) const override{
         return GetActiveModel()->GetAcceleration();
+    }
+
+    [[nodiscard]] Scalar GetPeriod(void) const override{
+        return GetActiveModel()->GetPeriod();
     }
 
     [[nodiscard]] bool DynamicsArePaused(void) const override{
         return GetActiveModel()->DynamicsArePaused();
     }
 
-    void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
+    void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& old_velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
         GetActiveModel()->SetFullState(
             position, 
             old_position,
             velocity,
+            old_velocity,
             acceleration,
             dynamics_paused
         );

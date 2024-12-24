@@ -104,6 +104,18 @@ public:
         return velocity;
     }
 
+    [[nodiscard]] VectorN GetOldVelocity(void) const override{
+        VectorN old_velocity;
+        std::apply([&](const Models&... models){
+            size_t index = 0;
+            ([&]{
+                old_velocity.template block<Models::Dimension, 1>(index, 0) = models.GetOldVelocity();
+                index += Models::Dimension;
+            }(), ...);
+        }, models_);
+        return old_velocity;
+    }
+
     [[nodiscard]] VectorN GetAcceleration(void) const override{
         VectorN acceleration;
         std::apply([&](const Models&... models){
@@ -114,6 +126,19 @@ public:
             }(), ...);
         }, models_);
         return acceleration;
+    }
+
+    [[nodiscard]] Scalar GetPeriod(void) const override{
+        Scalar dt;
+        std::apply([&](const Models&... models){
+            size_t index = 0;
+            ([&]{
+                dt = models.GetPeriod();
+                index += Models::Dimension;
+            }(), ...);
+        }, models_);
+        // since the period for the models in a dynamicsvector should be the same, the one in the last model is taken.
+        return dt;
     }
 
     [[nodiscard]] bool DynamicsArePaused(void) const override{
@@ -128,7 +153,7 @@ public:
         return dynamics_paused;
     }
 
-    void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
+    void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& old_velocity, const VectorN& acceleration, const bool& dynamics_paused) override{
         std::apply([&](Models&... models){
             size_t index_n = 0;
             size_t index_p = 0;
@@ -137,6 +162,7 @@ public:
                     position.template block<Models::PositionDimension, 1>(index_p, 0),
                     old_position.template block<Models::PositionDimension, 1>(index_p, 0), 
                     velocity.template block<Models::Dimension, 1>(index_n, 0),
+                    old_velocity.template block<Models::Dimension, 1>(index_n, 0),
                     acceleration.template block<Models::Dimension, 1>(index_n, 0),
                     dynamics_paused
                 );

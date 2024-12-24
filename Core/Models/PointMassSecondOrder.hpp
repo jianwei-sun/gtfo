@@ -70,8 +70,9 @@ namespace gtfo{
             Base::PropagateDynamics(force_input);
             
             // Calculate the acceleration using the more accurate continuous equations with the current velocity
-            Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness 
-            / Base:: parameters_.mass) * (Base::position_ - VectorN::Constant(Base::parameters_.virtual_spring_zero_position)) + force_input / Base::parameters_.mass;
+            // Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness 
+            // / Base:: parameters_.mass) * (Base::position_ - VectorN::Constant(Base::parameters_.virtual_spring_zero_position)) + force_input / Base::parameters_.mass;
+
         }
 
 

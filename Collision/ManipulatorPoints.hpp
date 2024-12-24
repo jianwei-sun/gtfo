@@ -75,7 +75,8 @@ public:
             const VirtualVector normal = (velocity - constrained_virtual_velocity).normalized();
             model_ptr_->SetState(
                 position - (position - model_ptr_->GetOldPosition()).dot(normal) * normal,
-                constrained_virtual_velocity
+                constrained_virtual_velocity,
+                (constrained_virtual_velocity - model_ptr_->GetOldVelocity())/model_ptr_->GetPeriod()
             );
         }
     }

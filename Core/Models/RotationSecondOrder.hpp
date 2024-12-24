@@ -28,7 +28,7 @@ public:
             damping_(damping)
     {
         assert(dt_ > 0.0);
-
+        Base::dt_ = dt_;
         // Positive definiteness
         assert((principal_inertia.array() > 0.0).all());
 

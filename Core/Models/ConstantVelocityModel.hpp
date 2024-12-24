@@ -23,6 +23,7 @@ public:
             speed_(speed)
     {
         assert(speed_ > 0.0);
+        Base::dt_ = dt_;
     }
 
     void PropagateDynamics(const VectorN& direction) override{

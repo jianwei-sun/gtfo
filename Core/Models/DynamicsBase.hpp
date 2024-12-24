@@ -44,6 +44,7 @@ public:
         :   position_(initial_position),
             old_position_(VectorP::Zero()),
             velocity_(VectorN::Zero()),
+            old_velocity_(VectorN::Zero()),
             acceleration_(VectorN::Zero()),
             dynamics_paused_(false),
             hard_bound_(new PositionBound()),
@@ -51,7 +52,8 @@ public:
             soft_bound_spring_constant_(0.0),
             soft_bound_damping_constant_(0.0),
             velocity_bound_(new VelocityBound()),
-            force_premodifier_(nullptr)
+            force_premodifier_(nullptr),
+            dt_()
     {}
 
     // Virtual function to be implemented by the subclass. The function should
@@ -61,7 +63,7 @@ public:
     virtual void Step(const VectorN& force_input, const VectorP& physical_position = VectorP::Constant(NAN)){
         // Store a history of the position
         old_position_ = position_;
-
+        old_velocity_ = velocity_;
         // Update the position with the physical position, if necessary
         if(!physical_position.array().isNaN().any()){
             position_ = physical_position;
@@ -101,12 +103,20 @@ public:
         return velocity_;
     }
 
+    [[nodiscard]] virtual inline VectorN GetOldVelocity(void) const{
+        return old_velocity_;
+    }
+
     [[nodiscard]] virtual inline VectorN GetAcceleration(void) const{
         return acceleration_;
     }
 
     [[nodiscard]] virtual inline bool DynamicsArePaused(void) const{
         return dynamics_paused_;
+    }
+
+    [[nodiscard]] virtual inline Scalar GetPeriod(void) const{
+        return dt_;
     }
 
     // Sets the current model's state to that of the target model. Since the current model may have different
@@ -117,15 +127,17 @@ public:
             model.GetPosition(),
             model.GetOldPosition(),
             model.GetVelocity(),
+            model.GetOldVelocity(),
             model.GetAcceleration(),
             model.DynamicsArePaused()
         );
     }
 
-    virtual void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& acceleration, const bool& dynamics_paused){
+    virtual void SetFullState(const VectorP& position, const VectorP& old_position, const VectorN& velocity, const VectorN& old_velocity, const VectorN& acceleration, const bool& dynamics_paused){
         position_ = position;
         old_position_ = old_position;
         velocity_ = velocity;
+        old_velocity_ = old_velocity;
         acceleration_ = acceleration;
         dynamics_paused_ = dynamics_paused;
         EnforceStateConstraints();
@@ -239,7 +251,9 @@ protected:
     VectorP position_;
     VectorP old_position_;
     VectorN velocity_;
+    VectorN old_velocity_;
     VectorN acceleration_;
+    Scalar dt_;
 
     bool dynamics_paused_;
 

@@ -31,6 +31,7 @@ public:
             max_speed_(max_speed)
     {
         assert(max_speed_ > 0.0);
+        Base::dt_ = dt_;
     }
 
     // ResetHoming is called to compute a new homing trajectory from the passed-in starting_position
