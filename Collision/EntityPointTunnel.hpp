@@ -30,6 +30,13 @@ struct CollisionVector{
 };
 
 template<typename Scalar = double>
+struct SegmentParams{
+    using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
+    Scalar proj = 0;
+    Vector3 dist = Vector3::Zero();
+};
+
+template<typename Scalar = double>
 struct Collision{
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
     Vector3 location_;
@@ -114,30 +121,71 @@ public:
         }
     }
 
+    SegmentParams<Scalar> ParseSegment(const Vector3& start_point, const Vector3& end_point, const Vector3& point_of_interest){
+        SegmentParams results;
+        Vector3 dir = end_point - start_point;
+        Vector3 start_to_point = point_of_interest - start_point;
+        results.proj = start_to_point.dot(dir)/dir.squaredNorm();
+        if (results.proj < 0){
+            results.dist = start_point - point_of_interest;
+        } else if (results.proj > 1){
+            results.dist = end_point - point_of_interest;
+        } else {
+            results.dist = start_point + results.proj * dir - point_of_interest;
+        }
+        return results;
+    }
+
     void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Vector3& dir_nor, const Scalar& radius) {
-        Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
+        // Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
+        // index_ = -1;
+        // Vector3 dir_point_to_curve;
+        // #pragma omp parallel
+        // {
+        //     Scalar local_min_dist_sq = std::numeric_limits<Scalar>::max();
+        //     int local_index = -1;
+        //     Scalar local_t;
+        //     Vector3 local_dir_point_to_curve;
+
+        //     #pragma omp for
+        //     for (int i = 0; i < other.size() - 1; ++i) {
+        //         SegmentParams results;
+        //         results = ParseSegment(other[i], other[i+1], point_of_interest);
+
+        //         Scalar dist_sq = results.dist.squaredNorm();
+
+        //         if (dist_sq < local_min_dist_sq) {
+        //             local_min_dist_sq = dist_sq;
+        //             local_index = i;
+        //             local_t = results.t;
+        //             local_dir_point_to_curve = results.dist;
+        //         }
+        //     }
+
+        //     #pragma omp critical
+        //     {
+        //         if (local_min_dist_sq < min_dist_sq) {
+        //             min_dist_sq = local_min_dist_sq;
+        //             index_ = local_index;
+        //             t = local_t;
+        //             dir_point_to_curve = local_dir_point_to_curve;
+        //         }
+        //     }
+        // }
+        
         index_ = -1;
-        #pragma omp parallel
-        {
-            Scalar local_min_dist_sq = std::numeric_limits<Scalar>::max();
-            int local_index = -1;
-
-            #pragma omp for
-            for (int i = 0; i < other.size(); ++i) {
-                Scalar dist_sq = (other[i] - point_of_interest).squaredNorm();
-
-                if (dist_sq < local_min_dist_sq) {
-                    local_min_dist_sq = dist_sq;
-                    local_index = i;
-                }
-            }
-
-            #pragma omp critical
-            {
-                if (local_min_dist_sq < min_dist_sq) {
-                    min_dist_sq = local_min_dist_sq;
-                    index_ = local_index;
-                }
+        Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
+        Vector3 min_dist_vector;
+        Scalar min_proj;
+        for (int i = 0; i < other.size() - 1; ++i) {
+            SegmentParams results;
+            results = ParseSegment(other[i], other[i+1], point_of_interest);
+            Scalar dist_sq = results.dist.squaredNorm();
+            if (dist_sq < min_dist_sq) {
+                min_dist_sq = dist_sq;
+                min_dist_vector = results.dist;
+                min_proj = results.proj;
+                index_ = i;
             }
         }
 
@@ -150,38 +198,26 @@ public:
             potential_collision_vector.normal_contact_direction_nor = Vector3::Zero();
             potential_collision_vector.hit_end_wall = 0;
             // when there is contact on the ends
-            Scalar tangent_distance;
             Scalar normal_distance;
             Vector3 tan = Vector3::Zero();
-            if (!(index_ == other.size() - 1) || (index_ == 0)){
-                potential_collision_vector.normal_contact_direction_nor = ((other[index_] - point_of_interest).dot(dir_nor) * dir_nor).normalized();
-                potential_collision_vector.normal_contact_direction_tan = (other[index_] - point_of_interest - (other[index_] - point_of_interest).dot(dir_nor)* dir_nor).normalized();
-                
-                normal_distance = ((other[index_] - point_of_interest).dot(dir_nor) * dir_nor).norm();
-                tangent_distance = (other[index_] - point_of_interest - (other[index_] - point_of_interest).dot(dir_nor)* dir_nor).norm();
-                
-                if (normal_distance > 0) {
-                    potential_collision_vector.has_normal_contact_nor = 1;
-                } else {
-                    potential_collision_vector.has_normal_contact_nor = 0;
-                    potential_collision_vector.normal_contact_direction_nor.setZero(); 
-                }
 
-                if (radius - tangent_distance <= 0) {
-                    potential_collision_vector.has_normal_contact_tan = 1;
-                } else {
-                    potential_collision_vector.has_normal_contact_tan = 0;
-                    potential_collision_vector.normal_contact_direction_tan.setZero(); 
-                }
-            // when there is contact on the ends
-            } else {
-                if (index_ == other.size() - 1) { 
-                    tan = (other[index_-1] - other[index_]).normalized();
+            potential_collision_vector.normal_contact_direction_nor = (min_dist_vector.dot(dir_nor) * dir_nor).normalized();
+            normal_distance = (min_dist_vector.dot(dir_nor) * dir_nor).norm();
+            if (normal_distance > 0) {
+                potential_collision_vector.has_normal_contact_nor = 1;
+            } 
+
+            // distance on the plane of interest
+            Vector3 displacement = min_dist_vector - min_dist_vector.dot(dir_nor)* dir_nor;
+            // check the contacts with the end caps
+             
+            if ((index_ == other.size() - 2 && min_proj > 1) || (index_ == 0 && min_proj < 0)){
+                if (index_ == other.size() - 2) { 
+                    tan = (other[index_] - other[index_+1]).normalized();
                 } else { 
                     tan = (other[index_+1] - other[index_]).normalized();
                 } 
-            
-                Vector3 displacement = other[index_] - point_of_interest - (other[index_] - point_of_interest).dot(dir_nor)* dir_nor;
+
                 Scalar tangential_displacement = displacement.dot(tan);
                 Vector3 normal_displacement = displacement - tangential_displacement * tan;
 
@@ -189,16 +225,22 @@ public:
                     potential_collision_vector.has_tangential_contact = 1;
                     potential_collision_vector.tangential_contact_direction = tan;
 
-                    if (index_ == other.size() - 1) {
+                    if (index_ == other.size() - 2) {
                         potential_collision_vector.hit_end_wall = 1; 
                     }
-                } else {
-                    potential_collision_vector.has_tangential_contact = 0;
-                    potential_collision_vector.tangential_contact_direction.setZero(); 
+                } 
+
+                if(radius - normal_displacement.norm() <= 0) {
+                    potential_collision_vector.has_normal_contact_tan = 1;
+                    potential_collision_vector.normal_contact_direction_tan = normal_displacement.normalized();
+                }
+
+            } else {
+                if(radius - displacement.norm() <= 0) {
+                    potential_collision_vector.has_normal_contact_tan = 1;
+                    potential_collision_vector.normal_contact_direction_tan = displacement.normalized();
                 }
             }
-                
-
         }
     }
 
