@@ -81,6 +81,14 @@ public:
         return free_entities_.at(free_entities_index)->GetWristCollisionVector();
     }
 
+    Vector3 GetTangentialDirection(const size_t& free_entities_index, const std::vector<Vector3>& other) const{
+        return free_entities_.at(free_entities_index)->GetTangentialDirection(other);
+    }
+
+    double GetPositionError(const size_t& free_entities_index, const Vector3& point_of_interest, const std::vector<Vector3>& other) {
+        return free_entities_.at(free_entities_index)->GetPositionError(point_of_interest, other);
+    }
+
     void UpdateVertices(const size_t& free_entities_index, const std::vector<Vector3>& vertices){
         free_entities_.at(free_entities_index)->UpdateVertices(vertices);
     }

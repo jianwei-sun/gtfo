@@ -65,7 +65,7 @@ public:
             vertices_wrist_(std::vector<Vector3> {vertices[1]}),
             fixed_(fixed),
             dir_nor_(),
-            index_(-1)
+            index_(0)
     {
         // Ensure at least one vertex exists
         assert(vertices.size() >= 1);
@@ -77,7 +77,7 @@ public:
             vertices_wrist_(),
             fixed_(fixed),
             dir_nor_(),
-            index_(-1)
+            index_(0)
     {
         
     }
@@ -173,23 +173,25 @@ public:
         //     }
         // }
         
-        index_ = -1;
         Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
         Vector3 min_dist_vector;
         Scalar min_proj;
+        SegmentParams results;
+        int index;
         for (int i = 0; i < other.size() - 1; ++i) {
-            SegmentParams results;
             results = ParseSegment(other[i], other[i+1], point_of_interest);
             Scalar dist_sq = results.dist.squaredNorm();
             if (dist_sq < min_dist_sq) {
                 min_dist_sq = dist_sq;
                 min_dist_vector = results.dist;
                 min_proj = results.proj;
-                index_ = i;
+                index = i;
             }
         }
 
-        if (index_ != -1) {
+        if (index != -1) {
+            index_ = index;
+            results_ = results;
             potential_collision_vector.has_tangential_contact = 0;
             potential_collision_vector.has_normal_contact_tan = 0;
             potential_collision_vector.has_normal_contact_nor = 0;
@@ -260,8 +262,79 @@ public:
         return potential_collision_vector_wrist_;
     }
 
-    int GetCurrentPointIndex(void) const{
-        return index_;
+    Vector3 GetTangentialDirection(const std::vector<Vector3>& other) const{
+        return (other[index_ + 1] - other[index_]).normalized();
+    }
+
+    double GetPositionError(const Vector3& point_of_interest, const std::vector<Vector3>& other) {
+        Scalar error = 0;
+        int index_desired = 0;
+        int index_current = index_;
+        Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
+        Vector3 min_dist_vector;
+        Scalar min_proj;
+        SegmentParams results; // for the desired
+        for (int i = 0; i < other.size() - 1; ++i) {
+            
+            results = ParseSegment(other[i], other[i+1], point_of_interest);
+            Scalar dist_sq = results.dist.squaredNorm();
+            if (dist_sq < min_dist_sq) {
+                min_dist_sq = dist_sq;
+                min_dist_vector = results.dist;
+                min_proj = results.proj;
+                index_desired = i;
+            }
+        }
+        
+        // uniform results
+        if (results_.proj > 1){
+            index_current = index_current + 1;
+        }
+
+        if (results.proj > 1){
+            index_desired = index_desired + 1;
+        }
+
+        Vector3 current_point_on_trajectory;
+        Vector3 desired_point_on_trajectory;
+        if (results_.proj >= 0 && results_.proj <= 1){
+            current_point_on_trajectory = other[index_current] + results_.proj * (other[index_current + 1] - other[index_current]);
+        } else {
+            current_point_on_trajectory = other[index_current];
+        }
+
+        if (results.proj >= 0 && results.proj <= 1){
+            desired_point_on_trajectory = other[index_desired] + results.proj * (other[index_desired + 1] - other[index_desired]);
+        } else {
+            desired_point_on_trajectory = other[index_desired];
+        }
+
+        // if on the same segment
+        if (index_desired == index_current){
+            error = (desired_point_on_trajectory - current_point_on_trajectory).norm();
+        } else if (index_desired > index_current) {
+            for (int i = index_current; i <= index_desired; ++i){
+                if (i == index_current){
+                    error += (other[i+1] - current_point_on_trajectory).norm();
+                } else if (i == index_desired){
+                    error += (desired_point_on_trajectory - other[i]).norm();
+                } else {
+                    error += (other[i+1] - other[i]).norm();
+                }
+            }
+        } else {
+            for (int i = index_desired; i <= index_current; ++i){
+                if (i == index_desired){
+                    error += (other[i+1] - current_point_on_trajectory).norm();
+                } else if (i == index_current){
+                    error += (desired_point_on_trajectory - other[i]).norm();
+                } else {
+                    error += (other[i+1] - other[i]).norm();
+                }
+            }
+        }
+        
+        return error;
     }
 
     virtual void UpdateVirtualState(void) = 0;
@@ -275,6 +348,7 @@ protected:
     CollisionVector<Scalar> potential_collision_vector_wrist_;
     Vector3 dir_nor_;
     int index_;
+    SegmentParams<Scalar> results_;
 private:
     const bool fixed_;
 };
