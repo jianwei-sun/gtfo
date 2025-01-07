@@ -18,16 +18,17 @@
 namespace gtfo{
 namespace collision{
 
-template<typename Scalar = double>
+template<unsigned int JointSpaceDimension, typename Scalar = double, unsigned int VirtualDimension = JointSpaceDimension>
 class SceneTunnel{
 public:
-    using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
-    using EntityPtr = std::shared_ptr<EntityPointTunnel<Scalar>>;
+    using Vector3 = typename EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::Vector3;
+    using EntityPtr = std::shared_ptr<EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>>;
+    using VirtualVector = typename EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::VirtualVector;
 
     template<typename... T>
     SceneTunnel(const T&... entity)
     {
-        static_assert(std::conjunction_v<std::is_base_of<EntityPointTunnel<Scalar>, T>...>, "SceneTunnel arguments must inherit from Entity");
+        static_assert(std::conjunction_v<std::is_base_of<EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>, T>...>, "SceneTunnel arguments must inherit from Entity");
         ([&]{
             if(entity.IsFixed()){
                 fixed_entities_.push_back(std::make_shared<T>(entity));
@@ -40,7 +41,7 @@ public:
 
     template<typename T>
     void AddEntity(const T& entity){
-        static_assert(std::is_base_of_v<EntityPointTunnel<Scalar>, T>, "Entities must inherit from Entity");
+        static_assert(std::is_base_of_v<EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>, T>, "Entities must inherit from Entity");
         if(entity.IsFixed()){
             if (fixed_entities_.size() > 0) { //specific to project. only want one fixed entity which is the pair of tunnels
                 fixed_entities_.clear(); // clear fixed_entities_
@@ -98,6 +99,10 @@ public:
         for(EntityPtr& free_entity : free_entities_){
             free_entity->UpdateVirtualState();
         }
+    }
+
+    void UpdateVirtualState(const VirtualVector& new_position, const size_t& free_entities_index = 0){
+        free_entities_.at(free_entities_index)->UpdateVirtualState(new_position); 
     }
 
     // Getter for free entity list

@@ -19,14 +19,15 @@
 namespace gtfo{
 namespace collision{
 
-template< typename TunnelParameters, typename Scalar = double>
-class VirtualTunnel : public EntityPointTunnel<Scalar>{
+template<unsigned int JointSpaceDimension, typename TunnelParameters, unsigned int VirtualDimension = JointSpaceDimension, typename Scalar = double>
+class VirtualTunnel : public EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>{
 public:
 
-    using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
+    using Vector3 = typename EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::Vector3;
+    using VirtualVector = typename EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::VirtualVector;
     
     VirtualTunnel(const TunnelParameters &tunnel_parameters)  // the vertices are actually dots along the reference trajectory
-    :   EntityPointTunnel<Scalar>(true),
+    :   EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>(true),
         number_of_vertices_(tunnel_parameters.num_of_points)
     {
         // generate trajectory in joint space first
@@ -91,6 +92,9 @@ public:
     void UpdateVirtualState() override {
     }
 
+    void UpdateVirtualState(const VirtualVector& new_position) override{
+    }
+
     void UpdateVertices(const std::vector<Vector3>& vertices) override{}
 
     void UpdateTunnelVertices(const std::vector<Vector3>& vertices_elbow, const std::vector<Vector3>& vertices_wrist, const Vector3& dir_nor) {
@@ -98,9 +102,9 @@ public:
         assert(vertices_elbow.size() >= 1);
         assert(vertices_wrist.size() == number_of_vertices_);
         assert(vertices_wrist.size() >= 1);
-        EntityPointTunnel<Scalar>::vertices_elbow_ = vertices_elbow;
-        EntityPointTunnel<Scalar>::vertices_wrist_ = vertices_wrist;
-        EntityPointTunnel<Scalar>::dir_nor_ = dir_nor;
+        EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::vertices_elbow_ = vertices_elbow;
+        EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::vertices_wrist_ = vertices_wrist;
+        EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::dir_nor_ = dir_nor;
     }
 
     std::vector<Vector3> GetElbowTrajectory(void) const{

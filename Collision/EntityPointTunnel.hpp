@@ -55,10 +55,11 @@ struct Collision{
     {}
 };
 
-template<typename Scalar = double>
+template<unsigned int JointSpaceDimension, typename Scalar = double, unsigned int VirtualDimension = JointSpaceDimension>
 class EntityPointTunnel{
 public:
     using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
+    using VirtualVector = Eigen::Matrix<Scalar, VirtualDimension, 1>;
     // for arm
     EntityPointTunnel(const std::vector<Vector3>& vertices, const bool& fixed)
         :   vertices_elbow_(std::vector<Vector3> {vertices[0]}),
@@ -137,42 +138,6 @@ public:
     }
 
     void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Vector3& dir_nor, const Scalar& radius) {
-        // Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
-        // index_ = -1;
-        // Vector3 dir_point_to_curve;
-        // #pragma omp parallel
-        // {
-        //     Scalar local_min_dist_sq = std::numeric_limits<Scalar>::max();
-        //     int local_index = -1;
-        //     Scalar local_t;
-        //     Vector3 local_dir_point_to_curve;
-
-        //     #pragma omp for
-        //     for (int i = 0; i < other.size() - 1; ++i) {
-        //         SegmentParams results;
-        //         results = ParseSegment(other[i], other[i+1], point_of_interest);
-
-        //         Scalar dist_sq = results.dist.squaredNorm();
-
-        //         if (dist_sq < local_min_dist_sq) {
-        //             local_min_dist_sq = dist_sq;
-        //             local_index = i;
-        //             local_t = results.t;
-        //             local_dir_point_to_curve = results.dist;
-        //         }
-        //     }
-
-        //     #pragma omp critical
-        //     {
-        //         if (local_min_dist_sq < min_dist_sq) {
-        //             min_dist_sq = local_min_dist_sq;
-        //             index_ = local_index;
-        //             t = local_t;
-        //             dir_point_to_curve = local_dir_point_to_curve;
-        //         }
-        //     }
-        // }
-        
         Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
         Vector3 min_dist_vector;
         Scalar min_proj;
@@ -338,6 +303,7 @@ public:
     }
 
     virtual void UpdateVirtualState(void) = 0;
+    virtual void UpdateVirtualState(const VirtualVector& new_position) = 0;
 
 protected:
     std::vector<Vector3> vertices_elbow_;

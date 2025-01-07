@@ -22,19 +22,19 @@ namespace gtfo{
 namespace collision{
 
 template<unsigned int JointSpaceDimension, unsigned int MaxCollisionsPerArm, unsigned int VirtualDimension = JointSpaceDimension, typename Scalar = double>
-class ManipulatorPoints : public EntityPointTunnel<Scalar>{
+class ManipulatorPoints : public EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>{
 public:
     static_assert(JointSpaceDimension >= 1, "JointSpaceDimension must be at least 1");
     static_assert(MaxCollisionsPerArm >= 1, "MaxCollisionsPerArm must be at least 1");
     static_assert(VirtualDimension >= 1, "VirtualDimension must be at least 1");
 
-    using Vector3 = typename EntityPointTunnel<Scalar>::Vector3;
+    using Vector3 = typename EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::Vector3;
     using JointVector = Eigen::Matrix<Scalar, JointSpaceDimension, 1>;
     using PartialJacobian = Eigen::Matrix<Scalar, 3, JointSpaceDimension, Eigen::RowMajor>;
-    using VirtualVector = Eigen::Matrix<Scalar, VirtualDimension, 1>;
+    using VirtualVector = typename EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::VirtualVector;
 
     ManipulatorPoints(const std::vector<Vector3>& vertices)
-        :   EntityPointTunnel<Scalar>(vertices, false),
+        :   EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>(vertices, false),
             number_of_vertices_(vertices.size()),
             partial_jacobian_updater_(nullptr),
             partial_jacobian_elbow_(PartialJacobian::Zero()),
@@ -48,8 +48,8 @@ public:
     // of vertices given at construction
     void UpdateVertices(const std::vector<Vector3>& vertices) override{
         assert(vertices.size() == number_of_vertices_);
-        EntityPointTunnel<Scalar>::vertices_elbow_ = std::vector<Vector3>{vertices[0]};
-        EntityPointTunnel<Scalar>::vertices_wrist_ = std::vector<Vector3>{vertices[1]};
+        EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::vertices_elbow_ = std::vector<Vector3>{vertices[0]};
+        EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::vertices_wrist_ = std::vector<Vector3>{vertices[1]};
     }
 
     // To enable collision avoidance, a partial jacobian (first three rows) which can be evaluated at any arbitrary point
@@ -81,6 +81,22 @@ public:
         }
     }
 
+    // overload function used to apply inverse kinematics to collision avoidance 
+    void UpdateVirtualState(const VirtualVector& new_position) override{
+        if(!model_ptr_ || !virtual_to_joint_ || !joint_to_virtual_){
+            return;
+        }
+        const VirtualVector& velocity = model_ptr_->GetVelocity();
+        const VirtualVector constrained_virtual_velocity = joint_to_virtual_(GetSafeJointSpaceVelocity(virtual_to_joint_(velocity)));
+        if(!IsEqual(constrained_virtual_velocity, velocity)){
+            model_ptr_->SetState(
+                new_position,
+                constrained_virtual_velocity,
+                (constrained_virtual_velocity - model_ptr_->GetOldVelocity())/model_ptr_->GetPeriod()
+            );
+        }
+    }
+
     // Returns the closest joint-space velocity to desired_velocity while still avoiding collisions. 
     // Note that all calls to ComputeCollisions should be completed before calling this function, 
     // if collision avoidance is enabled
@@ -90,15 +106,15 @@ public:
         if(partial_jacobian_updater_){
             Eigen::Matrix<Scalar, MaxCollisionsPerArm, JointSpaceDimension> constraint_matrix = Eigen::Matrix<Scalar, MaxCollisionsPerArm, JointSpaceDimension>::Zero();
             unsigned k = 0;
-            for(unsigned i = 0; i < std::min<size_t>(EntityPointTunnel<Scalar>::collisions_elbow_.size(), MaxCollisionsPerArm/2); ++i){
-                const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_elbow_[i];
+            for(unsigned i = 0; i < std::min<size_t>(EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::collisions_elbow_.size(), MaxCollisionsPerArm/2); ++i){
+                const Collision<Scalar>& collision = EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::collisions_elbow_[i];
                 partial_jacobian_updater_(partial_jacobian_elbow_, 0, collision.location_);
                 constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_elbow_;
                 k ++;
             }
             // std::cout << EntityPointTunnel<Scalar>::collisions_wrist_.size() << std::endl;
-            for(unsigned i = k; i < k + std::min<size_t>(EntityPointTunnel<Scalar>::collisions_wrist_.size(), MaxCollisionsPerArm/2); ++i){
-                const Collision<Scalar>& collision = EntityPointTunnel<Scalar>::collisions_wrist_[i-k];
+            for(unsigned i = k; i < k + std::min<size_t>(EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::collisions_wrist_.size(), MaxCollisionsPerArm/2); ++i){
+                const Collision<Scalar>& collision = EntityPointTunnel<VirtualDimension, Scalar, VirtualDimension>::collisions_wrist_[i-k];
                 partial_jacobian_updater_(partial_jacobian_wrist_, 1, collision.location_);
                 constraint_matrix.template block<1, JointSpaceDimension>(i, 0) = collision.direction_.transpose() * partial_jacobian_wrist_;
             }
