@@ -108,7 +108,7 @@ public:
             collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.tangential_contact_direction);
         }
 
-        MinDistanceVectorTo(potential_collision_vector_wrist_, vertices_wrist_[0], other.vertices_wrist_, other.dir_nor_, radius);
+        MinDistanceVectorTo(potential_collision_vector_wrist_, vertices_wrist_[0], other.vertices_wrist_, other.dir_nor_, radius, 1);
         if(potential_collision_vector_wrist_.has_normal_contact_tan){
             collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.normal_contact_direction_tan);
         }
@@ -137,7 +137,7 @@ public:
         return results;
     }
 
-    void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Vector3& dir_nor, const Scalar& radius) {
+    void MinDistanceVectorTo(CollisionVector<Scalar>& potential_collision_vector, const Vector3& point_of_interest, const std::vector<Vector3>& other, const Vector3& dir_nor, const Scalar& radius, const bool get_closest = 0) {
         Scalar min_dist_sq = std::numeric_limits<Scalar>::max();
         Vector3 min_dist_vector;
         Scalar min_proj;
@@ -157,6 +157,9 @@ public:
         if (index != -1) {
             index_ = index;
             results_ = results;
+            if(get_closest){
+                closest_point_ = other[index_] + results.proj * (other[index_ + 1] - other[index_]);
+            }
             potential_collision_vector.has_tangential_contact = 0;
             potential_collision_vector.has_normal_contact_tan = 0;
             potential_collision_vector.has_normal_contact_nor = 0;
@@ -229,6 +232,10 @@ public:
 
     Vector3 GetTangentialDirection(const std::vector<Vector3>& other) const{
         return (other[index_ + 1] - other[index_]).normalized();
+    }
+
+    Vector3 GetClosestWristPoint(void) const{
+        return closest_point_; 
     }
 
     double GetPositionError(const Vector3& point_of_interest, const std::vector<Vector3>& other) {
@@ -315,6 +322,7 @@ protected:
     Vector3 dir_nor_;
     int index_;
     SegmentParams<Scalar> results_;
+    Vector3 closest_point_;
 private:
     const bool fixed_;
 };

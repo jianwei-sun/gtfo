@@ -86,6 +86,10 @@ public:
         return free_entities_.at(free_entities_index)->GetTangentialDirection(other);
     }
 
+    Vector3 GetClosestWristPoint(const size_t& free_entities_index) const{
+        return free_entities_.at(free_entities_index)->GetClosestWristPoint();
+    }
+
     double GetPositionError(const size_t& free_entities_index, const Vector3& point_of_interest, const std::vector<Vector3>& other) {
         return free_entities_.at(free_entities_index)->GetPositionError(point_of_interest, other);
     }
