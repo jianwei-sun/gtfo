@@ -66,7 +66,8 @@ public:
             vertices_wrist_(std::vector<Vector3> {vertices[1]}),
             fixed_(fixed),
             dir_nor_(),
-            index_(0)
+            index_(0),
+            closest_point_(Vector3::Zero())
     {
         // Ensure at least one vertex exists
         assert(vertices.size() >= 1);
@@ -78,7 +79,8 @@ public:
             vertices_wrist_(),
             fixed_(fixed),
             dir_nor_(),
-            index_(0)
+            index_(0),
+            closest_point_(Vector3::Zero())
     {
         
     }
