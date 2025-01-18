@@ -160,7 +160,13 @@ public:
             index_ = index;
             results_ = results;
             if(get_closest){
-                closest_point_ = other[index_] + results.proj * (other[index_ + 1] - other[index_]);
+                if (results.proj < 0){
+                    closest_point_ = other[index_];
+                } else if (results.proj > 1){
+                    closest_point_ = other[index_ + 1];
+                } else{
+                    closest_point_ = other[index_] + results.proj * (other[index_ + 1] - other[index_]);
+                }
             }
             potential_collision_vector.has_tangential_contact = 0;
             potential_collision_vector.has_normal_contact_tan = 0;
