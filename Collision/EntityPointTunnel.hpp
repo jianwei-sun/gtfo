@@ -255,7 +255,6 @@ public:
         Scalar min_proj;
         SegmentParams results; // for the desired
         for (int i = 0; i < other.size() - 1; ++i) {
-            
             results = ParseSegment(other[i], other[i+1], point_of_interest);
             Scalar dist_sq = results.dist.squaredNorm();
             if (dist_sq < min_dist_sq) {
@@ -269,10 +268,12 @@ public:
         // uniform results
         if (results_.proj > 1){
             index_current = index_current + 1;
+            results_.proj -= 1;
         }
 
         if (results.proj > 1){
             index_desired = index_desired + 1;
+            results.proj -= 1;
         }
 
         Vector3 current_point_on_trajectory;
@@ -314,7 +315,21 @@ public:
             }
         }
         
-        return error;
+        int motion_direction = 1;
+        if (index_desired - index_current > 0){
+            motion_direction = 1;
+        } else if (index_desired - index_current < 0) {
+            motion_direction = -1;
+        } else {
+            if (results.proj - results_.proj > 0) {
+                motion_direction = 1;
+            } else if (results.proj - results_.proj < 0){
+                motion_direction = -1;
+            } else {
+                motion_direction = 0;
+            }
+        }
+        return motion_direction * error;
     }
 
     virtual void UpdateVirtualState(void) = 0;
