@@ -96,9 +96,10 @@ public:
         collisions_wrist_.clear();
     }
 
-    void ComputeCollisions(const EntityPointTunnel& other, const Scalar& radius){
+    void ComputeCollisions(const EntityPointTunnel& other, const Scalar& radius, bool enable_tunnel){
         MinDistanceVectorTo(potential_collision_vector_elbow_, vertices_elbow_[0], other.vertices_elbow_, other.dir_nor_, radius);
-        if(potential_collision_vector_elbow_.has_normal_contact_tan){
+        
+        if(potential_collision_vector_elbow_.has_normal_contact_tan && enable_tunnel){
             collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction_tan);
         }
 
@@ -111,7 +112,7 @@ public:
         }
 
         MinDistanceVectorTo(potential_collision_vector_wrist_, vertices_wrist_[0], other.vertices_wrist_, other.dir_nor_, radius, 1);
-        if(potential_collision_vector_wrist_.has_normal_contact_tan){
+        if(potential_collision_vector_wrist_.has_normal_contact_tan && enable_tunnel){
             collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.normal_contact_direction_tan);
         }
 

@@ -54,11 +54,11 @@ public:
 
     // Need mechanism for adding exclusions to segment pair collision checking
 
-    void ComputeCollisions(const Scalar& radius){
+    void ComputeCollisions(const Scalar& radius, bool tunnel_enabled = true){
         // For each free entity
         for (int i = 0; i < free_entities_.size(); i ++){
             free_entities_[i]->ClearCollisions();
-            free_entities_[i]->ComputeCollisions(*fixed_entities_[i], radius);
+            free_entities_[i]->ComputeCollisions(*fixed_entities_[i], radius, tunnel_enabled);
         }
     }
 
