@@ -98,17 +98,17 @@ public:
 
     void ComputeCollisions(const EntityPointTunnel& other, const Scalar& radius){
         MinDistanceVectorTo(potential_collision_vector_elbow_, vertices_elbow_[0], other.vertices_elbow_, other.dir_nor_, radius);
-        if(potential_collision_vector_elbow_.has_normal_contact_tan){
-            collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction_tan);
-        }
+        // if(potential_collision_vector_elbow_.has_normal_contact_tan){
+        //     collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction_tan);
+        // }
 
         if(potential_collision_vector_elbow_.has_normal_contact_nor){
             collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.normal_contact_direction_nor);
         }
 
-        if(potential_collision_vector_elbow_.has_tangential_contact){
-            collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.tangential_contact_direction);
-        }
+        // if(potential_collision_vector_elbow_.has_tangential_contact){
+        //     collisions_elbow_.emplace_back(vertices_elbow_[0], - potential_collision_vector_elbow_.tangential_contact_direction);
+        // }
 
         MinDistanceVectorTo(potential_collision_vector_wrist_, vertices_wrist_[0], other.vertices_wrist_, other.dir_nor_, radius, 1);
         if(potential_collision_vector_wrist_.has_normal_contact_tan){
@@ -119,9 +119,9 @@ public:
             collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.normal_contact_direction_nor);
         }
 
-        if(potential_collision_vector_wrist_.has_tangential_contact){
-            collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.tangential_contact_direction);
-        }
+        // if(potential_collision_vector_wrist_.has_tangential_contact){
+        //     collisions_wrist_.emplace_back(vertices_wrist_[0], - potential_collision_vector_wrist_.tangential_contact_direction);
+        // }
     }
 
     SegmentParams<Scalar> ParseSegment(const Vector3& start_point, const Vector3& end_point, const Vector3& point_of_interest){
@@ -197,7 +197,8 @@ public:
                 } 
 
                 Scalar tangential_displacement = displacement.dot(tan);
-                Vector3 normal_displacement = displacement - tangential_displacement * tan;
+                // Vector3 normal_displacement = displacement - tangential_displacement * tan;
+                // Vector3 normal_displacement = displacement;
 
                 if (tangential_displacement >= 0) { // 
                     potential_collision_vector.has_tangential_contact = 1;
@@ -208,17 +209,18 @@ public:
                     }
                 } 
 
-                if(radius - normal_displacement.norm() <= 0) {
-                    potential_collision_vector.has_normal_contact_tan = 1;
-                    potential_collision_vector.normal_contact_direction_tan = normal_displacement.normalized();
-                }
+                // if(radius - normal_displacement.norm() <= 0) {
+                //     potential_collision_vector.has_normal_contact_tan = 1;
+                //     potential_collision_vector.normal_contact_direction_tan = normal_displacement.normalized();
+                // }
 
-            } else {
-                if(radius - displacement.norm() <= 0) {
-                    potential_collision_vector.has_normal_contact_tan = 1;
-                    potential_collision_vector.normal_contact_direction_tan = displacement.normalized();
-                }
+            } 
+
+            if(radius - displacement.norm() <= 0) {
+                potential_collision_vector.has_normal_contact_tan = 1;
+                potential_collision_vector.normal_contact_direction_tan = displacement.normalized();
             }
+            
         }
     }
 
