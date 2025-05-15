@@ -28,6 +28,9 @@ public:
     using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
     using VectorP = Eigen::Matrix<Scalar, PositionDimensions, 1>;
 
+    using AccBound = BoundBase<Dimensions, Scalar>;
+    using AccBountPtr = std::shared_ptr<AccBound>;
+
     using VelocityBound = BoundBase<Dimensions, Scalar>;
     using VelocityBoundPtr = std::shared_ptr<VelocityBound>;
 
@@ -40,21 +43,23 @@ public:
 
     using ScalarType = Scalar;
 
-    DynamicsBase(const VectorP& initial_position = VectorP::Zero())
-        :   position_(initial_position),
-            old_position_(VectorP::Zero()),
-            velocity_(VectorN::Zero()),
-            acceleration_(VectorN::Zero()),
-            dynamics_paused_(false),
-            hard_bound_(new PositionBound()),
-            soft_bound_(new PositionBound()),
-            soft_bound_spring_constant_(0.0),
-            soft_bound_damping_constant_(0.0),
-            velocity_bound_(new VelocityBound()),
-            force_premodifier_(nullptr),
-            velocity_limit_set_(false),
-            hardbound_set_(false)
-            
+    DynamicsBase(const VectorP &initial_position = VectorP::Zero())
+        : position_(initial_position),
+          old_position_(VectorP::Zero()),
+          velocity_(VectorN::Zero()),
+          acceleration_(VectorN::Zero()),
+          dynamics_paused_(false),
+          hard_bound_(new PositionBound()),
+          soft_bound_(new PositionBound()),
+          soft_bound_spring_constant_(0.0),
+          soft_bound_damping_constant_(0.0),
+          velocity_bound_(new VelocityBound()),
+          force_premodifier_(nullptr),
+          velocity_limit_set_(false),
+          acc_limit_set_(false),
+          acc_bound_(new AccBound()),
+          hardbound_set_(false)
+
     {}
 
     // Virtual function to be implemented by the subclass. The function should
@@ -154,6 +159,7 @@ public:
             EnforceHardBound();
         }
         EnforceVelocityLimit();
+        EnforceAccLimit();
     }
 
     virtual void SetHardBound(const PositionBound& bound){
@@ -229,6 +235,25 @@ public:
         }
     }
 
+    // Sets a norm-bound for the Acceleration
+    void SetAccLimit(const Scalar &limit)
+    {
+        assert(limit >= 0.0);
+        this->acc_limit_ = limit;
+        acc_bound_ = std::make_shared<NormBound<Dimensions, Scalar>>(limit);
+        this->acc_limit_set_ = true;
+    }
+
+    // Modifies the current acceleration to the closest point within the acceleration bound
+    void EnforceAccLimit(void)
+    {
+        acceleration_ = acc_bound_->GetNearestPointWithinBound(acceleration_);
+        const auto surface_normals = acc_bound_->GetSurfaceNormals(acceleration_);
+        // if(surface_normals.HasPositiveDotProductWith(acceleration_)){
+        //     surface_normals.RemoveComponentIn(acceleration_);
+        // }
+    }
+
     void SetForcePremodifier(const std::function<VectorN(const VectorN&, const DynamicsBase&)>& force_premodifier){
         force_premodifier_ = force_premodifier;
     }
@@ -278,7 +303,8 @@ protected:
     bool hardbound_set_;
     bool velocity_limit_set_;
     Scalar velocity_limit_;
-
+    bool acc_limit_set_;
+    Scalar acc_limit_;
 
 private:
     // Hard and soft bounds are included for convenience, but do not have to be used
@@ -289,6 +315,7 @@ private:
 
     // Same goes for velocity limit
     VelocityBoundPtr velocity_bound_;
+    AccBountPtr acc_bound_;
 
     // Lambda for force premodifier
     std::function<VectorN(const VectorN&, const DynamicsBase&)> force_premodifier_;
