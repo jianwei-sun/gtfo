@@ -51,7 +51,8 @@ public:
             soft_bound_spring_constant_(0.0),
             soft_bound_damping_constant_(0.0),
             velocity_bound_(new VelocityBound()),
-            force_premodifier_(nullptr)
+            force_premodifier_(nullptr),
+            dt_()
     {}
 
     // Virtual function to be implemented by the subclass. The function should
@@ -107,6 +108,10 @@ public:
 
     [[nodiscard]] virtual inline bool DynamicsArePaused(void) const{
         return dynamics_paused_;
+    }
+
+    [[nodiscard]] virtual inline Scalar GetPeriod(void) const{
+        return dt_;
     }
 
     // Sets the current model's state to that of the target model. Since the current model may have different
@@ -240,6 +245,7 @@ protected:
     VectorP old_position_;
     VectorN velocity_;
     VectorN acceleration_;
+    Scalar dt_;
 
     bool dynamics_paused_;
 
