@@ -280,6 +280,19 @@ public:
             return 0.0f;
     }
 
+    virtual bool IsAccLimitSet()
+    {
+        return this->acc_limit_set_;
+    }
+
+    virtual Scalar getAccLimit()
+    {
+        if (this->acc_limit_set_)
+            return this->acc_limit_;
+        else
+            return 0.0f;
+    }
+
     virtual VectorP getBoundUpperLimit(){
         if(this->hardbound_set_)
             return hard_bound_->getUpperLimits();
