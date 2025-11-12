@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <memory>
 #include <tuple>
+#include <cassert>  // <-- add this
 
 // Project-specific
 #include "../Models/DynamicsBase.hpp"

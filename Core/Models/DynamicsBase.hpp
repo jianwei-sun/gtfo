@@ -16,7 +16,7 @@
 // Project-specific
 #include "../Bounds/BoundBase.hpp"
 #include "../Bounds/NormBound.hpp"
-
+#include <cassert>  // <-- add this
 namespace gtfo{
 
 template<unsigned int Dimensions, typename Scalar = double, unsigned int PositionDimensions = Dimensions>

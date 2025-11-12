@@ -6,7 +6,7 @@
 
 // Project-specific
 #include "BoundBase.hpp"
-
+#include <cassert>  // <-- add this
 namespace gtfo {
 
 template <unsigned int Dimensions, typename Scalar = double>

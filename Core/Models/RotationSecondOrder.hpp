@@ -10,6 +10,7 @@
 // Project-specific
 #include "DynamicsBase.hpp"
 #include "../Utils/Functions.hpp"
+#include <cassert> // <-- add this
 namespace gtfo
 {
 
