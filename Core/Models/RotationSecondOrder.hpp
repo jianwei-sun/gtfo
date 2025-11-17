@@ -20,8 +20,8 @@ public:
     using Vector3 = typename Base::VectorN;
     using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
     using Quaternion = Eigen::Quaternion<Scalar>;
-
-    RotationSecondOrder(const Scalar& dt, const Vector3& principal_inertia, const Scalar& damping, const Quaternion& initial_orientation = Quaternion::Identity())
+    // RotationSecondOrder(const Scalar& dt, const Vector3& principal_inertia, const Scalar& damping, const Quaternion& initial_orientation = Quaternion::Identity())
+    RotationSecondOrder(const Scalar& dt, const Vector3& principal_inertia, Scalar damping, const Quaternion& initial_orientation = Quaternion::Identity())
         :   Base(initial_orientation.coeffs()),
             dt_(dt),
             inertia_(principal_inertia.asDiagonal()),
@@ -40,6 +40,16 @@ public:
         // Passivity
         assert(damping_ >= 0.0);
     }
+
+    // --------------------Update by RICK 08/16/25----------------------------
+    // update rotational damping
+    void SetDamping(Scalar d_new) {
+        damping_ = std::max<Scalar>(0, d_new);
+    }
+    Scalar GetDamping() const{
+        return damping_;
+    }
+    // -----------------------------------------------------------------------
 
     // Torque is in the body frame
     void PropagateDynamics(const Vector3& torque) override{
@@ -71,7 +81,7 @@ public:
 private:
     const Scalar dt_;
     const Matrix3 inertia_;
-    const Scalar damping_;
+    Scalar damping_;
 };
 
 }

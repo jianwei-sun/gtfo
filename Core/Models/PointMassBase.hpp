@@ -6,6 +6,7 @@
 
 // Project-specific
 #include "DynamicsBase.hpp"
+#include <cassert>
 
 namespace gtfo
 {

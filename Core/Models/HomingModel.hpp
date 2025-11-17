@@ -21,6 +21,7 @@ public:
     HomingModel(const Scalar& dt, const Scalar& max_speed, const VectorN& home_position = VectorN::Zero())
         :   Base(home_position),
             dt_(dt),
+            
             time_(0.0),
             duration_(0.0),
             starting_position_(home_position),

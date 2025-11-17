@@ -5,6 +5,7 @@
 #pragma once
 // Project-specific
 #include "PointMassBase.hpp"
+#include <cassert>
 
 namespace gtfo{
 
@@ -59,11 +60,63 @@ namespace gtfo{
         using VectorN = Eigen::Matrix<Scalar, Dimensions, 1>;
 
         PointMassSecondOrder(const SecondOrderParameters<Scalar> &parameters, const VectorN &initial_position = VectorN::Zero())
-            : Base(parameters, initial_position)
+            : Base(parameters, initial_position) //, spring_zero_vec_(VectorN::Constant(parameters.virtual_spring_zero_position)) // <- added 11/5/25
         {
             SetStateTransitionMatrices(parameters);
         }
 
+        // // overloaded constructor for vector spring zero position 11/04/25
+        // PointMassSecondOrder(const SecondOrderParameters<Scalar>& parameters,
+        //              const VectorN& initial_position,
+        //              const VectorN& x0_vec)
+        //     : Base(parameters, initial_position), spring_zero_vec_(x0_vec)
+        // {
+        //     SetStateTransitionMatrices(parameters);
+        // }
+
+        // --------------------Update by RICK 08/16/25----------------------------
+        // added for variable damping
+        void SetDamping(Scalar d_new){
+            Base::parameters_.damping = std::max<Scalar>(0, d_new);
+            SetStateTransitionMatrices(Base::parameters_);
+        }
+        Scalar GetDamping() const{
+
+            return Base::parameters_.damping;
+        }
+        // ---------------------Update by RICK 11/04/25-----------------------------
+        void SetStiffness(Scalar k_new){
+            Base::parameters_.stiffness = std::max<Scalar>(0, k_new);
+            SetStateTransitionMatrices(Base::parameters_);
+        }
+        Scalar GetStiffness() const { 
+            return Base::parameters_.stiffness; 
+        }
+
+        // ---------------------Update by RICK 11/13/25-----------------------------
+        void SetVirtualSpringZero(Scalar x0){
+            Base::parameters_.virtual_spring_zero_position = x0;
+            SetStateTransitionMatrices(Base::parameters_);
+        }
+        Scalar GetVirtualSpringZero() const {
+            return Base::parameters_.virtual_spring_zero_position;
+        }
+
+        // void SetVirtualSpringZero(Scalar x0_scalar){
+        //     spring_zero_vec_.setConstant(x0_scalar);
+        //     SetStateTransitionMatrices(Base::parameters_);
+        // }
+        // Scalar GetVirtualSpringZero() const { return spring_zero_vec_.mean(); }
+
+        // // NEW: vector API for (x0x, x0y, x0z) <- 11/5/25
+        // void SetVirtualSpringZero(const VectorN& x0_vec){
+        //     spring_zero_vec_ = x0_vec;
+        //     SetStateTransitionMatrices(Base::parameters_);
+        // }
+        // VectorN GetVirtualSpringZeroVec() const { return spring_zero_vec_; }
+
+
+        // ------------------------------------------------------------------------
         // Propagate dynamics for a second order system but using softbounds if they exist
         void PropagateDynamics(const VectorN &force_input) override
         {
@@ -73,6 +126,20 @@ namespace gtfo{
             Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness 
             / Base:: parameters_.mass) * (Base::position_ - VectorN::Constant(Base::parameters_.virtual_spring_zero_position)) + force_input / Base::parameters_.mass;
         }
+
+        // // added 11/5/25
+        // void PropagateDynamics(const VectorN& F_ext) override {
+        //     const Scalar k = Base::parameters_.stiffness;
+        //     const VectorN F_spring = (-k) * (Base::position_ - spring_zero_vec_); // per-axis
+        //     const VectorN F_total  = F_ext + F_spring;
+
+        //     Base::PropagateDynamics(F_total);  // state sees x0 in all axes
+
+        //     // optional: consistent accel for logging
+        //     const Scalar m = Base::parameters_.mass;
+        //     const Scalar d = Base::parameters_.damping;
+        //     Base::acceleration_ = (-d/m) * Base::velocity_ + F_total / m;
+        // }
 
 
 
@@ -101,6 +168,21 @@ namespace gtfo{
                 }
             Base::C_discrete_ << static_cast<Scalar>(0.0), (stiffness * dt * virtual_spring_zero_position)/ mass; // the affine term
         }
+
+        // // added 11/5/25
+        // void SetStateTransitionMatrices(const SecondOrderParameters<Scalar>& p) override {
+        //     const Scalar dt = p.dt, m = p.mass, d = p.damping;
+        //     const Scalar e  = std::exp(-d/m * dt);
+        //     Base::A_discrete_ << Scalar(1), (Scalar(1)-e)*m/d,
+        //                         Scalar(0), e;
+        //     Base::B_discrete_ << (d*dt - (Scalar(1)-e)*m)/(d*d),
+        //                         (Scalar(1)-e)/d;
+        //     Base::C_discrete_.setZero();     // no affine bias
+        // }
+
+        // VectorN spring_zero_vec_;   // <- NEW: per-axis (x0x, x0y, x0z)
+
+        
     };
 
 } // namespace gtfo

@@ -14,6 +14,9 @@
 #include <memory>
 #include <tuple>
 
+//// Rick added ////
+#include <cassert>
+///////////////////
 // Project-specific
 #include "../Models/DynamicsBase.hpp"
 #include "../Bounds/BoundBase.hpp"

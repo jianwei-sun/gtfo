@@ -43,7 +43,7 @@ option(GTFO_BUILD_TESTS "Build tests for GTFO" ON)
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 
 # MuJoCo 2.3.1
-find_package(mujoco 2.3.1)
+find_package(mujoco 3.1.7)
 
 # osqp 0.6.2
 find_package(osqp REQUIRED)
