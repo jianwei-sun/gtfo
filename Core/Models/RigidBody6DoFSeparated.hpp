@@ -60,6 +60,14 @@ public:
     rot_.Step(Tau); // RotationSecondOrder takes Vec3 torque
   }
 
+  inline void PauseDynamics(bool flag)
+  {
+    x_.PauseDynamics(flag);
+    y_.PauseDynamics(flag);
+    z_.PauseDynamics(flag);
+    rot_.PauseDynamics(flag);
+  }
+
   // --- Translational getters---
   inline Vec3 GetPosition() const {
     return Vec3(x_.GetPosition()(0), y_.GetPosition()(0), z_.GetPosition()(0));
@@ -105,6 +113,13 @@ public:
     x_.SetSoftBound(Make1DBound(lo_abs.x(), hi_abs.x(), center_abs.x()), k_wall.x(), c_wall.x());
     y_.SetSoftBound(Make1DBound(lo_abs.y(), hi_abs.y(), center_abs.y()), k_wall.y(), c_wall.y());
     z_.SetSoftBound(Make1DBound(lo_abs.z(), hi_abs.z(), center_abs.z()), k_wall.z(), c_wall.z());
+  }
+
+  inline void SetVelocityLimit(Vec3 max_vel)
+  {
+    x_.SetVelocityLimit(max_vel[0]);
+    y_.SetVelocityLimit(max_vel[1]);
+    z_.SetVelocityLimit(max_vel[2]);
   }
 
   // Direct access if you need to call lower-level APIs
