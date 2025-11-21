@@ -102,9 +102,21 @@ public:
 
   // ------- Rectangular bound per-axis------
   inline void SetRectangularHardBound(const Vec3& lo_abs, const Vec3& hi_abs, const Vec3& center_abs){
-    x_.SetHardBound(Make1DBound(lo_abs.x(), hi_abs.x(), center_abs.x()));
-    y_.SetHardBound(Make1DBound(lo_abs.y(), hi_abs.y(), center_abs.y()));
-    z_.SetHardBound(Make1DBound(lo_abs.z(), hi_abs.z(), center_abs.z()));
+    // Use Vec1 (which depends on Scalar) to avoid hard-coded float matrix types
+    Bound1D bound_x(Vec1::Constant(center_abs[0] + lo_abs[0]),
+                    Vec1::Constant(center_abs[0] + hi_abs[0]),
+                    Vec1::Constant(center_abs[0]));
+    Bound1D bound_y(Vec1::Constant(center_abs[1] + lo_abs[1]),
+                    Vec1::Constant(center_abs[1] + hi_abs[1]),
+                    Vec1::Constant(center_abs[1]));
+
+    Bound1D bound_z(Vec1::Constant(center_abs[2] + lo_abs[2]),
+                    Vec1::Constant(center_abs[2] + hi_abs[2]),
+                    Vec1::Constant(center_abs[2]));
+
+    x_.SetHardBound(bound_x);
+    y_.SetHardBound(bound_y);
+    z_.SetHardBound(bound_z);
   }
 
   inline void SetRectangularSoftBound(const Vec3& lo_abs, const Vec3& hi_abs,
