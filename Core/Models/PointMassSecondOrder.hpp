@@ -73,6 +73,13 @@ namespace gtfo{
             Base::acceleration_ = (-Base::parameters_.damping / Base::parameters_.mass) * Base::velocity_ + (-Base::parameters_.stiffness 
             / Base:: parameters_.mass) * (Base::position_ - VectorN::Constant(Base::parameters_.virtual_spring_zero_position)) + force_input / Base::parameters_.mass;
         }
+        Eigen::Matrix<Scalar, 2, 2> getAMatrix() const{
+            return Base::A_discrete_;
+        }
+
+        Eigen::Matrix<Scalar, 2, 1> getBMatrix() const{
+            return Base::B_discrete_;
+        }
 
     private:
         void SetStateTransitionMatrices(const SecondOrderParameters<Scalar> &parameters) override
