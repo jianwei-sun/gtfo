@@ -63,7 +63,13 @@ namespace gtfo{
         {
             SetStateTransitionMatrices(parameters);
         }
+        void SetParameters(const SecondOrderParameters<Scalar> &parameters)
+        {
+            assert(parameters.mass > 0.0 && parameters.damping > 0.0);
 
+            Base::parameters_ = parameters;
+            SetStateTransitionMatrices(parameters);
+        }
         // Propagate dynamics for a second order system but using softbounds if they exist
         void PropagateDynamics(const VectorN &force_input) override
         {
