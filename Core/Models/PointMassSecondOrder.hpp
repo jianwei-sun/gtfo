@@ -74,6 +74,16 @@ namespace gtfo{
         //     SetStateTransitionMatrices(parameters);
         // }
 
+        void SetMass(Scalar m_new)
+        {
+            Base::parameters_.mass = std::max<Scalar>(0, m_new);
+            SetStateTransitionMatrices(Base::parameters_);
+        }
+        Scalar GetMass() const
+        {
+            return Base::parameters_.mass;
+        }
+
         // --------------------Update by RICK 08/16/25----------------------------
         // added for variable damping
         void SetDamping(Scalar d_new){
