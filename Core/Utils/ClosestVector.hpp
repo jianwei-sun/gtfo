@@ -22,6 +22,7 @@ public:
     static_assert(std::is_same_v<c_float, Scalar>, "OSQP's c_float must be of same type as template argument Scalar");
 
     using VectorN = Eigen::Matrix<c_float, Dimension, 1>;
+    using ConstraintVector = Eigen::Matrix<c_float, NumConstraints, 1>;
 
     ClosestVector()
         :   data_((OSQPData*)c_malloc(sizeof(OSQPData))),
@@ -146,6 +147,31 @@ public:
     void UpdateConstraintMatrix(const Eigen::Matrix<c_float, NumConstraints, Dimension>& constraint_matrix){
         osqp_update_A(work_, constraint_matrix.data(), non_identity_constraint_indices_.data(), NumConstraints * Dimension);
         prea_copy_csc_mat(work_->data->A, data_->A); 
+    }
+
+    void UpdateConstraintBounds(
+        const ConstraintVector& lower_bound,
+        const ConstraintVector& upper_bound)
+    {
+        lower_bound_.template head<NumConstraints>() = lower_bound;
+        upper_bound_.template head<NumConstraints>() = upper_bound;
+
+        osqp_update_bounds(work_, lower_bound_.data(), upper_bound_.data());
+        Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->l) = lower_bound_;
+        Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->u) = upper_bound_;
+    }
+
+    void SetDimensionBounds(
+        const size_t& dimension,
+        const Scalar& lower_bound,
+        const Scalar& upper_bound)
+    {
+        lower_bound_[NumConstraints + dimension] = lower_bound;
+        upper_bound_[NumConstraints + dimension] = upper_bound;
+
+        osqp_update_bounds(work_, lower_bound_.data(), upper_bound_.data());
+        Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->l) = lower_bound_;
+        Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->u) = upper_bound_;
     }
     
     void SetDimensionFixed(const size_t& dimension, const bool& fixed){
