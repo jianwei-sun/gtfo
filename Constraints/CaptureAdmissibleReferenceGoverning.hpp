@@ -65,12 +65,22 @@ public:
         {}
     };
 
+    // Static geometry.
     using ConstraintUpdater =
         std::function<void(
             Constraint&,
             const VirtualVector&,
             const VirtualVector&,
             const VirtualVector&)>;
+
+    // Time-varying geometry. The last argument is the evaluation time.
+    using TimeVaryingConstraintUpdater =
+        std::function<void(
+            Constraint&,
+            const VirtualVector&,
+            const VirtualVector&,
+            const VirtualVector&,
+            const Scalar&)>;
 
     explicit CARG(const Scalar& dt)
         :   dt_(dt),
@@ -96,8 +106,33 @@ public:
         old_acceleration_ = initial_acceleration;
     }
 
+    // Add a static geometric constraint.
     void AddConstraint(
         const ConstraintUpdater& updater,
+        const Scalar& max_acceleration,
+        const Scalar& max_jerk,
+        const Scalar& activation_tolerance = 0.0)
+    {
+        assert(static_cast<bool>(updater));
+
+        AddTimeVaryingConstraint(
+            [updater](
+                Constraint& constraint,
+                const VirtualVector& position,
+                const VirtualVector& velocity,
+                const VirtualVector& acceleration,
+                const Scalar&)
+            {
+                updater(constraint, position, velocity, acceleration);
+            },
+            max_acceleration,
+            max_jerk,
+            activation_tolerance);
+    }
+
+    // Add a geometric constraint whose clearance geometry varies with time.
+    void AddTimeVaryingConstraint(
+        const TimeVaryingConstraintUpdater& updater,
         const Scalar& max_acceleration,
         const Scalar& max_jerk,
         const Scalar& activation_tolerance = 0.0)
@@ -127,8 +162,8 @@ public:
         }
     }
 
-    // Call after the admittance model has generated the current nominal candidate.
-    void UpdateVirtualState(void){
+    // Call after the admittance model has generated the current nominal candidate at current_time.
+    void UpdateVirtualState(const Scalar& current_time){
         if(!model_ptr_){
             return;
         }
@@ -136,10 +171,7 @@ public:
         // Current unconstrained admittance candidate at k.
         const VirtualVector nominal_position = model_ptr_->GetPosition();
         const VirtualVector nominal_velocity = model_ptr_->GetVelocity();
-
-        // Current nominal acceleration estimated from the k-1 -> k admittance update.
-        const VirtualVector nominal_acceleration =
-            (nominal_velocity - old_velocity_) / dt_;
+        const VirtualVector nominal_acceleration = model_ptr_->GetAcceleration();
 
         ConstraintMatrix constraint_matrix = ConstraintMatrix::Zero();
         ConstraintVector lower_bound =
@@ -147,23 +179,27 @@ public:
         ConstraintVector upper_bound =
             ConstraintVector::Constant(OSQP_INFTY);
 
+        const Scalar old_time = current_time - dt_;
+
         for(unsigned i = 0; i < number_of_constraints_; ++i){
             Constraint old_constraint;
             Constraint nominal_constraint;
 
-            // Constraint quantities at the previously accepted governed state k-1.
+            // Previous accepted governed state at k-1 and its geometry.
             constraints_[i].updater_(
                 old_constraint,
                 old_position_,
                 old_velocity_,
-                old_acceleration_);
+                old_acceleration_,
+                old_time);
 
-            // One-step prediction using the unconstrained current candidate k.
+            // Current unconstrained candidate at k and its geometry.
             constraints_[i].updater_(
                 nominal_constraint,
                 nominal_position,
                 nominal_velocity,
-                nominal_acceleration);
+                nominal_acceleration,
+                current_time);
 
             const auto capture =
                 ComputeCaptureDistance(
@@ -197,7 +233,7 @@ public:
 
             const unsigned row = 3 * i;
 
-            // dot(g) >= 0
+            // dot(g_i) >= 0
             constraint_matrix.row(row) =
                 (capture.Da_ * old_constraint.gamma_).transpose();
 
@@ -277,7 +313,7 @@ public:
 
 private:
     struct ConstraintData{
-        ConstraintUpdater updater_;
+        TimeVaryingConstraintUpdater updater_;
         Scalar max_acceleration_;
         Scalar max_jerk_;
         Scalar activation_tolerance_;
