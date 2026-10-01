@@ -6,8 +6,9 @@
 
 // Standard libraries includes
 #include <array>
+#include <cassert>
+#include <cstddef>
 #include <functional>
-#include <limits>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -26,6 +27,8 @@ public:
     static_assert(VirtualDimension >= 1, "VirtualDimension must be at least 1");
     static_assert(MaxConstraints >= 1, "MaxConstraints must be at least 1");
 
+    // Each geometric constraint contributes:
+    // 1) capture-margin invariance, 2) normal jerk bounds, 3) normal acceleration bounds.
     static constexpr unsigned NumSolverConstraints = 3 * MaxConstraints;
 
     using VirtualVector = Eigen::Matrix<Scalar, VirtualDimension, 1>;
@@ -63,9 +66,13 @@ public:
     };
 
     using ConstraintUpdater =
-        std::function<void(Constraint&, const VirtualVector&, const VirtualVector&, const VirtualVector&)>;
+        std::function<void(
+            Constraint&,
+            const VirtualVector&,
+            const VirtualVector&,
+            const VirtualVector&)>;
 
-    CARG(const Scalar& dt)
+    explicit CARG(const Scalar& dt)
         :   dt_(dt),
             model_ptr_(nullptr),
             old_position_(VirtualVector::Zero()),
@@ -73,12 +80,16 @@ public:
             old_acceleration_(VirtualVector::Zero()),
             jerk_(VirtualVector::Zero()),
             number_of_constraints_(0)
-    {}
+    {
+        assert(dt_ > 0);
+    }
 
     void SetVirtualDynamics(
         DynamicsBase<VirtualDimension, Scalar>* model_ptr,
         const VirtualVector& initial_acceleration = VirtualVector::Zero())
     {
+        assert(model_ptr);
+
         model_ptr_ = model_ptr;
         old_position_ = model_ptr_->GetPosition();
         old_velocity_ = model_ptr_->GetVelocity();
@@ -92,6 +103,10 @@ public:
         const Scalar& activation_tolerance = 0.0)
     {
         assert(number_of_constraints_ < MaxConstraints);
+        assert(static_cast<bool>(updater));
+        assert(max_acceleration > 0);
+        assert(max_jerk > 0);
+        assert(activation_tolerance >= 0);
 
         ConstraintData& data = constraints_[number_of_constraints_++];
         data.updater_ = updater;
@@ -104,19 +119,25 @@ public:
         number_of_constraints_ = 0;
     }
 
+    // Generalized jerk bounds: -u_bar <= u <= u_bar.
     void SetVirtualJerkLimits(const VirtualVector& max_jerk){
         for(unsigned i = 0; i < VirtualDimension; ++i){
+            assert(max_jerk(i) > 0);
             solver_.SetDimensionBounds(i, -max_jerk(i), max_jerk(i));
         }
     }
 
+    // Call after the admittance model has generated the current nominal candidate.
     void UpdateVirtualState(void){
         if(!model_ptr_){
             return;
         }
 
+        // Current unconstrained admittance candidate at k.
         const VirtualVector nominal_position = model_ptr_->GetPosition();
         const VirtualVector nominal_velocity = model_ptr_->GetVelocity();
+
+        // Current nominal acceleration estimated from the k-1 -> k admittance update.
         const VirtualVector nominal_acceleration =
             (nominal_velocity - old_velocity_) / dt_;
 
@@ -130,12 +151,14 @@ public:
             Constraint old_constraint;
             Constraint nominal_constraint;
 
+            // Constraint quantities at the previously accepted governed state k-1.
             constraints_[i].updater_(
                 old_constraint,
                 old_position_,
                 old_velocity_,
                 old_acceleration_);
 
+            // One-step prediction using the unconstrained current candidate k.
             constraints_[i].updater_(
                 nominal_constraint,
                 nominal_position,
@@ -157,6 +180,7 @@ public:
                     constraints_[i].max_jerk_);
 
             ConstraintStatus& status = status_[i];
+
             status.capture_distance_ = capture.distance_;
             status.capture_margin_ =
                 old_constraint.clearance_ - capture.distance_;
@@ -173,37 +197,50 @@ public:
 
             const unsigned row = 3 * i;
 
+            // dot(g) >= 0
             constraint_matrix.row(row) =
                 (capture.Da_ * old_constraint.gamma_).transpose();
+
             upper_bound(row) =
                 -old_constraint.velocity_
                 - capture.Dv_ * old_constraint.acceleration_
                 - capture.Da_ * old_constraint.beta_;
 
+            // |j_i| <= j_bar_i
             constraint_matrix.row(row + 1) =
                 old_constraint.gamma_.transpose();
-            lower_bound(row + 1) =
-                -constraints_[i].max_jerk_ - old_constraint.beta_;
-            upper_bound(row + 1) =
-                constraints_[i].max_jerk_ - old_constraint.beta_;
 
+            lower_bound(row + 1) =
+                -constraints_[i].max_jerk_
+                - old_constraint.beta_;
+
+            upper_bound(row + 1) =
+                constraints_[i].max_jerk_
+                - old_constraint.beta_;
+
+            // |a_i + dt * j_i| <= a_bar_i
             constraint_matrix.row(row + 2) =
                 old_constraint.gamma_.transpose();
+
             lower_bound(row + 2) =
-                (-constraints_[i].max_acceleration_ - old_constraint.acceleration_) / dt_
+                (-constraints_[i].max_acceleration_
+                 - old_constraint.acceleration_) / dt_
                 - old_constraint.beta_;
+
             upper_bound(row + 2) =
-                (constraints_[i].max_acceleration_ - old_constraint.acceleration_) / dt_
+                (constraints_[i].max_acceleration_
+                 - old_constraint.acceleration_) / dt_
                 - old_constraint.beta_;
         }
 
-        const VirtualVector desired_jerk =
-            (nominal_acceleration - old_acceleration_) / dt_;
-
         solver_.UpdateConstraintMatrix(constraint_matrix);
         solver_.UpdateConstraintBounds(lower_bound, upper_bound);
-        jerk_ = solver_.SolveForVector(desired_jerk);
 
+        // Equivalent unconstrained solution of the acceleration-tracking objective.
+        jerk_ = solver_.SolveForVector(
+            (nominal_acceleration - old_acceleration_) / dt_);
+
+        // Constant-jerk propagation from governed state k-1 to governed state k.
         const VirtualVector governed_acceleration =
             old_acceleration_ + jerk_ * dt_;
 
@@ -226,7 +263,8 @@ public:
     }
 
     ConstraintStatus GetConstraintStatus(const size_t& index) const{
-        return status_.at(index);
+        assert(index < number_of_constraints_);
+        return status_[index];
     }
 
     const VirtualVector& GetAcceleration(void) const{
