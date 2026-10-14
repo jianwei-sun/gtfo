@@ -9,6 +9,7 @@
 #include <cassert>
 #include <cstddef>
 #include <functional>
+#include <stdexcept>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -28,12 +29,21 @@ public:
     static_assert(MaxConstraints >= 1, "MaxConstraints must be at least 1");
 
     // Each geometric constraint contributes:
-    // 1) capture-margin invariance, 2) normal jerk bounds, 3) normal acceleration bounds.
-    static constexpr unsigned NumSolverConstraints = 3 * MaxConstraints;
+    // 1) excursion-branch invariance, 2) normal jerk, 3) normal acceleration,
+    // 4) zero-branch invariance at a positive-part transition.
+    static constexpr unsigned NumSolverConstraints = 4 * MaxConstraints;
 
     using VirtualVector = Eigen::Matrix<Scalar, VirtualDimension, 1>;
     using ConstraintMatrix = Eigen::Matrix<Scalar, NumSolverConstraints, VirtualDimension>;
     using ConstraintVector = Eigen::Matrix<Scalar, NumSolverConstraints, 1>;
+
+    enum class UpdateStatus { NotRun, Success, NoModel, SolverFailure };
+
+    UpdateStatus GetUpdateStatus() const{ return update_status_; }
+    c_int GetSolveStatus() const{ return solver_.GetSolveStatus(); }
+    bool SetSolverTolerances(const Scalar& absolute, const Scalar& relative, c_int max_iterations){
+        return solver_.SetSolverTolerances(absolute, relative, max_iterations);
+    }
 
     struct Constraint{
         Scalar clearance_;
@@ -65,12 +75,22 @@ public:
         {}
     };
 
+    // Static geometry.
     using ConstraintUpdater =
         std::function<void(
             Constraint&,
             const VirtualVector&,
             const VirtualVector&,
             const VirtualVector&)>;
+
+    // Time-varying geometry. The last argument is the evaluation time.
+    using TimeVaryingConstraintUpdater =
+        std::function<void(
+            Constraint&,
+            const VirtualVector&,
+            const VirtualVector&,
+            const VirtualVector&,
+            const Scalar&)>;
 
     explicit CARG(const Scalar& dt)
         :   dt_(dt),
@@ -94,10 +114,37 @@ public:
         old_position_ = model_ptr_->GetPosition();
         old_velocity_ = model_ptr_->GetVelocity();
         old_acceleration_ = initial_acceleration;
+        jerk_.setZero();
+        update_status_ = UpdateStatus::NotRun;
     }
 
+    // Add a static geometric constraint.
     void AddConstraint(
         const ConstraintUpdater& updater,
+        const Scalar& max_acceleration,
+        const Scalar& max_jerk,
+        const Scalar& activation_tolerance = 0.0)
+    {
+        assert(static_cast<bool>(updater));
+
+        AddTimeVaryingConstraint(
+            [updater](
+                Constraint& constraint,
+                const VirtualVector& position,
+                const VirtualVector& velocity,
+                const VirtualVector& acceleration,
+                const Scalar&)
+            {
+                updater(constraint, position, velocity, acceleration);
+            },
+            max_acceleration,
+            max_jerk,
+            activation_tolerance);
+    }
+
+    // Add a geometric constraint whose clearance geometry varies with time.
+    void AddTimeVaryingConstraint(
+        const TimeVaryingConstraintUpdater& updater,
         const Scalar& max_acceleration,
         const Scalar& max_jerk,
         const Scalar& activation_tolerance = 0.0)
@@ -127,19 +174,27 @@ public:
         }
     }
 
-    // Call after the admittance model has generated the current nominal candidate.
-    void UpdateVirtualState(void){
+    // Call after the admittance model has generated the current nominal candidate at current_time.
+    void UpdateVirtualState(const Scalar& current_time){
+        if(!TryUpdateVirtualState(current_time) && update_status_ == UpdateStatus::SolverFailure)
+            throw std::runtime_error("CARG: QP failed; nominal reference left unchanged and not accepted");
+    }
+
+    // Nonthrowing solver-failure path. On solver failure, leave the model's nominal
+    // reference untouched and retain the previous accepted state and jerk internally.
+    // The nominal reference is NOT accepted or certified by CARG. The caller must
+    // handle failure before the next control step; retrying this update uses the same
+    // current_time and previous accepted state.
+    bool TryUpdateVirtualState(const Scalar& current_time){
         if(!model_ptr_){
-            return;
+            update_status_ = UpdateStatus::NoModel;
+            return false;
         }
 
         // Current unconstrained admittance candidate at k.
         const VirtualVector nominal_position = model_ptr_->GetPosition();
         const VirtualVector nominal_velocity = model_ptr_->GetVelocity();
-
-        // Current nominal acceleration estimated from the k-1 -> k admittance update.
-        const VirtualVector nominal_acceleration =
-            (nominal_velocity - old_velocity_) / dt_;
+        const VirtualVector nominal_acceleration = model_ptr_->GetAcceleration();
 
         ConstraintMatrix constraint_matrix = ConstraintMatrix::Zero();
         ConstraintVector lower_bound =
@@ -147,23 +202,27 @@ public:
         ConstraintVector upper_bound =
             ConstraintVector::Constant(OSQP_INFTY);
 
+        const Scalar old_time = current_time - dt_;
+
         for(unsigned i = 0; i < number_of_constraints_; ++i){
             Constraint old_constraint;
             Constraint nominal_constraint;
 
-            // Constraint quantities at the previously accepted governed state k-1.
+            // Previous accepted governed state at k-1 and its geometry.
             constraints_[i].updater_(
                 old_constraint,
                 old_position_,
                 old_velocity_,
-                old_acceleration_);
+                old_acceleration_,
+                old_time);
 
-            // One-step prediction using the unconstrained current candidate k.
+            // Current unconstrained candidate at k and its geometry.
             constraints_[i].updater_(
                 nominal_constraint,
                 nominal_position,
                 nominal_velocity,
-                nominal_acceleration);
+                nominal_acceleration,
+                current_time);
 
             const auto capture =
                 ComputeCaptureDistance(
@@ -195,9 +254,9 @@ public:
                 continue;
             }
 
-            const unsigned row = 3 * i;
+            const unsigned row = 4 * i;
 
-            // dot(g) >= 0
+            // dot(g_i) >= 0
             constraint_matrix.row(row) =
                 (capture.Da_ * old_constraint.gamma_).transpose();
 
@@ -205,6 +264,11 @@ public:
                 -old_constraint.velocity_
                 - capture.Dv_ * old_constraint.acceleration_
                 - capture.Da_ * old_constraint.beta_;
+
+            // At D=max(0,chi)=0, dot(D)=max(0,dot(chi)). Both branches
+            // must obey dot(D)<=-v; the excursion branch is the row above.
+            if(capture.zero_excursion_transition_)
+                upper_bound(row + 3) = -old_constraint.velocity_;
 
             // |j_i| <= j_bar_i
             constraint_matrix.row(row + 1) =
@@ -237,8 +301,13 @@ public:
         solver_.UpdateConstraintBounds(lower_bound, upper_bound);
 
         // Equivalent unconstrained solution of the acceleration-tracking objective.
-        jerk_ = solver_.SolveForVector(
+        const VirtualVector candidate_jerk = solver_.SolveForVector(
             (nominal_acceleration - old_acceleration_) / dt_);
+        if(!solver_.LastSolveSucceeded()){
+            update_status_ = UpdateStatus::SolverFailure;
+            return false;
+        }
+        jerk_ = candidate_jerk;
 
         // Constant-jerk propagation from governed state k-1 to governed state k.
         const VirtualVector governed_acceleration =
@@ -255,11 +324,13 @@ public:
             + 0.5 * old_acceleration_ * dt_ * dt_
             + (1.0 / 6.0) * jerk_ * dt_ * dt_ * dt_;
 
-        model_ptr_->SetState(governed_position, governed_velocity);
+        model_ptr_->SetState(governed_position, governed_velocity, governed_acceleration);
 
         old_position_ = governed_position;
         old_velocity_ = governed_velocity;
         old_acceleration_ = governed_acceleration;
+        update_status_ = UpdateStatus::Success;
+        return true;
     }
 
     ConstraintStatus GetConstraintStatus(const size_t& index) const{
@@ -277,7 +348,7 @@ public:
 
 private:
     struct ConstraintData{
-        ConstraintUpdater updater_;
+        TimeVaryingConstraintUpdater updater_;
         Scalar max_acceleration_;
         Scalar max_jerk_;
         Scalar activation_tolerance_;
@@ -294,6 +365,7 @@ private:
     std::array<ConstraintData, MaxConstraints> constraints_;
     std::array<ConstraintStatus, MaxConstraints> status_;
     unsigned number_of_constraints_;
+    UpdateStatus update_status_ = UpdateStatus::NotRun;
 
     ClosestVector<VirtualDimension, NumSolverConstraints, Scalar> solver_;
 };

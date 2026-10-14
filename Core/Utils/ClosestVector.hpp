@@ -8,6 +8,8 @@
 #include <array>
 #include <algorithm>
 #include <numeric>
+#include <cmath>
+#include <limits>
 
 // Third-party dependencies
 #include <Eigen/Dense>
@@ -77,11 +79,11 @@ public:
         osqp_set_default_settings(settings_);
 
         // Setup workspace
-        osqp_setup(&work_, data_, settings_);
+        setup_error_ = osqp_setup(&work_, data_, settings_);
     }
 
     ~ClosestVector(){
-        osqp_cleanup(work_);
+        if(work_) osqp_cleanup(work_);
         if(data_){
             csc_spfree(data_->P);
             csc_spfree(data_->A);
@@ -96,7 +98,7 @@ public:
     }
 
     // Copy constructor
-    ClosestVector(const ClosestVector& other){
+    ClosestVector(const ClosestVector& other) : work_(nullptr){
         // Copy the OSQPData struct
         data_ = (OSQPData*)c_malloc(sizeof(OSQPData));
         data_->n = other.data_->n;
@@ -110,7 +112,9 @@ public:
         settings_ = copy_settings(other.settings_);
 
         // The workspace is not copied over due to its complexity, but rather created as a new object
-        osqp_setup(&work_, data_, settings_);
+        setup_error_ = osqp_setup(&work_, data_, settings_);
+        matrix_error_ = other.matrix_error_;
+        bounds_error_ = other.bounds_error_;
 
         // The other variables are copied over too
         lower_bound_ = other.lower_bound_;
@@ -127,6 +131,12 @@ public:
         swap(first.lower_bound_, second.lower_bound_);
         swap(first.upper_bound_, second.upper_bound_);
         swap(first.non_identity_constraint_indices_, second.non_identity_constraint_indices_);
+        swap(first.setup_error_, second.setup_error_);
+        swap(first.matrix_error_, second.matrix_error_);
+        swap(first.bounds_error_, second.bounds_error_);
+        swap(first.solve_error_, second.solve_error_);
+        swap(first.solve_status_, second.solve_status_);
+        swap(first.last_solve_succeeded_, second.last_solve_succeeded_);
     }
 
     // Move constructor
@@ -145,8 +155,15 @@ public:
     // Eigen matrices are column-major by default. The argument type automatically converts row-major formats into
     // constraint_matrix before its values are used to update A
     void UpdateConstraintMatrix(const Eigen::Matrix<c_float, NumConstraints, Dimension>& constraint_matrix){
-        osqp_update_A(work_, constraint_matrix.data(), non_identity_constraint_indices_.data(), NumConstraints * Dimension);
-        prea_copy_csc_mat(work_->data->A, data_->A); 
+        last_solve_succeeded_ = false;
+        matrix_error_ = work_ && !setup_error_ && constraint_matrix.allFinite()
+            ? osqp_update_A(work_, constraint_matrix.data(), non_identity_constraint_indices_.data(), NumConstraints * Dimension)
+            : -1;
+        if(!matrix_error_){
+            // Keep the unscaled input for copy construction. work_->data->A is scaled.
+            for(unsigned i = 0; i < NumConstraints * Dimension; ++i)
+                data_->A->x[non_identity_constraint_indices_[i]] = constraint_matrix.data()[i];
+        }
     }
 
     void UpdateConstraintBounds(
@@ -156,7 +173,7 @@ public:
         lower_bound_.template head<NumConstraints>() = lower_bound;
         upper_bound_.template head<NumConstraints>() = upper_bound;
 
-        osqp_update_bounds(work_, lower_bound_.data(), upper_bound_.data());
+        UpdateBounds();
         Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->l) = lower_bound_;
         Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->u) = upper_bound_;
     }
@@ -169,7 +186,7 @@ public:
         lower_bound_[NumConstraints + dimension] = lower_bound;
         upper_bound_[NumConstraints + dimension] = upper_bound;
 
-        osqp_update_bounds(work_, lower_bound_.data(), upper_bound_.data());
+        UpdateBounds();
         Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->l) = lower_bound_;
         Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->u) = upper_bound_;
     }
@@ -182,23 +199,68 @@ public:
             lower_bound_[NumConstraints + dimension] = -OSQP_INFTY;
             upper_bound_[NumConstraints + dimension] = OSQP_INFTY;
         }
-        osqp_update_bounds(work_, lower_bound_.data(), upper_bound_.data());
+        UpdateBounds();
         Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->l) = lower_bound_;
         Eigen::Matrix<c_float, NumConstraints + Dimension, 1>::Map(data_->u) = upper_bound_;
     }
 
     // If the constraint matrix is not updated before this function is called, then the problem is just an unconstrained QP
     VectorN SolveForVector(const VectorN& desired){
+        last_solve_succeeded_ = false;
+        solve_status_ = OSQP_UNSOLVED;
+        solve_error_ = 0;
+        if(!work_ || setup_error_ || matrix_error_ || bounds_error_ || !desired.allFinite()){
+            solve_error_ = -1;
+            return VectorN::Constant(std::numeric_limits<Scalar>::quiet_NaN());
+        }
         // The cost vector is the negative of the desired vector
         Eigen::Matrix<c_float, Dimension, 1>::Map(data_->q) = -desired;
-        osqp_update_lin_cost(work_, data_->q);
+        solve_error_ = osqp_update_lin_cost(work_, data_->q);
+        if(solve_error_)
+            return VectorN::Constant(std::numeric_limits<Scalar>::quiet_NaN());
 
-        // It seems that status is always 0, which doesn't match one of the expected return types,
-        // so just return the solution
-        osqp_solve(work_);
+        // API return code and optimization status are distinct in OSQP 0.6.
+        solve_error_ = osqp_solve(work_);
+        solve_status_ = work_->info->status_val;
+        last_solve_succeeded_ = !solve_error_ && solve_status_ == OSQP_SOLVED
+            && VectorN::Map(work_->solution->x).allFinite();
+        // Preserve the legacy return type and solver output; checked users inspect status.
         return VectorN::Map(work_->solution->x);
     }
+
+    bool LastSolveSucceeded() const{ return last_solve_succeeded_; }
+    c_int GetSolveStatus() const{ return solve_status_; }
+    c_int GetSetupError() const{ return setup_error_; }
+    c_int GetMatrixUpdateError() const{ return matrix_error_; }
+    c_int GetBoundsUpdateError() const{ return bounds_error_; }
+    c_int GetSolveError() const{ return solve_error_; }
+
+    // Opt-in only: construction still uses OSQP's original defaults.
+    bool SetSolverTolerances(const Scalar& absolute, const Scalar& relative, c_int max_iterations){
+        if(!work_ || setup_error_ || !std::isfinite(absolute) || !std::isfinite(relative)
+            || absolute <= 0 || relative <= 0 || max_iterations <= 0) return false;
+        last_solve_succeeded_ = false;
+        if(osqp_update_eps_abs(work_, absolute) || osqp_update_eps_rel(work_, relative)
+            || osqp_update_max_iter(work_, max_iterations)) return false;
+        settings_->eps_abs = absolute;
+        settings_->eps_rel = relative;
+        settings_->max_iter = max_iterations;
+        return true;
+    }
 private:
+    void UpdateBounds(){
+        last_solve_succeeded_ = false;
+        bounds_error_ = work_ && !setup_error_ && !lower_bound_.array().isNaN().any()
+            && !upper_bound_.array().isNaN().any()
+            ? osqp_update_bounds(work_, lower_bound_.data(), upper_bound_.data()) : -1;
+    }
+
+    c_int setup_error_ = 0;
+    c_int matrix_error_ = 0;
+    c_int bounds_error_ = 0;
+    c_int solve_error_ = 0;
+    c_int solve_status_ = OSQP_UNSOLVED;
+    bool last_solve_succeeded_ = false;
     OSQPData* data_;
     OSQPSettings* settings_;
     OSQPWorkspace* work_;
