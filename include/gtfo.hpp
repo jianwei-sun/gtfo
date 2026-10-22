@@ -9,12 +9,14 @@
 #include "../Core/Utils/Comparisons.hpp"
 #include "../Core/Utils/Functions.hpp"
 #include "../Core/Utils/Containers.hpp"
+#include "../Core/Utils/CaptureDistance.hpp"
 
 #include "../Core/Models/PointMassFirstOrder.hpp"
 #include "../Core/Models/PointMassSecondOrder.hpp"
 #include "../Core/Models/RotationSecondOrder.hpp"
 #include "../Core/Models/RigidBodySecondOrder.hpp"
 #include "../Core/Models/HomingModel.hpp"
+#include "../Core/Models/ReachModel.hpp"
 #include "../Core/Models/ConstantVelocityModel.hpp"
 #include "../Core/Models/RandomPositions.hpp"
 
@@ -32,9 +34,11 @@
 #include "../Core/Filters/ButterworthLowPassFilter.hpp"
 #include "../Core/Filters/RateLimiter.hpp"
 
-#include "../Collision/Segment.hpp"
-#include "../Collision/Manipulator.hpp"
+#include "../Collision/ManipulatorPoints.hpp"
+#include "../Collision/SceneTunnel.hpp"
+#include "../Collision/VirtualTunnel.hpp"
 #include "../Collision/Obstacle.hpp"
-#include "../Collision/Scene.hpp"
+
 
 #include "../Constraints/ManifoldConstraints.hpp"
+#include "../Constraints/CARG.hpp"
